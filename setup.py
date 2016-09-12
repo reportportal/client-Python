@@ -11,5 +11,5 @@ setup(
     download_url='https://github.com/epam/ReportPortal-Python-Client/tarball/0.1.3',
     keywords=['testing', 'reporting', 'reportportal'],
     classifiers=[],
-    install_requires=[i.strip() for i in open("requirements.txt").readlines()],
+    install_requires=["requests"],
 )
