@@ -2,7 +2,8 @@ import os
 
 import requests
 
-from .model.response import EntryCreatedRS, OperationCompletionRS
+from reportportal_client.model.response import (EntryCreatedRS,
+                                                OperationCompletionRS)
 
 
 def print_request(r):
