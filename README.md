@@ -5,7 +5,7 @@
 Library used only for implementors of custom listeners for ReportPortal
 
 ## Allready implemented listeners:
-* Robot Framework (link)
+* [Robot Framework](https://github.com/EPAMReportPortal/ReportPortal-RobotFramework-agent)
 
 
 ## Installation
@@ -63,4 +63,4 @@ service.finish_launch(launch_id, fl_rq)
 
 # Copyright Notice
 Licensed under the [GPLv3](https://www.gnu.org/licenses/quick-guide-gplv3.html)
-license (see the LICENSE file).
+license (see the LICENSE.txt file).
