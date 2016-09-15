@@ -5,7 +5,7 @@
 Library used only for implementors of custom listeners for ReportPortal
 
 ## Allready implemented listeners:
-* [Robot Framework](https://github.com/EPAMReportPortal/ReportPortal-RobotFramework-agent)
+* [Robot Framework](https://github.com/reportportal/agent-Python-RobotFramework)
 
 
 ## Installation
