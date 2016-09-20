@@ -15,15 +15,12 @@ class EntryCreatedRS(RS):
     def id(self):
         try:
             return json.loads(self.raw)["id"]
-        except KeyError:
-            print("{0} object has no attribute 'id'".format(self.raw))
-            return None
+        except KeyError as error:
+            error.message += "Raw: {0}".format(self.raw)
+            raise
 
     def as_dict(self):
-        try:
-            return {"id": self.id}
-        except KeyError:
-            return json.loads(self.raw)
+        return {"id": self.id}
 
 
 class OperationCompletionRS(RS):
@@ -34,12 +31,9 @@ class OperationCompletionRS(RS):
     def msg(self):
         try:
             return json.loads(self.raw)["msg"]
-        except KeyError:
-            print("{0} object has no attribute 'msg'".format(self.raw))
-            return None
+        except KeyError as error:
+            error.message += "Raw: {0}".format(self.raw)
+            raise
 
     def as_dict(self):
-        try:
-            return {"msg": json.loads(self.raw)["msg"]}
-        except KeyError:
-            return json.loads(self.raw)
+        return {"msg": self.msg}
