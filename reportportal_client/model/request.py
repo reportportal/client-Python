@@ -21,7 +21,11 @@ class StartRQ(RQ):
     def __init__(self, name=None, description=None, tags=None,
                  start_time=None):
         super(StartRQ, self).__init__()
-        self.name = name
+        #Field 'name' should have size from '1' to '256'.
+        if len(name) > 255:
+            self.name = "{0} ...".format(name[:250])
+        else:
+            self.name = name
         self.description = description
         self.tags = tags
         self.start_time = start_time
