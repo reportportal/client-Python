@@ -19,16 +19,17 @@ class ReportPortalService(object):
         self.headers = {"Content-Type": "application/json",
                         "Authorization": "{0} {1}".format("bearer",
                                                           self.token)}
+        self.session = requests.Session()
 
     def start_launch(self, start_launch_rq):
         url = os.path.join(self.base_url, "launch")
-        r = requests.post(url=url, headers=self.headers,
+        r = self.session.post(url=url, headers=self.headers,
                           data=start_launch_rq.data)
         return EntryCreatedRS(raw=r.text)
 
     def finish_launch(self, launch_id, finish_execution_rq):
         url = os.path.join(self.base_url, "launch", launch_id, "finish")
-        r = requests.put(url=url, headers=self.headers,
+        r = self.session.put(url=url, headers=self.headers,
                          data=finish_execution_rq.data)
         return OperationCompletionRS(raw=r.text)
 
@@ -37,18 +38,18 @@ class ReportPortalService(object):
             url = os.path.join(self.base_url, "item", parent_item_id)
         else:
             url = os.path.join(self.base_url, "item")
-        r = requests.post(url=url, headers=self.headers,
+        r = self.session.post(url=url, headers=self.headers,
                           data=start_test_item_rq.data)
         return EntryCreatedRS(raw=r.text)
 
     def finish_test_item(self, item_id, finish_test_item_rq):
         url = os.path.join(self.base_url, "item", item_id)
-        r = requests.put(url=url, headers=self.headers,
+        r = self.session.put(url=url, headers=self.headers,
                          data=finish_test_item_rq.data)
         return OperationCompletionRS(raw=r.text)
 
     def log(self, save_log_rq):
         url = os.path.join(self.base_url, "log")
-        r = requests.post(url=url, headers=self.headers,
+        r = self.session.post(url=url, headers=self.headers,
                           data=save_log_rq.data)
         return EntryCreatedRS(raw=r.text)
