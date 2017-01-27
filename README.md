@@ -46,7 +46,7 @@ launch_doc = "Some text documentation for launch"
 
 service = ReportPortalService(endpoint=endpoint,
                               project=project,
-                              token=uuid)
+                              token=token)
 
 #Start Launch
 sl_rq = StartLaunchRQ(name=launch_name,
