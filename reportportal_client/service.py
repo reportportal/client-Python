@@ -7,6 +7,7 @@ from .model import (EntryCreatedRS, OperationCompletionRS)
 
 class ReportPortalService(object):
     """Service class with report portal event callbacks."""
+
     def __init__(self, endpoint, project, token, api_base=None):
         """Init the service class.
 
@@ -23,8 +24,8 @@ class ReportPortalService(object):
         self.project = project
         self.token = token
         self.base_url = self.uri_join_safe(self.endpoint,
-                                         self.api_base,
-                                         self.project)
+                                           self.api_base,
+                                           self.project)
         self.headers = {"Content-Type": "application/json",
                         "Authorization": "{0} {1}".format("bearer",
                                                           self.token)}
@@ -32,8 +33,8 @@ class ReportPortalService(object):
 
     @staticmethod
     def uri_join_safe(*uri_parts):
-        """Safe join of uri parts for our case. 
-        
+        """Safe join of uri parts for our case.
+
         Avoiding usage of urlparse.urljoin and os.path.join as it does not clearly join parts.
 
         Args:
