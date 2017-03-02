@@ -33,7 +33,7 @@ class ReportPortalService(object):
 
     @staticmethod
     def uri_join(*uri_parts):
-        """Safe join of uri parts for our case.
+        """Join uri parts.
 
         Avoiding usage of urlparse.urljoin and os.path.join as it does not clearly join parts.
 
@@ -41,7 +41,7 @@ class ReportPortalService(object):
             *uri_parts: tuple of values for join, can contain back and forward slashes (will be stripped up).
 
         Returns:
-            Safely joined uri parts.
+            An uri string.
         """
         stripped = [str(i).strip('/').strip('\\') for i in uri_parts]
         return '/'.join(stripped)
