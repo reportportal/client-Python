@@ -1,6 +1,7 @@
 #ReportPortal python client 
 
 [![PyPI](https://img.shields.io/pypi/v/reportportal-client.svg?maxAge=2592000)](https://pypi.python.org/pypi/reportportal-client)
+[![Build Status](https://travis-ci.org/reportportal/client-Python.svg?branch=master)](https://travis-ci.org/reportportal/client-Python)
 
 Library used only for implementors of custom listeners for ReportPortal
 
