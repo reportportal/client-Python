@@ -1,17 +1,6 @@
 import requests
-from requests.auth import AuthBase
 
 from .model import (EntryCreatedRS, OperationCompletionRS)
-
-
-class BearerAuth(AuthBase):
-    """Attaches HTTP Bearer Authentication to the given Request object."""
-    def __init__(self, token):
-        self.token = token
-
-    def __call__(self, r):
-        r.headers["Authorization"] = "bearer {0}".format(self.token)
-        return r
 
 
 class ReportPortalService(object):
@@ -35,8 +24,9 @@ class ReportPortalService(object):
         self.base_url = self.uri_join(self.endpoint,
                                       self.api_base,
                                       self.project)
+
         self.session = requests.Session()
-        self.session.auth = BearerAuth(self.token)
+        self.session.headers["Authorization"] = "bearer {0}".format(self.token)
 
     @staticmethod
     def uri_join(*uri_parts):
