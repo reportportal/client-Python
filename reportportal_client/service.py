@@ -74,25 +74,24 @@ class ReportPortalService(object):
         r = self.session.post(url=url, json=save_log_rq.as_dict())
         return EntryCreatedRS(raw=r.text)
 
-    def attach(self, save_log_rq, data):
+    def attach(self, save_log_rq, name, data, mime="application/octet-stream"):
         """Logs message with attachment.
 
         Args:
             save_log_rq: SaveLogRQ instance
-            data:  2-tuple ("filename", fileobj or content) in this case
-                   "application/octet-stream" will be used by default, or
-                   3-tuple ("filename", fileobj or content, "content_type")
+            name: name of attachment
+            data: fileobj or content
+            mime: content type for attachment
 
         Returns:
             An instance of EntryCreatedRS.
         """
         url = self.uri_join(self.base_url, "log")
         dct = save_log_rq.as_dict()
-        dct["file"] = {"name": data[0]}
+        dct["file"] = {"name": name}
         files = {
             "json_request_part": (None, json.dumps([dct]), "application/json"),
-            "file": (data[0], data[1],
-                     data[2] if len(data) > 2 else "application/octet-stream")
+            "file": (name, data, mime)
         }
         r = self.session.post(url=url, files=files)
         return EntryCreatedRS(raw=r.text)
