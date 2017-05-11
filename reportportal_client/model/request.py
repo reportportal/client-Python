@@ -6,11 +6,7 @@ class RQ(object):
         super(RQ, self).__init__()
 
     def as_dict(self):
-        res = {}
-        for k, v in self.__dict__.items():
-            if v:
-                res[k] = v
-        return res
+        return dict((k, v) for k, v in self.__dict__.items() if v)
 
     @property
     def data(self):
@@ -21,7 +17,7 @@ class StartRQ(RQ):
     def __init__(self, name=None, description=None, tags=None,
                  start_time=None):
         super(StartRQ, self).__init__()
-        #Field 'name' should have size from '1' to '256'.
+        # Field 'name' should have size from '1' to '256'.
         if len(name) > 255:
             self.name = "{0} ...".format(name[:250])
         else:
