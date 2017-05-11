@@ -79,7 +79,9 @@ class ReportPortalService(object):
 
         Args:
             save_log_rq: SaveLogRQ instance
-            data:  3-tuple ("filename", fileobj or content, "content_type")
+            data:  2-tuple ("filename", fileobj or content) in this case
+                   "application/octet-stream" will be used by default, or
+                   3-tuple ("filename", fileobj or content, "content_type")
 
         Returns:
             An instance of EntryCreatedRS.
@@ -89,7 +91,8 @@ class ReportPortalService(object):
         dct["file"] = {"name": data[0]}
         files = {
             "json_request_part": (None, json.dumps([dct]), "application/json"),
-            "file": data,
+            "file": (data[0], data[1],
+                     data[2] if len(data) > 2 else "application/octet-stream")
         }
         r = self.session.post(url=url, files=files)
         return EntryCreatedRS(raw=r.text)
