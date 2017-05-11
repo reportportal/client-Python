@@ -1,3 +1,4 @@
+import json
 import requests
 
 from .model import (EntryCreatedRS, OperationCompletionRS)
@@ -71,4 +72,26 @@ class ReportPortalService(object):
     def log(self, save_log_rq):
         url = self.uri_join(self.base_url, "log")
         r = self.session.post(url=url, json=save_log_rq.as_dict())
+        return EntryCreatedRS(raw=r.text)
+
+    def attach(self, save_log_rq, name, data, mime="application/octet-stream"):
+        """Logs message with attachment.
+
+        Args:
+            save_log_rq: SaveLogRQ instance
+            name: name of attachment
+            data: fileobj or content
+            mime: content type for attachment
+
+        Returns:
+            An instance of EntryCreatedRS.
+        """
+        url = self.uri_join(self.base_url, "log")
+        dct = save_log_rq.as_dict()
+        dct["file"] = {"name": name}
+        files = {
+            "json_request_part": (None, json.dumps([dct]), "application/json"),
+            "file": (name, data, mime)
+        }
+        r = self.session.post(url=url, files=files)
         return EntryCreatedRS(raw=r.text)

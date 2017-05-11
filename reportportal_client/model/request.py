@@ -66,21 +66,10 @@ class FinishTestItemRQ(FinishExecutionRQ):
         self.issue = issue
 
 
-class File(RQ):
-    def __init__(self, name, content):
-        super(File, self).__init__()
-        self.name = name
-        self.content = content
-
-
 class SaveLogRQ(RQ):
-    def __init__(self, item_id=None, time=None, message=None, level=None,
-                 file_obj=None):
+    def __init__(self, item_id=None, time=None, message=None, level=None):
         super(SaveLogRQ, self).__init__()
         self.item_id = item_id
         self.time = time
         self.message = message
         self.level = level
-        self.file = None
-        if file_obj is not None:
-            self.file = file_obj.data
