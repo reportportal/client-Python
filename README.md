@@ -5,8 +5,11 @@
 
 Library used only for implementors of custom listeners for ReportPortal
 
+
 ## Allready implemented listeners:
-* [Robot Framework](https://github.com/reportportal/agent-Python-RobotFramework)
+
+- [Robot Framework](https://github.com/reportportal/agent-Python-RobotFramework)
+- [PyTest Framework](https://github.com/reportportal/agent-python-pytest)
 
 
 ## Installation
@@ -123,6 +126,8 @@ fl_rq = FinishExecutionRQ(end_time=timestamp(), status="PASSED")
 service.finish_launch(launch.id, fl_rq)
 ```
 
+
 # Copyright Notice
+
 Licensed under the [GPLv3](https://www.gnu.org/licenses/quick-guide-gplv3.html)
 license (see the LICENSE.txt file).
