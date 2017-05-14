@@ -18,10 +18,7 @@ class StartRQ(RQ):
                  start_time=None):
         super(StartRQ, self).__init__()
         # Field 'name' should have size from '1' to '256'.
-        if len(name) > 255:
-            self.name = "{0} ...".format(name[:250])
-        else:
-            self.name = name
+        self.name = "{0} ...".format(name[:250]) if len(name) > 255 else name
         self.description = description
         self.tags = tags
         self.start_time = start_time
@@ -49,8 +46,6 @@ class StartTestItemRQ(StartRQ):
         type can be (SUITE, STORY, TEST, SCENARIO, STEP, BEFORE_CLASS,
         BEFORE_GROUPS, BEFORE_METHOD, BEFORE_SUITE, BEFORE_TEST, AFTER_CLASS,
         AFTER_GROUPS, AFTER_METHOD, AFTER_SUITE, AFTER_TEST)
-        :param launch_id:
-        :param type:
         """
         super(StartTestItemRQ, self).__init__(name=name,
                                               description=description,
