@@ -9,7 +9,6 @@ class RS(object):
         self.raw = raw
 
 
-# FIXME: need to improve and rework errors handling, add checks of err codes
 class EntryCreatedRS(RS):
     def __init__(self, raw):
         super(EntryCreatedRS, self).__init__(raw)
@@ -25,7 +24,6 @@ class EntryCreatedRS(RS):
         return {"id": self.id}
 
 
-# FIXME: need to improve and rework errors handling, add checks of err codes
 class OperationCompletionRS(RS):
     def __init__(self, raw):
         super(OperationCompletionRS, self).__init__(raw)
