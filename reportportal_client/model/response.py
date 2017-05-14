@@ -1,5 +1,7 @@
 import json
 
+from ..errors import EntryCreatedError, OperationCompletionError
+
 
 class RS(object):
     def __init__(self, raw):
@@ -7,6 +9,7 @@ class RS(object):
         self.raw = raw
 
 
+# FIXME: need to improve and rework errors handling, add checks of err codes
 class EntryCreatedRS(RS):
     def __init__(self, raw):
         super(EntryCreatedRS, self).__init__(raw)
@@ -15,14 +18,14 @@ class EntryCreatedRS(RS):
     def id(self):
         try:
             return json.loads(self.raw)["id"]
-        except KeyError as error:
-            error.message += "Raw: {0}".format(self.raw)
-            raise
+        except KeyError:
+            raise EntryCreatedError("raw: {0}".format(self.raw))
 
     def as_dict(self):
         return {"id": self.id}
 
 
+# FIXME: need to improve and rework errors handling, add checks of err codes
 class OperationCompletionRS(RS):
     def __init__(self, raw):
         super(OperationCompletionRS, self).__init__(raw)
@@ -31,9 +34,8 @@ class OperationCompletionRS(RS):
     def msg(self):
         try:
             return json.loads(self.raw)["msg"]
-        except KeyError as error:
-            error.message += "Raw: {0}".format(self.raw)
-            raise
+        except KeyError:
+            raise OperationCompletionError("raw: {0}".format(self.raw))
 
     def as_dict(self):
         return {"msg": self.msg}
