@@ -43,8 +43,7 @@ class ReportPortalService(object):
         Returns:
             An uri string.
         """
-        stripped = [str(i).strip('/').strip('\\') for i in uri_parts]
-        return '/'.join(stripped)
+        return '/'.join(str(s).strip('/').strip('\\') for s in uri_parts)
 
     def start_launch(self, start_launch_rq):
         url = self.uri_join(self.base_url, "launch")
