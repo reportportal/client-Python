@@ -132,8 +132,16 @@ class ReportPortalServiceAsync(object):
         :return: 
         """
         logger.debug("Terminating service")
-        self._post_log_batch()
+
         self.listener.stop(nowait)
+        try:
+            self._post_log_batch()
+        except Exception as err:
+            if self.error_handler:
+                self.error_handler(err)
+            else:
+                raise
+
         self.queue = None
         self.listener = None
 
@@ -149,6 +157,7 @@ class ReportPortalServiceAsync(object):
         Special handler for log messages.
         Accumulate incoming log messages and post them in batch.
         """
+        logger.debug("Processing log item: {}".format(log_item))
         self.log_batch.append(log_item)
         if len(self.log_batch) >= self.BATCH_SIZE:
             self._post_log_batch()
