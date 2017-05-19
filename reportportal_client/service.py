@@ -1,7 +1,22 @@
 import json
 import requests
+from logging import getLogger
 
-from .model import (EntryCreatedRS, OperationCompletionRS)
+logger = getLogger(__name__)
+
+
+def _get_id(response):
+    try:
+        return json.loads(response)["id"]
+    except KeyError:
+        raise Exception("raw: {0}".format(response))
+
+
+def _get_msg(response):
+    try:
+        return json.loads(response)["msg"]
+    except KeyError:
+        raise Exception("raw: {0}".format(response))
 
 
 class ReportPortalService(object):
@@ -28,6 +43,11 @@ class ReportPortalService(object):
 
         self.session = requests.Session()
         self.session.headers["Authorization"] = "bearer {0}".format(self.token)
+        self.stack = list()
+        self.launch_id = None
+
+    def terminate(self):
+        pass
 
     @staticmethod
     def uri_join(*uri_parts):
@@ -45,52 +65,111 @@ class ReportPortalService(object):
         """
         return '/'.join(str(s).strip('/').strip('\\') for s in uri_parts)
 
-    def start_launch(self, start_launch_rq):
+    def start_launch(self, name=None, description=None, tags=None, start_time=None,
+                     mode=None):
+        data = {
+            "name": name,
+            "description": description,
+            "tags": tags,
+            "start_time": start_time,
+            "mode": mode
+        }
         url = self.uri_join(self.base_url, "launch")
-        r = self.session.post(url=url, json=start_launch_rq.as_dict())
-        return EntryCreatedRS(raw=r.text)
+        r = self.session.post(url=url, json=data)
+        self.launch_id = _get_id(r.text)
+        self.stack.append(None)
+        logger.debug("start_launch - Stack: {0}". format(self.stack))
+        return self.launch_id
 
-    def finish_launch(self, launch_id, finish_execution_rq):
-        url = self.uri_join(self.base_url, "launch", launch_id, "finish")
-        r = self.session.put(url=url, json=finish_execution_rq.as_dict())
-        return OperationCompletionRS(raw=r.text)
+    def finish_launch(self, end_time=None, status=None):
+        data = {
+            "end_time": end_time,
+            "status": status
+        }
+        url = self.uri_join(self.base_url, "launch", self.launch_id, "finish")
+        r = self.session.put(url=url, json=data)
+        return _get_msg(r.text)
 
-    def start_test_item(self, parent_item_id, start_test_item_rq):
+    def start_test_item(self, name=None, description=None, tags=None,
+                        start_time=None, type=None):
+        data = {
+            "name": name,
+            "description": description,
+            "tags": tags,
+            "start_time": start_time,
+            "launch_id": self.launch_id,
+            "type": type,
+        }
+        parent_item_id = self.stack[-1]
         if parent_item_id is not None:
             url = self.uri_join(self.base_url, "item", parent_item_id)
         else:
             url = self.uri_join(self.base_url, "item")
-        r = self.session.post(url=url, json=start_test_item_rq.as_dict())
-        return EntryCreatedRS(raw=r.text)
+        r = self.session.post(url=url, json=data)
 
-    def finish_test_item(self, item_id, finish_test_item_rq):
+        _id = _get_id(r.text)
+        self.stack.append(_id)
+        return _id
+
+    def finish_test_item(self, end_time=None, status=None, issue=None):
+        data = {
+            "end_time": end_time,
+            "status": status,
+            "issue": issue,
+        }
+        item_id = self.stack.pop()
         url = self.uri_join(self.base_url, "item", item_id)
-        r = self.session.put(url=url, json=finish_test_item_rq.as_dict())
-        return OperationCompletionRS(raw=r.text)
+        r = self.session.put(url=url, json=data)
+        return _get_msg(r.text)
 
-    def log(self, save_log_rq):
-        url = self.uri_join(self.base_url, "log")
-        r = self.session.post(url=url, json=save_log_rq.as_dict())
-        return EntryCreatedRS(raw=r.text)
+    def log(self, time=None, message=None, level=None, attachment=None):
+        data = {
+            "item_id": self.stack[-1],
+            "time": time,
+            "message": message,
+            "level": level,
+            "attachment": attachment
+        }
+        if attachment:
+            return self.log_batch([data])
+        else:
+            url = self.uri_join(self.base_url, "log")
+            r = self.session.post(url=url, json=data)
+            return _get_id(r.text)
 
-    def attach(self, save_log_rq, name, data, mime="application/octet-stream"):
-        """Logs message with attachment.
+    def log_batch(self, log_data):
+        """Logs batch of messages with attachment.
 
         Args:
-            save_log_rq: SaveLogRQ instance
-            name: name of attachment
-            data: fileobj or content
-            mime: content type for attachment
+            log_data: list of log records.
+            log record is a dict of;
+                time, message, level, attachment
+                attachment is a dict of:
+                    name: name of attachment
+                    data: fileobj or content
+                    mime: content type for attachment
 
         Returns:
-            An instance of EntryCreatedRS.
+            
         """
+
         url = self.uri_join(self.base_url, "log")
-        dct = save_log_rq.as_dict()
-        dct["file"] = {"name": name}
-        files = {
-            "json_request_part": (None, json.dumps([dct]), "application/json"),
-            "file": (name, data, mime)
-        }
+
+        attachments = []
+        for log_item in log_data:
+            log_item["item_id"] = self.stack[-1]
+            attachment = log_item.get("attachment", None)
+            del log_item["attachment"]
+
+            if attachment:
+                log_item["file"] = {"name": attachment["name"]}
+                attachments.append(("file", (attachment["name"], attachment["data"], attachment["mime"])))
+
+        files = [
+            ("json_request_part", (None, json.dumps(log_data), "application/json")),
+        ]
+        files.extend(attachments)
         r = self.session.post(url=url, files=files)
-        return EntryCreatedRS(raw=r.text)
+        logger.debug("log_batch respose: {}".format(r.text))
+
+        return r.text
