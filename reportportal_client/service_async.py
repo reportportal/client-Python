@@ -4,6 +4,7 @@ import threading
 from six.moves import queue
 
 from .service import ReportPortalService
+from .errors import Error
 
 logger = getLogger(__name__)
 
@@ -60,9 +61,9 @@ class QueueListener(object):
         This method runs on a separate, internal thread.
         The thread will terminate if it sees a sentinel object in the queue.
         """
-        assert (self._stop.isSet() or not self._stop_nowait.isSet(),
-                ("invalid internal state _stop_nowait can not be set "
-                 "if _stop is not set"))
+        assert self._stop.isSet() or not self._stop_nowait.isSet(), \
+            "invalid internal state _stop_nowait can not be set " \
+            "if _stop is not set"
         q = self.queue
         has_task_done = hasattr(q, 'task_done')
         while not self._stop.isSet():
@@ -73,9 +74,9 @@ class QueueListener(object):
                 self.handle(record)
                 if has_task_done:
                     q.task_done()
-
             except queue.Empty:
                 pass
+
         # There might still be records in the queue,
         # handle then unless _stop_nowait is set.
         while not self._stop_nowait.isSet():
@@ -104,16 +105,19 @@ class QueueListener(object):
         if nowait:
             self._stop_nowait.set()
         self.queue.put_nowait(self._sentinel_item)
-        self._thread.join()
+        if (self._thread.isAlive()
+                and self._thread is not threading.currentThread()):
+            self._thread.join()
         self._thread = None
 
 
 class ReportPortalServiceAsync(object):
-    BATCH_SIZE = 20
     """Wrapper around service class to transparently provide async operations 
     to agents."""
 
-    def __init__(self, endpoint, project, token, api_base=None,
+    BATCH_SIZE = 20
+
+    def __init__(self, endpoint, project, token, api_base="api/v1",
                  error_handler=None):
         """Init the service class.
 
@@ -128,33 +132,41 @@ class ReportPortalServiceAsync(object):
         super(ReportPortalServiceAsync, self).__init__()
         self.error_handler = error_handler
         self.rp_client = ReportPortalService(endpoint, project, token, api_base)
-        self.listener = None
-        self.queue = None
         self.log_batch = []
+        self.supported_methods = ["start_launch", "finish_launch",
+                                  "start_test_item", "finish_test_item", "log"]
+
+        self.queue = queue.Queue()
+        self.listener = QueueListener(self.queue, self.process_item)
+        self.listener.start()
 
     def terminate(self, nowait=False):
         """
         Finalize and stop service
-        :param nowait:
-        :return: 
+        :param nowait: Set to True to terminate imediately and skip processing
+        messages still in the queue
         """
         logger.debug("Terminating service")
 
+        if not self.listener:
+            raise Error("Service already stopped.")
+
         self.listener.stop(nowait)
+
         try:
-            self._post_log_batch()
+            if not nowait:
+                self._post_log_batch()
         except Exception as err:
             if self.error_handler:
                 self.error_handler(err)
             else:
                 raise
-
-        self.queue = None
-        self.listener = None
+        finally:
+            self.queue = None
+            self.listener = None
 
     def _post_log_batch(self):
-        logger.debug("Posting log batch: {}".format(len(self.log_batch)))
-
+        logger.debug("Posting log batch size: %s", len(self.log_batch))
         if self.log_batch:
             self.rp_client.log_batch(self.log_batch)
             self.log_batch = []
@@ -164,7 +176,7 @@ class ReportPortalServiceAsync(object):
         Special handler for log messages.
         Accumulate incoming log messages and post them in batch.
         """
-        logger.debug("Processing log item: {}".format(log_item))
+        logger.debug("Processing log item: %s", log_item)
         self.log_batch.append(log_item)
         if len(self.log_batch) >= self.BATCH_SIZE:
             self._post_log_batch()
@@ -173,32 +185,31 @@ class ReportPortalServiceAsync(object):
         """
         Main item handler. Called by queue listener.
         """
-        logger.debug("Processing item: {}".format(item))
+        logger.debug("Processing item: %s (queue size: %s)", item,
+                     self.queue.qsize())
         method, kwargs = item
-        expected_methods = ["start_launch", "finish_launch",
-                            "start_test_item", "finish_test_item", "log"]
-        if method in expected_methods:
-            try:
-                if method == "log":
-                    self.process_log(**kwargs)
-                else:
-                    self._post_log_batch()
-                    getattr(self.rp_client, method)(**kwargs)
-            except Exception as err:
-                if self.error_handler:
-                    if not self.error_handler(err):
-                        self.terminate(nowait=True)
-                else:
-                    self.terminate(nowait=True)
-                    raise
-        else:
-            raise Exception("Not expected service method: {}".format(method))
 
-    def start_launch(self, name=None, description=None, tags=None,
-                     start_time=None, mode=None):
-        self.queue = queue.Queue()
-        self.listener = QueueListener(self.queue, self.process_item)
-        self.listener.start()
+        if method not in self.supported_methods:
+            raise Error("Not expected service method: {}".format(method))
+
+        try:
+            if method == "log":
+                self.process_log(**kwargs)
+            else:
+                self._post_log_batch()
+                getattr(self.rp_client, method)(**kwargs)
+        except Exception as err:
+            if self.error_handler:
+                if not self.error_handler(err):
+                    self.terminate(nowait=True)
+            else:
+                self.terminate(nowait=True)
+                raise
+
+    def start_launch(self, name, start_time, description=None, tags=None,
+                     mode=None):
+        logger.debug("Start launch queued")
+
         args = {
             "name": name,
             "description": description,
@@ -208,25 +219,31 @@ class ReportPortalServiceAsync(object):
         }
         self.queue.put_nowait(("start_launch", args))
 
-    def finish_launch(self, end_time=None, status=None):
+    def finish_launch(self, end_time, status=None):
+        logger.debug("Finish launch queued")
+
         args = {
             "end_time": end_time,
             "status": status
         }
         self.queue.put_nowait(("finish_launch", args))
 
-    def start_test_item(self, name=None, description=None, tags=None,
-                        start_time=None, type=None):
+    def start_test_item(self, name, start_time, item_type, description=None,
+                        tags=None):
+        logger.debug("start_test_item queued")
+
         args = {
             "name": name,
             "description": description,
             "tags": tags,
             "start_time": start_time,
-            "type": type,
+            "item_type": item_type,
         }
         self.queue.put_nowait(("start_test_item", args))
 
-    def finish_test_item(self, end_time=None, status=None, issue=None):
+    def finish_test_item(self, end_time, status, issue=None):
+        logger.debug("finish_test_item queued")
+
         args = {
             "end_time": end_time,
             "status": status,
@@ -234,7 +251,15 @@ class ReportPortalServiceAsync(object):
         }
         self.queue.put_nowait(("finish_test_item", args))
 
-    def log(self, time=None, message=None, level=None, attachment=None):
+    def log(self, time, message, level=None, attachment=None):
+        """Logs a message with attachment.
+            attachment is a dict of:
+                name: name of attachment
+                data: file content
+                mime: content type for attachment
+        """
+        logger.debug("log queued")
+
         args = {
             "time": time,
             "message": message,
@@ -242,4 +267,3 @@ class ReportPortalServiceAsync(object):
             "attachment": attachment,
         }
         self.queue.put_nowait(("log", args))
-
