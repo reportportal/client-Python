@@ -19,10 +19,26 @@ def _get_msg(response):
         raise Exception("raw: {0}".format(response))
 
 
+def uri_join(*uri_parts):
+    """Join uri parts.
+
+    Avoiding usage of urlparse.urljoin and os.path.join
+    as it does not clearly join parts.
+
+    Args:
+        *uri_parts: tuple of values for join, can contain back and forward
+                    slashes (will be stripped up).
+
+    Returns:
+        An uri string.
+    """
+    return '/'.join(str(s).strip('/').strip('\\') for s in uri_parts)
+
+
 class ReportPortalService(object):
     """Service class with report portal event callbacks."""
 
-    def __init__(self, endpoint, project, token, api_base=None):
+    def __init__(self, endpoint, project, token, api_base="api/v1"):
         """Init the service class.
 
         Args:
@@ -33,37 +49,20 @@ class ReportPortalService(object):
         """
         super(ReportPortalService, self).__init__()
         self.endpoint = endpoint
-        if api_base is None:
-            self.api_base = "api/v1"
+        self.api_base = api_base
         self.project = project
         self.token = token
-        self.base_url = self.uri_join(self.endpoint,
-                                      self.api_base,
-                                      self.project)
+        self.base_url = uri_join(self.endpoint,
+                                 self.api_base,
+                                 self.project)
 
         self.session = requests.Session()
         self.session.headers["Authorization"] = "bearer {0}".format(self.token)
-        self.stack = list()
+        self.stack = []
         self.launch_id = None
 
     def terminate(self):
         pass
-
-    @staticmethod
-    def uri_join(*uri_parts):
-        """Join uri parts.
-
-        Avoiding usage of urlparse.urljoin and os.path.join
-        as it does not clearly join parts.
-
-        Args:
-            *uri_parts: tuple of values for join, can contain back and forward
-                        slashes (will be stripped up).
-
-        Returns:
-            An uri string.
-        """
-        return '/'.join(str(s).strip('/').strip('\\') for s in uri_parts)
 
     def start_launch(self, name=None, description=None, tags=None, start_time=None,
                      mode=None):
@@ -74,7 +73,7 @@ class ReportPortalService(object):
             "start_time": start_time,
             "mode": mode
         }
-        url = self.uri_join(self.base_url, "launch")
+        url = uri_join(self.base_url, "launch")
         r = self.session.post(url=url, json=data)
         self.launch_id = _get_id(r.text)
         self.stack.append(None)
@@ -86,7 +85,7 @@ class ReportPortalService(object):
             "end_time": end_time,
             "status": status
         }
-        url = self.uri_join(self.base_url, "launch", self.launch_id, "finish")
+        url = uri_join(self.base_url, "launch", self.launch_id, "finish")
         r = self.session.put(url=url, json=data)
         return _get_msg(r.text)
 
@@ -102,9 +101,9 @@ class ReportPortalService(object):
         }
         parent_item_id = self.stack[-1]
         if parent_item_id is not None:
-            url = self.uri_join(self.base_url, "item", parent_item_id)
+            url = uri_join(self.base_url, "item", parent_item_id)
         else:
-            url = self.uri_join(self.base_url, "item")
+            url = uri_join(self.base_url, "item")
         r = self.session.post(url=url, json=data)
 
         _id = _get_id(r.text)
@@ -118,7 +117,7 @@ class ReportPortalService(object):
             "issue": issue,
         }
         item_id = self.stack.pop()
-        url = self.uri_join(self.base_url, "item", item_id)
+        url = uri_join(self.base_url, "item", item_id)
         r = self.session.put(url=url, json=data)
         return _get_msg(r.text)
 
@@ -133,7 +132,7 @@ class ReportPortalService(object):
         if attachment:
             return self.log_batch([data])
         else:
-            url = self.uri_join(self.base_url, "log")
+            url = uri_join(self.base_url, "log")
             r = self.session.post(url=url, json=data)
             return _get_id(r.text)
 
@@ -153,7 +152,7 @@ class ReportPortalService(object):
             
         """
 
-        url = self.uri_join(self.base_url, "log")
+        url = uri_join(self.base_url, "log")
 
         attachments = []
         for log_item in log_data:
@@ -163,7 +162,11 @@ class ReportPortalService(object):
 
             if attachment:
                 log_item["file"] = {"name": attachment["name"]}
-                attachments.append(("file", (attachment["name"], attachment["data"], attachment["mime"])))
+                attachments.append(("file", (
+                    attachment["name"],
+                    attachment["data"],
+                    attachment["mime"]
+                )))
 
         files = [
             ("json_request_part", (None, json.dumps(log_data), "application/json")),

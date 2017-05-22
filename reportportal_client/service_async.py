@@ -60,8 +60,9 @@ class QueueListener(object):
         This method runs on a separate, internal thread.
         The thread will terminate if it sees a sentinel object in the queue.
         """
-        assert self._stop.isSet() or not self._stop_nowait.isSet(), ("invalid internal state _stop_nowait "
-                                                                     "can not be set if _stop is not set")
+        assert (self._stop.isSet() or not self._stop_nowait.isSet(),
+                ("invalid internal state _stop_nowait can not be set "
+                 "if _stop is not set"))
         q = self.queue
         has_task_done = hasattr(q, 'task_done')
         while not self._stop.isSet():
@@ -75,7 +76,8 @@ class QueueListener(object):
 
             except queue.Empty:
                 pass
-        # There might still be records in the queue, handle then unless _stop_nowait is set.
+        # There might still be records in the queue,
+        # handle then unless _stop_nowait is set.
         while not self._stop_nowait.isSet():
             try:
                 record = self.dequeue(False)
@@ -93,8 +95,10 @@ class QueueListener(object):
         This asks the thread to terminate, and then waits for it to do so.
         Note that if you don't call this before your application exits, there
         may be some records still left on the queue, which won't be processed.
-        If nowait is False then thread will handle remaining items in queue and stop.
-        If nowait is True then thread will be stopped even if the queue still contains items.
+        If nowait is False then thread will handle remaining items in queue and 
+        stop.
+        If nowait is True then thread will be stopped even if the queue still 
+        contains items.
         """
         self._stop.set()
         if nowait:
@@ -106,9 +110,11 @@ class QueueListener(object):
 
 class ReportPortalServiceAsync(object):
     BATCH_SIZE = 20
-    """Wrapper around service class to transparently provide async operations to agents."""
+    """Wrapper around service class to transparently provide async operations 
+    to agents."""
 
-    def __init__(self, endpoint, project, token, api_base=None, error_handler=None):
+    def __init__(self, endpoint, project, token, api_base=None,
+                 error_handler=None):
         """Init the service class.
 
         Args:
@@ -116,11 +122,12 @@ class ReportPortalServiceAsync(object):
             project: project name to use for launch names.
             token: authorization token.
             api_base: defaults to api/v1, can be changed to other version.
-            error_handler: function to be called to handle errors occured during items processing (in thread)
+            error_handler: function to be called to handle errors occured during
+            items processing (in thread)
         """
         super(ReportPortalServiceAsync, self).__init__()
         self.error_handler = error_handler
-        self.rp_client = ReportPortalService(endpoint, project, token, api_base=api_base)
+        self.rp_client = ReportPortalService(endpoint, project, token, api_base)
         self.listener = None
         self.queue = None
         self.log_batch = []
@@ -128,11 +135,17 @@ class ReportPortalServiceAsync(object):
     def terminate(self, nowait=False):
         """
         Finalize and stop service
-        :param nowait: 
+        :param nowait:
         :return: 
         """
         logger.debug("Terminating service")
-        self._post_log_batch()
+        try:
+            self._post_log_batch()
+        except Exception as err:
+            if self.error_handler:
+                self.error_handler(err)
+            else:
+                raise
         self.listener.stop(nowait)
         self.queue = None
         self.listener = None
@@ -155,7 +168,7 @@ class ReportPortalServiceAsync(object):
 
     def process_item(self, item):
         """
-        Main item handler.
+        Main item handler. Called by queue listener.
         """
         logger.debug("Processing item: {}".format(item))
         method, kwargs = item
@@ -178,8 +191,8 @@ class ReportPortalServiceAsync(object):
         else:
             raise Exception("Not expected service method: {}".format(method))
 
-    def start_launch(self, name=None, description=None, tags=None, start_time=None,
-                     mode=None):
+    def start_launch(self, name=None, description=None, tags=None,
+                     start_time=None, mode=None):
         self.queue = queue.Queue()
         self.listener = QueueListener(self.queue, self.process_item)
         self.listener.start()

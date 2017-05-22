@@ -26,11 +26,7 @@ pip install reportportal-client
 Main classes are:
 
 - reportportal_client.ReportPortalService
-- reportportal_client.StartLaunchRQ
-- reportportal_client.StartTestItemRQ
-- reportportal_client.FinishTestItemRQ
-- reportportal_client.FinishExecutionRQ
-- reportportal_client.SaveLogRQ
+- reportportal_client.ReportPortalServiceAsync
 
 Basic usage example:
 
