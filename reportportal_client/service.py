@@ -1,5 +1,6 @@
 import json
 import requests
+import uuid
 from logging import getLogger
 
 from .errors import ResponseError, EntryCreatedError, OperationCompletionError
@@ -212,19 +213,29 @@ class ReportPortalService(object):
         for log_item in log_data:
             log_item["item_id"] = self.stack[-1]
             attachment = log_item.get("attachment", None)
-            del log_item["attachment"]
+
+            if "attachment" in log_item:
+                del log_item["attachment"]
 
             if attachment:
-                log_item["file"] = {"name": attachment["name"]}
+                if not isinstance(attachment, dict):
+                    attachment = {"data": attachment}
+
+                name = attachment.get("name", str(uuid.uuid4()))
+                log_item["file"] = {"name": name}
                 attachments.append(("file", (
-                    attachment["name"],
+                    name,
                     attachment["data"],
-                    attachment["mime"]
+                    attachment.get("mime", "application/octet-stream")
                 )))
 
-        files = [
-            ("json_request_part", (None, json.dumps(log_data), "application/json")),
-        ]
+        files = [(
+            "json_request_part", (
+                None,
+                json.dumps(log_data),
+                "application/json"
+            )
+        )]
         files.extend(attachments)
         r = self.session.post(url=url, files=files)
         logger.debug("log_batch - Stack: %s", self.stack)

@@ -1,5 +1,6 @@
-from logging import getLogger
+import sys
 import threading
+from logging import getLogger
 
 from six.moves import queue
 
@@ -158,7 +159,7 @@ class ReportPortalServiceAsync(object):
                 self._post_log_batch()
         except Exception as err:
             if self.error_handler:
-                self.error_handler(err)
+                self.error_handler(sys.exc_info())
             else:
                 raise
         finally:
@@ -168,8 +169,10 @@ class ReportPortalServiceAsync(object):
     def _post_log_batch(self):
         logger.debug("Posting log batch size: %s", len(self.log_batch))
         if self.log_batch:
-            self.rp_client.log_batch(self.log_batch)
-            self.log_batch = []
+            try:
+                self.rp_client.log_batch(self.log_batch)
+            finally:
+                self.log_batch = []
 
     def process_log(self, **log_item):
         """
@@ -200,7 +203,7 @@ class ReportPortalServiceAsync(object):
                 getattr(self.rp_client, method)(**kwargs)
         except Exception as err:
             if self.error_handler:
-                if not self.error_handler(err):
+                if not self.error_handler(sys.exc_info()):
                     self.terminate(nowait=True)
             else:
                 self.terminate(nowait=True)
