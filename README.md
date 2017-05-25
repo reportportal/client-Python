@@ -26,24 +26,18 @@ pip install reportportal-client
 Main classes are:
 
 - reportportal_client.ReportPortalService
-- reportportal_client.StartLaunchRQ
-- reportportal_client.StartTestItemRQ
-- reportportal_client.FinishTestItemRQ
-- reportportal_client.FinishExecutionRQ
-- reportportal_client.SaveLogRQ
+- reportportal_client.ReportPortalServiceAsync
 
 Basic usage example:
 
 ```python
 import os
 import subprocess
-from time import time
+import traceback
 from mimetypes import guess_type
+from time import time
 
-from reportportal_client import (ReportPortalService,
-                                 FinishExecutionRQ,
-                                 StartLaunchRQ, StartTestItemRQ,
-                                 FinishTestItemRQ, SaveLogRQ)
+from reportportal_client import ReportPortalServiceAsync
 
 
 def timestamp():
@@ -57,73 +51,75 @@ token = "1adf271d-505f-44a8-ad71-0afbdf8c83bd"
 launch_name = "Test launch"
 launch_doc = "Testing logging with attachment."
 
-service = ReportPortalService(endpoint=endpoint, project=project, token=token)
 
-# Create start launch request.
-sl_rq = StartLaunchRQ(name=launch_name,
-                      start_time=timestamp(),
-                      description=launch_doc)
+def my_error_handler(exc_info):
+    """
+    This callback function will be called by async service client when error occurs.
+    Return True if error is not critical and you want to continue work.
+    :param exc_info: result of sys.exc_info() -> (type, value, traceback)
+    :return: 
+    """
+    print("Error occured: {}".format(exc_info[1]))
+    traceback.print_exception(*exc_info)
+
+
+service = ReportPortalServiceAsync(endpoint=endpoint, project=project,
+                                   token=token, error_handler=my_error_handler)
 
 # Start launch.
-launch = service.start_launch(sl_rq)
-
-# Create start test item request.
-sti_rq = StartTestItemRQ(name="Test Case",
-                         description="First Test Case",
-                         tags=["Image", "Smoke"],
-                         start_time=timestamp(),
-                         launch_id=launch.id,
-                         type="TEST")
+launch = service.start_launch(name=launch_name,
+                              start_time=timestamp(),
+                              description=launch_doc)
 
 # Start test item.
-test = service.start_test_item(parent_item_id=None, start_test_item_rq=sti_rq)
+test = service.start_test_item(name="Test Case",
+                               description="First Test Case",
+                               tags=["Image", "Smoke"],
+                               start_time=timestamp(),
+                               item_type="TEST")
 
 # Create text log message with INFO level.
-service.log(SaveLogRQ(item_id=test.id,
-                      time=timestamp(),
-                      message="Hello World!",
-                      level="INFO"))
+service.log(time=timestamp(),
+            message="Hello World!",
+            level="INFO")
 
 # Create log message with attached text output and WARN level.
-service.attach(SaveLogRQ(item_id=test.id,
-                         time=timestamp(),
-                         message="Too high memory usage!",
-                         level="WARN"),
-               name="free_memory.txt",
-               data=subprocess.check_output("free -h".split()))
+service.log(time=timestamp(),
+            message="Too high memory usage!",
+            level="WARN",
+            attachment={
+                "name": "free_memory.txt",
+                "data": subprocess.check_output("ps".split()),
+                "mime": "text/plain"
+            })
 
-# Create log message with piped binary file, INFO level and custom mimetype.
+# Create log message with binary file, INFO level and custom mimetype.
 image = "/tmp/image.png"
-sl_rq = SaveLogRQ(test.id, timestamp(), "Screen shot of issue.", "INFO")
 with open(image, "rb") as fh:
-    service.attach(save_log_rq=sl_rq,
-                   name=os.path.basename(image),
-                   data=fh,
-                   mime=guess_type(image)[0] or "application/octet-stream")
+    attachment = {
+        "name": os.path.basename(image),
+        "data": fh.read(),
+        "mime": guess_type(image)[0] or "application/octet-stream"
+    }
+    service.log(timestamp(), "Screen shot of issue.", "INFO", attachment)
 
-# Create log message with binary data and INFO level.
-filebin = "/tmp/file.bin"
-with open(filebin, "rb") as fd:
-    bindata = fd.read()
-# Note here that we pass binary data instead of file handle.
-service.attach(SaveLogRQ(item_id=test.id,
-                         time=timestamp(),
-                         message="Binary data file.",
-                         level="INFO"),
-               name="file.bin",
-               data=bindata,
-               mime="application/octet-stream")
-
-# Create finish test item request.
-fti_rq = FinishTestItemRQ(end_time=timestamp(), status="PASSED")
+# Create log message supplying only contents
+service.log(
+    timestamp(),
+    "running processes",
+    "INFO",
+    attachment=subprocess.check_output("ps aux".split()))
 
 # Finish test item.
-service.finish_test_item(item_id=test.id, finish_test_item_rq=fti_rq)
+service.finish_test_item(end_time=timestamp(), status="PASSED")
 
-# Create finish launch request.
-fl_rq = FinishExecutionRQ(end_time=timestamp(), status="PASSED")
 # Finish launch.
-service.finish_launch(launch.id, fl_rq)
+service.finish_launch(end_time=timestamp())
+
+# Due to async nature of the service we need to call terminate() method which
+# ensures all pending requests to server are proccessed.
+# Failure to call terminate() may result in lost data.
+service.terminate()
 ```
 
 
