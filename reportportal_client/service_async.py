@@ -97,9 +97,9 @@ class QueueListener(object):
         This asks the thread to terminate, and then waits for it to do so.
         Note that if you don't call this before your application exits, there
         may be some records still left on the queue, which won't be processed.
-        If nowait is False then thread will handle remaining items in queue and 
+        If nowait is False then thread will handle remaining items in queue and
         stop.
-        If nowait is True then thread will be stopped even if the queue still 
+        If nowait is True then thread will be stopped even if the queue still
         contains items.
         """
         self._stop.set()
@@ -113,7 +113,7 @@ class QueueListener(object):
 
 
 class ReportPortalServiceAsync(object):
-    """Wrapper around service class to transparently provide async operations 
+    """Wrapper around service class to transparently provide async operations
     to agents."""
 
     BATCH_SIZE = 20
@@ -127,12 +127,13 @@ class ReportPortalServiceAsync(object):
             project: project name to use for launch names.
             token: authorization token.
             api_base: defaults to api/v1, can be changed to other version.
-            error_handler: function to be called to handle errors occured during
-            items processing (in thread)
+            error_handler: function to be called to handle errors occurred
+                during items processing (in thread)
         """
         super(ReportPortalServiceAsync, self).__init__()
         self.error_handler = error_handler
-        self.rp_client = ReportPortalService(endpoint, project, token, api_base)
+        self.rp_client = ReportPortalService(
+            endpoint, project, token, api_base)
         self.log_batch = []
         self.supported_methods = ["start_launch", "finish_launch",
                                   "start_test_item", "finish_test_item", "log"]
@@ -157,7 +158,7 @@ class ReportPortalServiceAsync(object):
         try:
             if not nowait:
                 self._post_log_batch()
-        except Exception as err:
+        except Exception:
             if self.error_handler:
                 self.error_handler(sys.exc_info())
             else:
@@ -201,7 +202,7 @@ class ReportPortalServiceAsync(object):
             else:
                 self._post_log_batch()
                 getattr(self.rp_client, method)(**kwargs)
-        except Exception as err:
+        except Exception:
             if self.error_handler:
                 if not self.error_handler(sys.exc_info()):
                     self.terminate(nowait=True)
