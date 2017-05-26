@@ -6,8 +6,8 @@ python:
   - "3.5"
   - "3.6"
 install:
-  - pip install flake8 ordereddict
+  - pip install pep8
 before_script:
-   flake8 .
+   pep8 .
 script:
   - python setup.py -q install

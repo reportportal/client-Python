@@ -106,8 +106,8 @@ class QueueListener(object):
         if nowait:
             self._stop_nowait.set()
         self.queue.put_nowait(self._sentinel_item)
-        if (self._thread.isAlive()
-                and self._thread is not threading.currentThread()):
+        if (self._thread.isAlive() and
+                self._thread is not threading.currentThread()):
             self._thread.join()
         self._thread = None
 
