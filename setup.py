@@ -12,5 +12,5 @@ setup(
     license='GNU General Public License v3',
     keywords=['testing', 'reporting', 'reportportal'],
     classifiers=[],
-    install_requires=["requests>=2.4.2"],
+    install_requires=['requests>=2.4.2'],
 )
