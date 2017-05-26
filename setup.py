@@ -9,7 +9,7 @@ setup(
     author_email='SupportEPMC-TSTReportPortal@epam.com',
     url='https://github.com/reportportal/client-Python',
     download_url='https://github.com/reportportal/client-Python/tarball/2.6.0',
-    license="GNU General Public License v3",
+    license='GNU General Public License v3',
     keywords=['testing', 'reporting', 'reportportal'],
     classifiers=[],
     install_requires=["requests>=2.4.2"],
