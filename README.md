@@ -6,10 +6,10 @@
 Library used only for implementors of custom listeners for ReportPortal
 
 
-## Allready implemented listeners:
+## Already implemented listeners:
 
-- [Robot Framework](https://github.com/reportportal/agent-Python-RobotFramework)
 - [PyTest Framework](https://github.com/reportportal/agent-python-pytest)
+- [Robot Framework](https://github.com/reportportal/agent-Python-RobotFramework)
 
 
 ## Installation
@@ -57,9 +57,9 @@ def my_error_handler(exc_info):
     This callback function will be called by async service client when error occurs.
     Return True if error is not critical and you want to continue work.
     :param exc_info: result of sys.exc_info() -> (type, value, traceback)
-    :return: 
+    :return:
     """
-    print("Error occured: {}".format(exc_info[1]))
+    print("Error occurred: {}".format(exc_info[1]))
     traceback.print_exception(*exc_info)
 
 
@@ -76,7 +76,7 @@ test = service.start_test_item(name="Test Case",
                                description="First Test Case",
                                tags=["Image", "Smoke"],
                                start_time=timestamp(),
-                               item_type="TEST")
+                               item_type="STEP")
 
 # Create text log message with INFO level.
 service.log(time=timestamp(),
@@ -89,7 +89,7 @@ service.log(time=timestamp(),
             level="WARN",
             attachment={
                 "name": "free_memory.txt",
-                "data": subprocess.check_output("ps".split()),
+                "data": subprocess.check_output("free -h".split()),
                 "mime": "text/plain"
             })
 
@@ -117,7 +117,7 @@ service.finish_test_item(end_time=timestamp(), status="PASSED")
 service.finish_launch(end_time=timestamp())
 
 # Due to async nature of the service we need to call terminate() method which
-# ensures all pending requests to server are proccessed.
+# ensures all pending requests to server are processed.
 # Failure to call terminate() may result in lost data.
 service.terminate()
 ```
