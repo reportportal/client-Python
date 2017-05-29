@@ -116,10 +116,8 @@ class ReportPortalServiceAsync(object):
     """Wrapper around service class to transparently provide async operations
     to agents."""
 
-    BATCH_SIZE = 20
-
     def __init__(self, endpoint, project, token, api_base="api/v1",
-                 error_handler=None):
+                 error_handler=None, log_batch_size=20):
         """Init the service class.
 
         Args:
@@ -132,6 +130,7 @@ class ReportPortalServiceAsync(object):
         """
         super(ReportPortalServiceAsync, self).__init__()
         self.error_handler = error_handler
+        self.log_batch_size = log_batch_size
         self.rp_client = ReportPortalService(
             endpoint, project, token, api_base)
         self.log_batch = []
@@ -182,7 +181,7 @@ class ReportPortalServiceAsync(object):
         """
         logger.debug("Processing log item: %s", log_item)
         self.log_batch.append(log_item)
-        if len(self.log_batch) >= self.BATCH_SIZE:
+        if len(self.log_batch) >= self.log_batch_size:
             self._post_log_batch()
 
     def process_item(self, item):
