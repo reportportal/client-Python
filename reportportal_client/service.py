@@ -1,3 +1,4 @@
+import collections
 import json
 import requests
 import uuid
@@ -218,7 +219,7 @@ class ReportPortalService(object):
                 del log_item["attachment"]
 
             if attachment:
-                if not isinstance(attachment, dict):
+                if not isinstance(attachment, collections.Mapping):
                     attachment = {"data": attachment}
 
                 name = attachment.get("name", str(uuid.uuid4()))
