@@ -21,14 +21,12 @@ class QueueListener(object):
         self._thread = None
 
     def dequeue(self, block=True):
-        """
-        Dequeue a record and return item.
-        """
+        """Dequeue a record and return item."""
         return self.queue.get(block)
 
     def start(self):
-        """
-        Start the listener.
+        """Start the listener.
+
         This starts up a background thread to monitor the queue for
         items to process.
         """
@@ -37,8 +35,8 @@ class QueueListener(object):
         t.start()
 
     def prepare(self, record):
-        """
-        Prepare a record for handling.
+        """Prepare a record for handling.
+
         This method just returns the passed-in record. You may want to
         override this method if you need to do any custom marshalling or
         manipulation of the record before passing it to the handlers.
@@ -46,8 +44,8 @@ class QueueListener(object):
         return record
 
     def handle(self, record):
-        """
-        Handle an item.
+        """Handle an item.
+
         This just loops through the handlers offering them the record
         to handle.
         """
@@ -56,15 +54,15 @@ class QueueListener(object):
             handler(record)
 
     def _monitor(self):
-        """
-        Monitor the queue for items, and ask the handler
-        to deal with them.
+        """Monitor the queue for items, and ask the handler to deal with them.
+
         This method runs on a separate, internal thread.
         The thread will terminate if it sees a sentinel object in the queue.
         """
-        assert self._stop.isSet() or not self._stop_nowait.isSet(), \
-            "invalid internal state _stop_nowait can not be set " \
-            "if _stop is not set"
+        err_msg = ("invalid internal state:"
+                   " _stop_nowait can not be set if _stop is not set")
+        assert self._stop.isSet() or not self._stop_nowait.isSet(), err_msg
+
         q = self.queue
         has_task_done = hasattr(q, 'task_done')
         while not self._stop.isSet():
@@ -92,8 +90,8 @@ class QueueListener(object):
                 break
 
     def stop(self, nowait=False):
-        """
-        Stop the listener.
+        """Stop the listener.
+
         This asks the thread to terminate, and then waits for it to do so.
         Note that if you don't call this before your application exits, there
         may be some records still left on the queue, which won't be processed.
@@ -114,7 +112,8 @@ class QueueListener(object):
 
 class ReportPortalServiceAsync(object):
     """Wrapper around service class to transparently provide async operations
-    to agents."""
+    to agents.
+    """
 
     def __init__(self, endpoint, project, token, api_base="api/v1",
                  error_handler=None, log_batch_size=20):
@@ -142,10 +141,11 @@ class ReportPortalServiceAsync(object):
         self.listener.start()
 
     def terminate(self, nowait=False):
-        """
-        Finalize and stop service
-        :param nowait: Set to True to terminate imediately and skip processing
-        messages still in the queue
+        """Finalize and stop service
+
+        Args:
+            nowait: set to True to terminate immediately and skip processing
+                messages still in the queue
         """
         logger.debug("Terminating service")
 
@@ -175,8 +175,8 @@ class ReportPortalServiceAsync(object):
                 self.log_batch = []
 
     def process_log(self, **log_item):
-        """
-        Special handler for log messages.
+        """Special handler for log messages.
+
         Accumulate incoming log messages and post them in batch.
         """
         logger.debug("Processing log item: %s", log_item)
@@ -185,8 +185,9 @@ class ReportPortalServiceAsync(object):
             self._post_log_batch()
 
     def process_item(self, item):
-        """
-        Main item handler. Called by queue listener.
+        """Main item handler.
+
+        Called by queue listener.
         """
         logger.debug("Processing item: %s (queue size: %s)", item,
                      self.queue.qsize())
@@ -256,10 +257,11 @@ class ReportPortalServiceAsync(object):
 
     def log(self, time, message, level=None, attachment=None):
         """Logs a message with attachment.
-            attachment is a dict of:
-                name: name of attachment
-                data: file content
-                mime: content type for attachment
+
+        The attachment is a dict of:
+            name: name of attachment
+            data: file content
+            mime: content type for attachment
         """
         logger.debug("log queued")
 
