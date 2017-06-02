@@ -175,7 +175,7 @@ class ReportPortalService(object):
         item_id = self.stack.pop()
         url = uri_join(self.base_url, "item", item_id)
         r = self.session.put(url=url, json=data)
-        logger.debug("start_launch - Stack: %s", self.stack)
+        logger.debug("finish_test_item - Stack: %s", self.stack)
         return _get_msg(r)
 
     def log(self, time, message, level=None, attachment=None):
