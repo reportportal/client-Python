@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 setup(
     name='reportportal-client',
     packages=find_packages(),
-    version='3.0.0',
+    version='3.1.0',
     description='Python client for Report Portal',
     author='Artsiom Tkachou',
     author_email='SupportEPMC-TSTReportPortal@epam.com',

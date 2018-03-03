@@ -233,7 +233,7 @@ class ReportPortalServiceAsync(object):
         self.queue.put_nowait(("finish_launch", args))
 
     def start_test_item(self, name, start_time, item_type, description=None,
-                        tags=None):
+                        tags=None, parameters=None):
         logger.debug("start_test_item queued")
 
         args = {
@@ -242,6 +242,7 @@ class ReportPortalServiceAsync(object):
             "tags": tags,
             "start_time": start_time,
             "item_type": item_type,
+            "parameters": parameters,
         }
         self.queue.put_nowait(("start_test_item", args))
 

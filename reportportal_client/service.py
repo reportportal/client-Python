@@ -140,12 +140,23 @@ class ReportPortalService(object):
         return _get_msg(r)
 
     def start_test_item(self, name, start_time, item_type, description=None,
-                        tags=None):
+                        tags=None, parameters=None):
         """
         item_type can be (SUITE, STORY, TEST, SCENARIO, STEP, BEFORE_CLASS,
         BEFORE_GROUPS, BEFORE_METHOD, BEFORE_SUITE, BEFORE_TEST, AFTER_CLASS,
         AFTER_GROUPS, AFTER_METHOD, AFTER_SUITE, AFTER_TEST)
+
+        parameters should be a dictionary with the following format:
+            {
+                "<key1>": "<value1>",
+                "<key2>": "<value2>",
+                ...
+            }
         """
+        if parameters is not None:
+            parameters = [{"key": key, "value": str(value)}
+                          for key, value in parameters.items()]
+
         data = {
             "name": name,
             "description": description,
@@ -153,6 +164,7 @@ class ReportPortalService(object):
             "start_time": start_time,
             "launch_id": self.launch_id,
             "type": item_type,
+            "parameters": parameters,
         }
         parent_item_id = self.stack[-1]
         if parent_item_id is not None:
