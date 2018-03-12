@@ -232,6 +232,15 @@ class ReportPortalServiceAsync(object):
         }
         self.queue.put_nowait(("finish_launch", args))
 
+    def stop_launch(self, end_time, status=None):
+        logger.debug("Stop launch queued")
+
+        args = {
+            "end_time": end_time,
+            "status": status
+        }
+        self.queue.put_nowait(("stop_launch", args))
+
     def start_test_item(self, name, start_time, item_type, description=None,
                         tags=None):
         logger.debug("start_test_item queued")
