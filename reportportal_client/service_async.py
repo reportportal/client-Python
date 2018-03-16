@@ -2,6 +2,7 @@ import sys
 import threading
 from logging import getLogger
 
+import time
 from six.moves import queue
 
 from .service import ReportPortalService
@@ -210,6 +211,13 @@ class ReportPortalServiceAsync(object):
                 self.terminate(nowait=True)
                 raise
 
+    def wait_launch(self):
+        timeout = time.time() + 10
+        while not self.rp_client.launch_id:
+            if time.time() > timeout:
+                raise Error("Launch not found")
+            time.sleep(1)
+
     def start_launch(self, name, start_time, description=None, tags=None,
                      mode=None):
         logger.debug("Start launch queued")
@@ -222,6 +230,7 @@ class ReportPortalServiceAsync(object):
             "mode": mode
         }
         self.queue.put_nowait(("start_launch", args))
+        self.wait_launch()
 
     def finish_launch(self, end_time, status=None):
         logger.debug("Finish launch queued")
