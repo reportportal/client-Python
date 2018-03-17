@@ -128,16 +128,24 @@ class ReportPortalService(object):
         logger.debug("start_launch - Stack: %s", self.stack)
         return self.launch_id
 
-    def finish_launch(self, end_time, status=None):
+    def _finalize_launch(self, end_time, action, status):
         data = {
             "end_time": end_time,
             "status": status
         }
-        url = uri_join(self.base_url, "launch", self.launch_id, "finish")
+        url = uri_join(self.base_url, "launch", self.launch_id, action)
         r = self.session.put(url=url, json=data)
         self.stack.pop()
-        logger.debug("finish_launch - Stack: %s", self.stack)
+        logger.debug("%s_launch - Stack: %s", action, self.stack)
         return _get_msg(r)
+
+    def finish_launch(self, end_time, status=None):
+        return self._finalize_launch(end_time=end_time, action="finish",
+                                     status=status)
+
+    def stop_launch(self, end_time, status=None):
+        return self._finalize_launch(end_time=end_time, action="stop",
+                                     status=status)
 
     def start_test_item(self, name, start_time, item_type, description=None,
                         tags=None, parameters=None):
