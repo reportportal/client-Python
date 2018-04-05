@@ -204,8 +204,7 @@ class ReportPortalServiceAsync(object):
                 getattr(self.rp_client, method)(**kwargs)
         except Exception:
             if self.error_handler:
-                if not self.error_handler(sys.exc_info()):
-                    self.terminate(nowait=True)
+                self.error_handler(sys.exc_info())
             else:
                 self.terminate(nowait=True)
                 raise
