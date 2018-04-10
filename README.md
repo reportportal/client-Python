@@ -76,7 +76,9 @@ test = service.start_test_item(name="Test Case",
                                description="First Test Case",
                                tags=["Image", "Smoke"],
                                start_time=timestamp(),
-                               item_type="STEP")
+                               item_type="STEP",
+                               parameters={"key1": "val1",
+                                           "key2": "val2"})
 
 # Create text log message with INFO level.
 service.log(time=timestamp(),
