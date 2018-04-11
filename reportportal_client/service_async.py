@@ -148,11 +148,12 @@ class ReportPortalServiceAsync(object):
             nowait: set to True to terminate immediately and skip processing
                 messages still in the queue
         """
+        logger.debug("Acquiring lock for service termination")
         with self.lock:
             logger.debug("Terminating service")
 
             if not self.listener:
-                logger.debug("Service already stopped.")
+                logger.warning("Service already stopped.")
                 return
 
             self.listener.stop(nowait)
