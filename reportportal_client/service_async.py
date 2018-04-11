@@ -139,6 +139,7 @@ class ReportPortalServiceAsync(object):
         self.queue = queue.Queue()
         self.listener = QueueListener(self.queue, self.process_item)
         self.listener.start()
+        self.lock = threading.Lock()
 
     def terminate(self, nowait=False):
         """Finalize and stop service
@@ -147,24 +148,27 @@ class ReportPortalServiceAsync(object):
             nowait: set to True to terminate immediately and skip processing
                 messages still in the queue
         """
-        logger.debug("Terminating service")
+        logger.debug("Acquiring lock for service termination")
+        with self.lock:
+            logger.debug("Terminating service")
 
-        if not self.listener:
-            raise Error("Service already stopped.")
+            if not self.listener:
+                logger.warning("Service already stopped.")
+                return
 
-        self.listener.stop(nowait)
+            self.listener.stop(nowait)
 
-        try:
-            if not nowait:
-                self._post_log_batch()
-        except Exception:
-            if self.error_handler:
-                self.error_handler(sys.exc_info())
-            else:
-                raise
-        finally:
-            self.queue = None
-            self.listener = None
+            try:
+                if not nowait:
+                    self._post_log_batch()
+            except Exception:
+                if self.error_handler:
+                    self.error_handler(sys.exc_info())
+                else:
+                    raise
+            finally:
+                self.queue = None
+                self.listener = None
 
     def _post_log_batch(self):
         logger.debug("Posting log batch size: %s", len(self.log_batch))
