@@ -10,6 +10,7 @@ from .errors import Error
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
+
 class QueueListener(object):
     _sentinel_item = None
 

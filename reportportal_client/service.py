@@ -9,6 +9,7 @@ from .errors import ResponseError, EntryCreatedError, OperationCompletionError
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
+
 def _get_id(response):
     try:
         return _get_data(response)["id"]
