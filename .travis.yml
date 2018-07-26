@@ -28,6 +28,6 @@ jobs:
       on:
         tags: true
       distributions: sdist bdist_wheel
-      user: <PyPI user>
+      user: reportportal
       password:
         secure: <PyPI password encrypted using "gem install travis && travis encrypt --add deploy.password">
