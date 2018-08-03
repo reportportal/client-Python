@@ -86,7 +86,8 @@ def uri_join(*uri_parts):
 class ReportPortalService(object):
     """Service class with report portal event callbacks."""
 
-    def __init__(self, endpoint, project, token, api_base="api/v1"):
+    def __init__(self, endpoint, project, token, api_base="api/v1",
+                 is_skipped_an_issue=True):
         """Init the service class.
 
         Args:
@@ -94,12 +95,15 @@ class ReportPortalService(object):
             project: project name to use for launch names.
             token: authorization token.
             api_base: defaults to api/v1, can be changed to other version.
+            is_skipped_an_issue: option to mark skipped tests as not
+                'To Investigate' items on Server side.
         """
         super(ReportPortalService, self).__init__()
         self.endpoint = endpoint
         self.api_base = api_base
         self.project = project
         self.token = token
+        self.is_skipped_an_issue = is_skipped_an_issue
         self.base_url = uri_join(self.endpoint,
                                  self.api_base,
                                  self.project)
@@ -187,6 +191,11 @@ class ReportPortalService(object):
         return item_id
 
     def finish_test_item(self, end_time, status, issue=None):
+        # check if skipped test should not be marked as "TO INVESTIGATE"
+        if issue is None and status == "SKIPPED" \
+                and not self.is_skipped_an_issue:
+            issue = {"issue_type": "NOT_ISSUE"}
+
         data = {
             "end_time": end_time,
             "status": status,

@@ -116,7 +116,8 @@ class ReportPortalServiceAsync(object):
     """
 
     def __init__(self, endpoint, project, token, api_base="api/v1",
-                 error_handler=None, log_batch_size=20):
+                 error_handler=None, log_batch_size=20,
+                 is_skipped_an_issue=True):
         """Init the service class.
 
         Args:
@@ -126,12 +127,14 @@ class ReportPortalServiceAsync(object):
             api_base: defaults to api/v1, can be changed to other version.
             error_handler: function to be called to handle errors occurred
                 during items processing (in thread)
+            is_skipped_an_issue: option to mark skipped tests as not
+                'To Investigate' items on Server side.
         """
         super(ReportPortalServiceAsync, self).__init__()
         self.error_handler = error_handler
         self.log_batch_size = log_batch_size
         self.rp_client = ReportPortalService(
-            endpoint, project, token, api_base)
+            endpoint, project, token, api_base, is_skipped_an_issue)
         self.log_batch = []
         self.supported_methods = ["start_launch", "finish_launch",
                                   "start_test_item", "finish_test_item", "log"]
