@@ -2,11 +2,12 @@ import collections
 import json
 import requests
 import uuid
-from logging import getLogger
+import logging
 
 from .errors import ResponseError, EntryCreatedError, OperationCompletionError
 
-logger = getLogger(__name__)
+logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())
 
 
 def _get_id(response):

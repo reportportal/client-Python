@@ -1,13 +1,14 @@
 import sys
 import threading
-from logging import getLogger
+import logging
 
 from six.moves import queue
 
 from .service import ReportPortalService
 from .errors import Error
 
-logger = getLogger(__name__)
+logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())
 
 
 class QueueListener(object):
