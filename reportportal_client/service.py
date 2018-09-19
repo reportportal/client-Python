@@ -116,7 +116,6 @@ class ReportPortalService(object):
         self.launch_id = None
         self.verify_ssl = verify_ssl
 
-
     def terminate(self):
         pass
 

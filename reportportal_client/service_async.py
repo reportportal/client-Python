@@ -137,7 +137,10 @@ class ReportPortalServiceAsync(object):
         self.error_handler = error_handler
         self.log_batch_size = log_batch_size
         self.rp_client = ReportPortalService(
-            endpoint, project, token, api_base, is_skipped_an_issue, verify_ssl)
+            endpoint, project, token,
+            api_base,
+            is_skipped_an_issue,
+            verify_ssl)
         self.log_batch = []
         self.supported_methods = ["start_launch", "finish_launch",
                                   "start_test_item", "finish_test_item", "log"]
