@@ -103,7 +103,7 @@ class ReportPortalService(object):
     """Service class with report portal event callbacks."""
 
     def __init__(self, endpoint, project, token, api_base="api/v1",
-                 is_skipped_an_issue=True):
+                 is_skipped_an_issue=True, verify_ssl=True):
         """Init the service class.
 
         Args:
@@ -113,6 +113,7 @@ class ReportPortalService(object):
             api_base: defaults to api/v1, can be changed to other version.
             is_skipped_an_issue: option to mark skipped tests as not
                 'To Investigate' items on Server side.
+            verify_ssl: option to not verify ssl certificates
         """
         super(ReportPortalService, self).__init__()
         self.endpoint = endpoint
@@ -128,6 +129,7 @@ class ReportPortalService(object):
         self.session.headers["Authorization"] = "bearer {0}".format(self.token)
         self.stack = [None]
         self.launch_id = None
+        self.verify_ssl = verify_ssl
 
     def terminate(self):
         pass
@@ -142,7 +144,7 @@ class ReportPortalService(object):
             "mode": mode
         }
         url = uri_join(self.base_url, "launch")
-        r = self.session.post(url=url, json=data)
+        r = self.session.post(url=url, json=data, verify=self.verify_ssl)
         self.launch_id = _get_id(r)
         self.stack.append(None)
         logger.debug("start_launch - Stack: %s", self.stack)
@@ -154,7 +156,7 @@ class ReportPortalService(object):
             "status": status
         }
         url = uri_join(self.base_url, "launch", self.launch_id, action)
-        r = self.session.put(url=url, json=data)
+        r = self.session.put(url=url, json=data, verify=self.verify_ssl)
         self.stack.pop()
         logger.debug("%s_launch - Stack: %s", action, self.stack)
         return _get_msg(r)
@@ -199,7 +201,7 @@ class ReportPortalService(object):
             url = uri_join(self.base_url, "item", parent_item_id)
         else:
             url = uri_join(self.base_url, "item")
-        r = self.session.post(url=url, json=data)
+        r = self.session.post(url=url, json=data, verify=self.verify_ssl)
 
         item_id = _get_id(r)
         self.stack.append(item_id)
@@ -219,7 +221,7 @@ class ReportPortalService(object):
         }
         item_id = self.stack.pop()
         url = uri_join(self.base_url, "item", item_id)
-        r = self.session.put(url=url, json=data)
+        r = self.session.put(url=url, json=data, verify=self.verify_ssl)
         logger.debug("finish_test_item - Stack: %s", self.stack)
         return _get_msg(r)
 
@@ -235,7 +237,7 @@ class ReportPortalService(object):
             return self.log_batch([data])
         else:
             url = uri_join(self.base_url, "log")
-            r = self.session.post(url=url, json=data)
+            r = self.session.post(url=url, json=data, verify=self.verify_ssl)
             logger.debug("log - Stack: %s", self.stack)
             return _get_id(r)
 
@@ -283,7 +285,7 @@ class ReportPortalService(object):
             )
         )]
         files.extend(attachments)
-        r = self.session.post(url=url, files=files)
+        r = self.session.post(url=url, files=files, verify=self.verify_ssl)
         logger.debug("log_batch - Stack: %s", self.stack)
         logger.debug("log_batch response: %s", r.text)
 
