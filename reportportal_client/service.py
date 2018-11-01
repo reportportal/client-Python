@@ -225,6 +225,12 @@ class ReportPortalService(object):
         logger.debug("finish_test_item - Stack: %s", self.stack)
         return _get_msg(r)
 
+    def get_project_settings(self):
+        url = uri_join(self.base_url, "settings")
+        r = self.session.get(url=url, json={})
+        logger.debug("settings - Stack: %s", self.stack)
+        return _get_json(r)
+
     def log(self, time, message, level=None, attachment=None):
         data = {
             "item_id": self.stack[-1] or self.launch_id,
