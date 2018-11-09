@@ -20,6 +20,7 @@ import uuid
 import logging
 
 from .errors import ResponseError, EntryCreatedError, OperationCompletionError
+from reportportal_client import POST_LOGBATCH_RETRY_COUNT
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
@@ -291,7 +292,20 @@ class ReportPortalService(object):
             )
         )]
         files.extend(attachments)
-        r = self.session.post(url=url, files=files, verify=self.verify_ssl)
+        for i in range(POST_LOGBATCH_RETRY_COUNT):
+            try:
+                r = self.session.post(
+                    url=url,
+                    files=files,
+                    verify=self.verify_ssl
+                )
+            except KeyError:
+                if i < POST_LOGBATCH_RETRY_COUNT - 1:
+                    continue
+                else:
+                    raise
+            break
+
         logger.debug("log_batch - Stack: %s", self.stack)
         logger.debug("log_batch response: %s", r.text)
 
