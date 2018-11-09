@@ -20,7 +20,6 @@ import uuid
 import logging
 
 from .errors import ResponseError, EntryCreatedError, OperationCompletionError
-from reportportal_client import POST_LOGBATCH_RETRY_COUNT
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
@@ -292,6 +291,7 @@ class ReportPortalService(object):
             )
         )]
         files.extend(attachments)
+        from reportportal_client import POST_LOGBATCH_RETRY_COUNT
         for i in range(POST_LOGBATCH_RETRY_COUNT):
             try:
                 r = self.session.post(
