@@ -227,7 +227,7 @@ class ReportPortalService(object):
 
     def get_project_settings(self):
         url = uri_join(self.base_url, "settings")
-        r = self.session.get(url=url, json={})
+        r = self.session.get(url=url, json={}, verify=self.verify_ssl)
         logger.debug("settings - Stack: %s", self.stack)
         return _get_json(r)
 
