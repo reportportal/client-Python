@@ -18,9 +18,11 @@ import json
 import requests
 import uuid
 import logging
+import urllib3
 
 from .errors import ResponseError, EntryCreatedError, OperationCompletionError
 
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
