@@ -144,7 +144,20 @@ class ReportPortalService(object):
             "mode": mode
         }
         url = uri_join(self.base_url, "launch")
-        r = self.session.post(url=url, json=data, verify=self.verify_ssl)
+        from reportportal_client import POST_LOGBATCH_RETRY_COUNT
+        for i in range(POST_LOGBATCH_RETRY_COUNT):
+            try:
+                r = self.session.post(
+                    url=url,
+                    json=data,
+                    verify=self.verify_ssl
+                )
+            except KeyError:
+                if i < POST_LOGBATCH_RETRY_COUNT - 1:
+                    continue
+                else:
+                    raise
+            break
         self.launch_id = _get_id(r)
         self.stack.append(None)
         logger.debug("start_launch - Stack: %s", self.stack)
@@ -156,7 +169,20 @@ class ReportPortalService(object):
             "status": status
         }
         url = uri_join(self.base_url, "launch", self.launch_id, action)
-        r = self.session.put(url=url, json=data, verify=self.verify_ssl)
+        from reportportal_client import POST_LOGBATCH_RETRY_COUNT
+        for i in range(POST_LOGBATCH_RETRY_COUNT):
+            try:
+                r = self.session.put(
+                    url=url,
+                    json=data,
+                    verify=self.verify_ssl
+                )
+            except KeyError:
+                if i < POST_LOGBATCH_RETRY_COUNT - 1:
+                    continue
+                else:
+                    raise
+            break
         self.stack.pop()
         logger.debug("%s_launch - Stack: %s", action, self.stack)
         return _get_msg(r)
@@ -201,7 +227,20 @@ class ReportPortalService(object):
             url = uri_join(self.base_url, "item", parent_item_id)
         else:
             url = uri_join(self.base_url, "item")
-        r = self.session.post(url=url, json=data, verify=self.verify_ssl)
+        from reportportal_client import POST_LOGBATCH_RETRY_COUNT
+        for i in range(POST_LOGBATCH_RETRY_COUNT):
+            try:
+                r = self.session.post(
+                    url=url,
+                    json=data,
+                    verify=self.verify_ssl
+                )
+            except KeyError:
+                if i < POST_LOGBATCH_RETRY_COUNT - 1:
+                    continue
+                else:
+                    raise
+            break
 
         item_id = _get_id(r)
         self.stack.append(item_id)
@@ -221,13 +260,39 @@ class ReportPortalService(object):
         }
         item_id = self.stack.pop()
         url = uri_join(self.base_url, "item", item_id)
-        r = self.session.put(url=url, json=data, verify=self.verify_ssl)
+        from reportportal_client import POST_LOGBATCH_RETRY_COUNT
+        for i in range(POST_LOGBATCH_RETRY_COUNT):
+            try:
+                r = self.session.put(
+                    url=url,
+                    json=data,
+                    verify=self.verify_ssl
+                )
+            except KeyError:
+                if i < POST_LOGBATCH_RETRY_COUNT - 1:
+                    continue
+                else:
+                    raise
+            break
         logger.debug("finish_test_item - Stack: %s", self.stack)
         return _get_msg(r)
 
     def get_project_settings(self):
         url = uri_join(self.base_url, "settings")
-        r = self.session.get(url=url, json={}, verify=self.verify_ssl)
+        from reportportal_client import POST_LOGBATCH_RETRY_COUNT
+        for i in range(POST_LOGBATCH_RETRY_COUNT):
+            try:
+                r = self.session.get(
+                    url=url,
+                    json={},
+                    verify=self.verify_ssl
+                )
+            except KeyError:
+                if i < POST_LOGBATCH_RETRY_COUNT - 1:
+                    continue
+                else:
+                    raise
+            break
         logger.debug("settings - Stack: %s", self.stack)
         return _get_json(r)
 
@@ -243,7 +308,20 @@ class ReportPortalService(object):
             return self.log_batch([data])
         else:
             url = uri_join(self.base_url, "log")
-            r = self.session.post(url=url, json=data, verify=self.verify_ssl)
+            from reportportal_client import POST_LOGBATCH_RETRY_COUNT
+            for i in range(POST_LOGBATCH_RETRY_COUNT):
+                try:
+                    r = self.session.post(
+                        url=url,
+                        json=data,
+                        verify=self.verify_ssl
+                    )
+                except KeyError:
+                    if i < POST_LOGBATCH_RETRY_COUNT - 1:
+                        continue
+                    else:
+                        raise
+                break
             logger.debug("log - Stack: %s", self.stack)
             return _get_id(r)
 
