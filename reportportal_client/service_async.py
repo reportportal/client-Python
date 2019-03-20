@@ -28,16 +28,17 @@ logger.addHandler(logging.NullHandler())
 class QueueListener(object):
     _sentinel_item = None
 
-    def __init__(self, queue, *handlers):
+    def __init__(self, queue, queue_get_timeout, *handlers):
         self.queue = queue
+        self.queue_get_timeout = queue_get_timeout
         self.handlers = handlers
         self._stop_nowait = threading.Event()
         self._stop = threading.Event()
         self._thread = None
 
-    def dequeue(self, block=True):
+    def dequeue(self, block=True, timeout=None):
         """Dequeue a record and return item."""
-        return self.queue.get(block)
+        return self.queue.get(block, timeout)
 
     def start(self):
         """Start the listener.
@@ -82,7 +83,7 @@ class QueueListener(object):
         has_task_done = hasattr(q, 'task_done')
         while not self._stop.isSet():
             try:
-                record = self.dequeue(True)
+                record = self.dequeue(True, self.queue_get_timeout)
                 if record is self._sentinel_item:
                     break
                 self.handle(record)
@@ -133,7 +134,7 @@ class ReportPortalServiceAsync(object):
     def __init__(self, endpoint, project, token, api_base="api/v1",
                  error_handler=None, log_batch_size=20,
                  is_skipped_an_issue=True,
-                 verify_ssl=True):
+                 verify_ssl=True, queue_get_timeout=5):
         """Init the service class.
 
         Args:
@@ -160,7 +161,8 @@ class ReportPortalServiceAsync(object):
                                   "start_test_item", "finish_test_item", "log"]
 
         self.queue = queue.Queue()
-        self.listener = QueueListener(self.queue, self.process_item)
+        self.listener = QueueListener(self.queue, queue_get_timeout,
+                                      self.process_item)
         self.listener.start()
         self.lock = threading.Lock()
 
