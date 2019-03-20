@@ -28,17 +28,17 @@ logger.addHandler(logging.NullHandler())
 class QueueListener(object):
     _sentinel_item = None
 
-    def __init__(self, queue, queue_get_timeout, *handlers):
+    def __init__(self, queue, *handlers, **kwargs):
         self.queue = queue
-        self.queue_get_timeout = queue_get_timeout
+        self.queue_get_timeout = kwargs.get("queue_get_timeout", None)
         self.handlers = handlers
         self._stop_nowait = threading.Event()
         self._stop = threading.Event()
         self._thread = None
 
-    def dequeue(self, block=True, timeout=None):
+    def dequeue(self, block=True):
         """Dequeue a record and return item."""
-        return self.queue.get(block, timeout)
+        return self.queue.get(block, self.queue_get_timeout)
 
     def start(self):
         """Start the listener.
@@ -83,7 +83,7 @@ class QueueListener(object):
         has_task_done = hasattr(q, 'task_done')
         while not self._stop.isSet():
             try:
-                record = self.dequeue(True, self.queue_get_timeout)
+                record = self.dequeue(True)
                 if record is self._sentinel_item:
                     break
                 self.handle(record)
@@ -161,8 +161,8 @@ class ReportPortalServiceAsync(object):
                                   "start_test_item", "finish_test_item", "log"]
 
         self.queue = queue.Queue()
-        self.listener = QueueListener(self.queue, queue_get_timeout,
-                                      self.process_item)
+        self.listener = QueueListener(self.queue, self.process_item,
+                                      queue_get_timeout=queue_get_timeout)
         self.listener.start()
         self.lock = threading.Lock()
 
