@@ -125,7 +125,7 @@ service.terminate()
 ```
 
 
-# Send attachement
+# Send attachement (screenshots)
 
 [python-client](https://github.com/reportportal/client-Python/blob/64550693ec9c198b439f8f6e8b23413812d9adf1/reportportal_client/service.py#L259) uses `request` library for working with RP and the same semantics to work with attachments (data).
 
