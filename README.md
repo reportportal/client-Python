@@ -125,6 +125,33 @@ service.terminate()
 ```
 
 
+# Send attachement
+
+[python-client](https://github.com/reportportal/client-Python/blob/64550693ec9c198b439f8f6e8b23413812d9adf1/reportportal_client/service.py#L259) uses `request` library for working with RP and the same semantics to work with attachments (data).
+
+There are two ways to pass data as attachment:
+
+### Case 1 - pass file-like object
+```
+with open(screenshot_file_path, "rb") as image_file:
+    rp_logger.info("Some Text Here",
+                            attachment={"name": "test_name_screenshot.png",
+                                                 "data": image_file,
+                                                 "mime": "image/png"})
+```
+
+### Case 2 - pass file content itself (like you did)
+```
+with open(screenshot_file_path, "rb") as image_file:
+        file_data = image_file.read()
+
+rp_logger.info("Some Text Here",
+                       attachment={"name": "test_name_screenshot.png",
+                                             "data": file_data,
+                                             "mime": "image/png"})
+```
+
+
 # Copyright Notice
 
 Licensed under the [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0)
