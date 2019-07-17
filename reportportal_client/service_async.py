@@ -134,7 +134,7 @@ class ReportPortalServiceAsync(object):
     def __init__(self, endpoint, project, token, api_base="api/v1",
                  error_handler=None, log_batch_size=20,
                  is_skipped_an_issue=True,
-                 verify_ssl=True, queue_get_timeout=5):
+                 verify_ssl=True, queue_get_timeout=5, retries=None):
         """Init the service class.
 
         Args:
@@ -155,7 +155,8 @@ class ReportPortalServiceAsync(object):
             endpoint, project, token,
             api_base,
             is_skipped_an_issue,
-            verify_ssl)
+            verify_ssl,
+            retries)
         self.log_batch = []
         self.supported_methods = ["start_launch", "finish_launch",
                                   "start_test_item", "finish_test_item", "log"]

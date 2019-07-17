@@ -19,6 +19,8 @@ import requests
 import uuid
 import logging
 
+from requests.adapters import HTTPAdapter
+
 from .errors import ResponseError, EntryCreatedError, OperationCompletionError
 
 logger = logging.getLogger(__name__)
@@ -103,7 +105,7 @@ class ReportPortalService(object):
     """Service class with report portal event callbacks."""
 
     def __init__(self, endpoint, project, token, api_base="api/v1",
-                 is_skipped_an_issue=True, verify_ssl=True):
+                 is_skipped_an_issue=True, verify_ssl=True, retries=None):
         """Init the service class.
 
         Args:
@@ -126,6 +128,9 @@ class ReportPortalService(object):
                                  self.project)
 
         self.session = requests.Session()
+        if retries:
+            self.session.mount('https://', HTTPAdapter(max_retries=retries))
+            self.session.mount('http://', HTTPAdapter(max_retries=retries))
         self.session.headers["Authorization"] = "bearer {0}".format(self.token)
         self.stack = [None]
         self.launch_id = None
