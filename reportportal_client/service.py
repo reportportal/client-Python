@@ -29,15 +29,16 @@ logger.addHandler(logging.NullHandler())
 
 def _get_id(response):
     try:
-        return _get_data(response)["id"]
+        return _get_data(response)["uuid"]
     except KeyError:
         raise EntryCreatedError(
             "No 'id' in response: {0}".format(response.text))
 
 
 def _get_msg(response):
+    """NOTE: This is a wrong implemantation."""
     try:
-        return _get_data(response)["msg"]
+        return _get_data(response)
     except KeyError:
         raise OperationCompletionError(
             "No 'msg' in response: {0}".format(response.text))
@@ -75,7 +76,8 @@ def _get_json(response):
 def _get_messages(data):
     error_messages = []
     for ret in data.get("responses", [data]):
-        if "message" in ret:
+        # replace message for error, cause message is not error
+        if "error" in ret:
             if "error_code" in ret:
                 error_messages.append(
                     "{0}: {1}".format(ret["error_code"], ret["message"]))
@@ -145,7 +147,7 @@ class ReportPortalService(object):
             "name": name,
             "description": description,
             "tags": tags,
-            "start_time": start_time,
+            "startTime": start_time,
             "mode": mode
         }
         url = uri_join(self.base_url, "launch")
@@ -157,7 +159,7 @@ class ReportPortalService(object):
 
     def _finalize_launch(self, end_time, action, status):
         data = {
-            "end_time": end_time,
+            "endTime": end_time,
             "status": status
         }
         url = uri_join(self.base_url, "launch", self.launch_id, action)
@@ -196,8 +198,8 @@ class ReportPortalService(object):
             "name": name,
             "description": description,
             "tags": tags,
-            "start_time": start_time,
-            "launch_id": self.launch_id,
+            "startTime": start_time,
+            "launchId": self.launch_id,
             "type": item_type,
             "parameters": parameters,
         }
@@ -220,7 +222,7 @@ class ReportPortalService(object):
             issue = {"issue_type": "NOT_ISSUE"}
 
         data = {
-            "end_time": end_time,
+            "endTime": end_time,
             "status": status,
             "issue": issue,
         }
