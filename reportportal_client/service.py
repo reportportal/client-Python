@@ -19,6 +19,7 @@ import requests
 import uuid
 import logging
 
+import six
 from requests.adapters import HTTPAdapter
 
 from .errors import ResponseError, EntryCreatedError, OperationCompletionError
@@ -189,7 +190,13 @@ class ReportPortalService(object):
             }
         """
         if parameters is not None:
-            parameters = [{"key": key, "value": str(value)}
+            def _str(value):
+                if isinstance(value, six.text_type):
+                    # Don't try to encode 'unicode' in Python 2.
+                    return value
+                return str(value)
+
+            parameters = [{"key": key, "value": _str(value)}
                           for key, value in parameters.items()]
 
         data = {
