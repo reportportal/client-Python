@@ -35,7 +35,10 @@ def _dict_to_payload(dictionary):
             return value
         return str(value)
 
-    return [{"key": key, "value": _str(value)} for key, value in dictionary.items()]
+    return [
+        {"key": key, "value": _str(value)}
+        for key, value in dictionary.items()
+    ]
 
 
 def _get_id(response):
@@ -181,7 +184,8 @@ class ReportPortalService(object):
         BEFORE_GROUPS, BEFORE_METHOD, BEFORE_SUITE, BEFORE_TEST, AFTER_CLASS,
         AFTER_GROUPS, AFTER_METHOD, AFTER_SUITE, AFTER_TEST)
 
-        attributes and parameters should be a dictionary with the following format:
+        attributes and parameters should be a dictionary
+        with the following format:
             {
                 "<key1>": "<value1>",
                 "<key2>": "<value2>",
@@ -212,7 +216,8 @@ class ReportPortalService(object):
         logger.debug("start_test_item - ID: %s", item_id)
         return item_id
 
-    def finish_test_item(self, item_id, end_time, status, issue=None, attributes=None):
+    def finish_test_item(self, item_id, end_time, status,
+                         issue=None, attributes=None):
         # check if skipped test should not be marked as "TO INVESTIGATE"
         if issue is None and status == "SKIPPED" \
                 and not self.is_skipped_an_issue:
