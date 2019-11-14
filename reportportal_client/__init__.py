@@ -13,12 +13,9 @@
 #  limitations under the License.
 
 from .service import ReportPortalService
-from .service_async import ReportPortalServiceAsync
-
 
 __all__ = (
     ReportPortalService,
-    ReportPortalServiceAsync,
 )
 
 POST_LOGBATCH_RETRY_COUNT = 10

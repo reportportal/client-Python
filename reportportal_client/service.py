@@ -19,12 +19,26 @@ import requests
 import uuid
 import logging
 
+import six
 from requests.adapters import HTTPAdapter
 
 from .errors import ResponseError, EntryCreatedError, OperationCompletionError
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
+
+
+def _dict_to_payload(dictionary):
+    def _str(value):
+        if isinstance(value, six.text_type):
+            # Don't try to encode 'unicode' in Python 2.
+            return value
+        return str(value)
+
+    return [
+        {"key": key, "value": _str(value)}
+        for key, value in dictionary.items()
+    ]
 
 
 def _get_id(response):
@@ -37,10 +51,10 @@ def _get_id(response):
 
 def _get_msg(response):
     try:
-        return _get_data(response)["msg"]
+        return _get_data(response)
     except KeyError:
         raise OperationCompletionError(
-            "No 'msg' in response: {0}".format(response.text))
+            "No 'message' in response: {0}".format(response.text))
 
 
 def _get_data(response):
@@ -75,12 +89,10 @@ def _get_json(response):
 def _get_messages(data):
     error_messages = []
     for ret in data.get("responses", [data]):
-        if "message" in ret:
-            if "error_code" in ret:
-                error_messages.append(
-                    "{0}: {1}".format(ret["error_code"], ret["message"]))
-            else:
-                error_messages.append(ret["message"])
+        if "errorCode" in ret:
+            error_messages.append(
+                "{0}: {1}".format(ret["errorCode"], ret.get("message"))
+            )
 
     return error_messages
 
@@ -104,7 +116,7 @@ def uri_join(*uri_parts):
 class ReportPortalService(object):
     """Service class with report portal event callbacks."""
 
-    def __init__(self, endpoint, project, token, api_base="api/v1",
+    def __init__(self, endpoint, project, token,
                  is_skipped_an_issue=True, verify_ssl=True, retries=None):
         """Init the service class.
 
@@ -112,147 +124,145 @@ class ReportPortalService(object):
             endpoint: endpoint of report portal service.
             project: project name to use for launch names.
             token: authorization token.
-            api_base: defaults to api/v1, can be changed to other version.
             is_skipped_an_issue: option to mark skipped tests as not
                 'To Investigate' items on Server side.
             verify_ssl: option to not verify ssl certificates
         """
         super(ReportPortalService, self).__init__()
         self.endpoint = endpoint
-        self.api_base = api_base
         self.project = project
         self.token = token
         self.is_skipped_an_issue = is_skipped_an_issue
-        self.base_url = uri_join(self.endpoint,
-                                 self.api_base,
-                                 self.project)
+        self.base_url_v1 = uri_join(self.endpoint, "api/v1", self.project)
+        self.base_url_v2 = uri_join(self.endpoint, "api/v2", self.project)
 
         self.session = requests.Session()
         if retries:
             self.session.mount('https://', HTTPAdapter(max_retries=retries))
             self.session.mount('http://', HTTPAdapter(max_retries=retries))
         self.session.headers["Authorization"] = "bearer {0}".format(self.token)
-        self.stack = [None]
         self.launch_id = None
         self.verify_ssl = verify_ssl
 
-    def terminate(self):
+    def terminate(self, *args, **kwargs):
         pass
 
-    def start_launch(self, name, start_time, description=None, tags=None,
+    def start_launch(self, name, start_time, description=None, attributes=None,
                      mode=None):
+        if attributes is not None:
+            attributes = _dict_to_payload(attributes)
         data = {
             "name": name,
             "description": description,
-            "tags": tags,
-            "start_time": start_time,
+            "attributes": attributes,
+            "startTime": start_time,
             "mode": mode
         }
-        url = uri_join(self.base_url, "launch")
+        url = uri_join(self.base_url_v2, "launch")
         r = self.session.post(url=url, json=data, verify=self.verify_ssl)
         self.launch_id = _get_id(r)
-        self.stack.append(None)
-        logger.debug("start_launch - Stack: %s", self.stack)
+        logger.debug("start_launch - ID: %s", self.launch_id)
         return self.launch_id
 
-    def _finalize_launch(self, end_time, action, status):
+    def finish_launch(self, end_time, status=None):
+        """
+        status can be (PASSED, FAILED, STOPPED, SKIPPED, RESETED, CANCELLED)
+        """
         data = {
-            "end_time": end_time,
+            "endTime": end_time,
             "status": status
         }
-        url = uri_join(self.base_url, "launch", self.launch_id, action)
+        url = uri_join(self.base_url_v1, "launch", self.launch_id, "finish")
         r = self.session.put(url=url, json=data, verify=self.verify_ssl)
-        self.stack.pop()
-        logger.debug("%s_launch - Stack: %s", action, self.stack)
+        logger.debug("finish_launch - ID: %s", self.launch_id)
         return _get_msg(r)
 
-    def finish_launch(self, end_time, status=None):
-        return self._finalize_launch(end_time=end_time, action="finish",
-                                     status=status)
-
-    def stop_launch(self, end_time, status=None):
-        return self._finalize_launch(end_time=end_time, action="stop",
-                                     status=status)
-
     def start_test_item(self, name, start_time, item_type, description=None,
-                        tags=None, parameters=None):
+                        attributes=None, parameters=None, parent_item_id=None):
         """
         item_type can be (SUITE, STORY, TEST, SCENARIO, STEP, BEFORE_CLASS,
         BEFORE_GROUPS, BEFORE_METHOD, BEFORE_SUITE, BEFORE_TEST, AFTER_CLASS,
         AFTER_GROUPS, AFTER_METHOD, AFTER_SUITE, AFTER_TEST)
 
-        parameters should be a dictionary with the following format:
+        attributes and parameters should be a dictionary
+        with the following format:
             {
                 "<key1>": "<value1>",
                 "<key2>": "<value2>",
                 ...
             }
         """
+        if attributes is not None:
+            attributes = _dict_to_payload(attributes)
         if parameters is not None:
-            parameters = [{"key": key, "value": str(value)}
-                          for key, value in parameters.items()]
+            parameters = _dict_to_payload(parameters)
 
         data = {
             "name": name,
             "description": description,
-            "tags": tags,
-            "start_time": start_time,
-            "launch_id": self.launch_id,
+            "attributes": attributes,
+            "startTime": start_time,
+            "launchUuid": self.launch_id,
             "type": item_type,
             "parameters": parameters,
         }
-        parent_item_id = self.stack[-1]
         if parent_item_id is not None:
-            url = uri_join(self.base_url, "item", parent_item_id)
+            url = uri_join(self.base_url_v2, "item", parent_item_id)
         else:
-            url = uri_join(self.base_url, "item")
+            url = uri_join(self.base_url_v2, "item")
         r = self.session.post(url=url, json=data, verify=self.verify_ssl)
 
         item_id = _get_id(r)
-        self.stack.append(item_id)
-        logger.debug("start_test_item - Stack: %s", self.stack)
+        logger.debug("start_test_item - ID: %s", item_id)
         return item_id
 
-    def finish_test_item(self, end_time, status, issue=None):
+    def finish_test_item(self, item_id, end_time, status,
+                         issue=None, attributes=None):
         # check if skipped test should not be marked as "TO INVESTIGATE"
         if issue is None and status == "SKIPPED" \
                 and not self.is_skipped_an_issue:
             issue = {"issue_type": "NOT_ISSUE"}
 
+        if attributes is not None:
+            attributes = _dict_to_payload(attributes)
+
         data = {
-            "end_time": end_time,
+            "endTime": end_time,
             "status": status,
             "issue": issue,
+            "launchUuid": self.launch_id,
+            "attributes": attributes
         }
-        item_id = self.stack.pop()
-        url = uri_join(self.base_url, "item", item_id)
+        url = uri_join(self.base_url_v2, "item", item_id)
         r = self.session.put(url=url, json=data, verify=self.verify_ssl)
-        logger.debug("finish_test_item - Stack: %s", self.stack)
+        logger.debug("finish_test_item - ID: %s", item_id)
         return _get_msg(r)
 
     def get_project_settings(self):
-        url = uri_join(self.base_url, "settings")
+        url = uri_join(self.base_url_v1, "settings")
         r = self.session.get(url=url, json={}, verify=self.verify_ssl)
-        logger.debug("settings - Stack: %s", self.stack)
+        logger.debug("settings")
         return _get_json(r)
 
-    def log(self, time, message, level=None, attachment=None):
+    def log(self, time, message, level=None, attachment=None, item_id=None):
         data = {
-            "item_id": self.stack[-1] or self.launch_id,
+            "launchUuid": self.launch_id,
             "time": time,
             "message": message,
             "level": level,
         }
+        if item_id:
+            data["itemUuid"] = item_id
         if attachment:
             data["attachment"] = attachment
-            return self.log_batch([data])
+            return self.log_batch([data], item_id=item_id)
         else:
-            url = uri_join(self.base_url, "log")
+            url = uri_join(self.base_url_v2, "log")
             r = self.session.post(url=url, json=data, verify=self.verify_ssl)
-            logger.debug("log - Stack: %s", self.stack)
+            logger.debug("log - ID: %s", item_id)
             return _get_id(r)
 
-    def log_batch(self, log_data):
+    def log_batch(self, log_data, item_id=None):
         """Logs batch of messages with attachment.
 
         Args:
@@ -266,11 +276,13 @@ class ReportPortalService(object):
 
         """
 
-        url = uri_join(self.base_url, "log")
+        url = uri_join(self.base_url_v2, "log")
 
         attachments = []
         for log_item in log_data:
-            log_item["item_id"] = self.stack[-1]
+            if item_id:
+                log_item["itemUuid"] = item_id
+            log_item["launchUuid"] = self.launch_id
             attachment = log_item.get("attachment", None)
 
             if "attachment" in log_item:
@@ -311,7 +323,7 @@ class ReportPortalService(object):
                     raise
             break
 
-        logger.debug("log_batch - Stack: %s", self.stack)
+        logger.debug("log_batch - ID: %s", item_id)
         logger.debug("log_batch response: %s", r.text)
 
         return _get_data(r)
