@@ -31,5 +31,5 @@ class EntryCreatedError(ResponseError):
 class OperationCompletionError(ResponseError):
     """Represents error in case of operation failure.
 
-    No 'msg' in the json response.
+    No 'message' in the json response.
     """
