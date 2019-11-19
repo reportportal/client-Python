@@ -159,7 +159,8 @@ class ReportPortalServiceAsync(object):
             retries)
         self.log_batch = []
         self.supported_methods = ["start_launch", "finish_launch",
-                                  "start_test_item", "finish_test_item", "log"]
+                                  "start_test_item", "update_test_item",
+                                  "finish_test_item", "log"]
 
         self.queue = queue.Queue()
         self.listener = QueueListener(self.queue, self.process_item,
@@ -283,6 +284,20 @@ class ReportPortalServiceAsync(object):
             "parameters": parameters,
         }
         self.queue.put_nowait(("start_test_item", args))
+
+    def update_test_item(self, description=None, tags=None):
+        """Update test item.
+
+        :param str description: test item description
+        :param list tags: test item tags
+        """
+        logger.debug("update_test_item queued")
+
+        args = {
+            "description": description,
+            "tags": tags,
+        }
+        self.queue.put_nowait(("update_test_item", args))
 
     def finish_test_item(self, end_time, status, issue=None):
         logger.debug("finish_test_item queued")
