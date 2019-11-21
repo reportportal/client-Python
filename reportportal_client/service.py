@@ -213,6 +213,23 @@ class ReportPortalService(object):
         logger.debug("start_test_item - Stack: %s", self.stack)
         return item_id
 
+    def update_test_item(self, description=None, tags=None):
+        """Update test item.
+
+        :param str description: test item description
+        :param list tags: test item tags
+        """
+        data = {
+            "description": description,
+            "tags": tags,
+        }
+
+        item_id = self.stack[-1]
+        url = uri_join(self.base_url, "item", item_id, "update")
+        r = self.session.put(url=url, json=data, verify=self.verify_ssl)
+        logger.debug("update_test_item - Stack: %s", self.stack)
+        return _get_msg(r)
+
     def finish_test_item(self, end_time, status, issue=None):
         # check if skipped test should not be marked as "TO INVESTIGATE"
         if issue is None and status == "SKIPPED" \
