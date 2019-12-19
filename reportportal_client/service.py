@@ -35,17 +35,9 @@ def _get_id(response):
             "No 'id' in response: {0}".format(response.text))
 
 
-def _get_msg(response):
-    try:
-        return _get_data(response)["msg"]
-    except KeyError:
-        raise OperationCompletionError(
-            "No 'msg' in response: {0}".format(response.text))
-
-
 def _get_data(response):
     data = _get_json(response)
-    error_messages = _get_messages(data)
+    error_messages = _get_error_messages(data)
     error_count = len(error_messages)
 
     if error_count == 1:
@@ -72,15 +64,13 @@ def _get_json(response):
             "Invalid response: {0}: {1}".format(value_error, response.text))
 
 
-def _get_messages(data):
+def _get_error_messages(data):
     error_messages = []
     for ret in data.get("responses", [data]):
         if "message" in ret:
             if "error_code" in ret:
                 error_messages.append(
                     "{0}: {1}".format(ret["error_code"], ret["message"]))
-            else:
-                error_messages.append(ret["message"])
 
     return error_messages
 
@@ -164,7 +154,7 @@ class ReportPortalService(object):
         r = self.session.put(url=url, json=data, verify=self.verify_ssl)
         self.stack.pop()
         logger.debug("%s_launch - Stack: %s", action, self.stack)
-        return _get_msg(r)
+        return _get_data(r)
 
     def finish_launch(self, end_time, status=None):
         return self._finalize_launch(end_time=end_time, action="finish",
@@ -228,7 +218,7 @@ class ReportPortalService(object):
         url = uri_join(self.base_url, "item", item_id, "update")
         r = self.session.put(url=url, json=data, verify=self.verify_ssl)
         logger.debug("update_test_item - Stack: %s", self.stack)
-        return _get_msg(r)
+        return _get_data(r)
 
     def finish_test_item(self, end_time, status, issue=None):
         # check if skipped test should not be marked as "TO INVESTIGATE"
@@ -245,7 +235,7 @@ class ReportPortalService(object):
         url = uri_join(self.base_url, "item", item_id)
         r = self.session.put(url=url, json=data, verify=self.verify_ssl)
         logger.debug("finish_test_item - Stack: %s", self.stack)
-        return _get_msg(r)
+        return _get_data(r)
 
     def get_project_settings(self):
         url = uri_join(self.base_url, "settings")
