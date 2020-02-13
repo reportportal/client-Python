@@ -302,6 +302,11 @@ class ReportPortalServiceAsync(object):
     def finish_test_item(self, end_time, status, issue=None):
         logger.debug("finish_test_item queued")
 
+        # check if skipped test should not be marked as "TO INVESTIGATE"
+        if issue is None and status == "SKIPPED" \
+                and not self.rp_client.is_skipped_an_issue:
+            issue = {"issue_type": "NOT_ISSUE"}
+
         args = {
             "end_time": end_time,
             "status": status,
