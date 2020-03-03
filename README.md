@@ -10,6 +10,7 @@ Library used only for implementors of custom listeners for ReportPortal
 
 - [PyTest Framework](https://github.com/reportportal/agent-python-pytest)
 - [Robot Framework](https://github.com/reportportal/agent-Python-RobotFramework)
+- [Nose Framework](https://github.com/reportportal/agent-python-nosetests)
 
 
 ## Installation
@@ -20,13 +21,28 @@ The latest stable version is available on PyPI:
 pip install reportportal-client
 ```
 
+**IMPORTANT!**
+The lastest version **does** not support Report Portal versions below 5.0.0.
+
+Specify the last one release of the client version 3 to install or update the client for other versions of Report Portal below 5.0.0:
+
+```
+pip install reportportal-client~=3.0
+```
+
+
+## Contribution
+
+All the fixes for the client that supports Report Portal versions below 5.0.0 should go into the v3 branch.
+The master branch will store the code base for the client for Report Portal versions 5 and above.
+
 
 ## Usage
 
 Main classes are:
 
 - reportportal_client.ReportPortalService
-- reportportal_client.ReportPortalServiceAsync
+- reportportal_client.ReportPortalServiceAsync(Client version 3.x only)
 
 Basic usage example:
 
@@ -37,7 +53,11 @@ import traceback
 from mimetypes import guess_type
 from time import time
 
+# Report Portal versions below 5.0.0:
 from reportportal_client import ReportPortalServiceAsync
+
+# Report Portal versions >= 5.0.0:
+from reportportal_client import ReportPortalService
 
 
 def timestamp():
@@ -63,15 +83,20 @@ def my_error_handler(exc_info):
     traceback.print_exception(*exc_info)
 
 
+# Report Portal versions below 5.0.0:
 service = ReportPortalServiceAsync(endpoint=endpoint, project=project,
                                    token=token, error_handler=my_error_handler)
+
+# Report Portal versions >= 5.0.0:
+service = ReportPortalServiceAsync(endpoint=endpoint, project=project,
+                                   token=token)
 
 # Start launch.
 launch = service.start_launch(name=launch_name,
                               start_time=timestamp(),
                               description=launch_doc)
 
-# Start test item.
+# Start test item Report Portal versions below 5.0.0:
 test = service.start_test_item(name="Test Case",
                                description="First Test Case",
                                tags=["Image", "Smoke"],
@@ -79,6 +104,15 @@ test = service.start_test_item(name="Test Case",
                                item_type="STEP",
                                parameters={"key1": "val1",
                                            "key2": "val2"})
+
+# Start test item Report Portal versions >= 5.0.0:
+item_id = service.start_test_item(name="Test Case",
+                                  description="First Test Case",
+                                  start_time=timestamp(),
+                                  item_type="STEP",
+                                  parameters={"key1": "val1",
+                                              "key2": "val2"})
+
 
 # Create text log message with INFO level.
 service.log(time=timestamp(),
@@ -112,8 +146,11 @@ service.log(
     "INFO",
     attachment=subprocess.check_output("ps aux".split()))
 
-# Finish test item.
+# Finish test item Report Portal versions below 5.0.0.
 service.finish_test_item(end_time=timestamp(), status="PASSED")
+
+# Finish test item Report Portal versions >= 5.0.0.
+service.finish_test_item(item_id=item_id, end_time=timestamp(), status="PASSED")
 
 # Finish launch.
 service.finish_launch(end_time=timestamp())
@@ -135,9 +172,9 @@ There are two ways to pass data as attachment:
 ```
 with open(screenshot_file_path, "rb") as image_file:
     rp_logger.info("Some Text Here",
-                            attachment={"name": "test_name_screenshot.png",
-                                                 "data": image_file,
-                                                 "mime": "image/png"})
+                   attachment={"name": "test_name_screenshot.png",
+                               "data": image_file,
+                               "mime": "image/png"})
 ```
 
 ### Case 2 - pass file content itself (like you did)
@@ -146,9 +183,9 @@ with open(screenshot_file_path, "rb") as image_file:
         file_data = image_file.read()
 
 rp_logger.info("Some Text Here",
-                       attachment={"name": "test_name_screenshot.png",
-                                             "data": file_data,
-                                             "mime": "image/png"})
+               attachment={"name": "test_name_screenshot.png",
+                           "data": file_data,
+                           "mime": "image/png"})
 ```
 
 
