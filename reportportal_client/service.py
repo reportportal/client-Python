@@ -120,7 +120,6 @@ class ReportPortalService(object):
                  endpoint,
                  project,
                  token,
-                 *args,
                  is_skipped_an_issue=True,
                  verify_ssl=True,
                  retries=None,
@@ -157,7 +156,6 @@ class ReportPortalService(object):
     def start_launch(self,
                      name,
                      start_time,
-                     *agrs,
                      description=None,
                      attributes=None,
                      mode=None,
@@ -177,7 +175,7 @@ class ReportPortalService(object):
         logger.debug("start_launch - ID: %s", self.launch_id)
         return self.launch_id
 
-    def finish_launch(self, end_time, *agrs, status=None, **kwargs):
+    def finish_launch(self, end_time, status=None, **kwargs):
         """
         status can be (PASSED, FAILED, STOPPED, SKIPPED, RESETED, CANCELLED)
         """
@@ -194,7 +192,6 @@ class ReportPortalService(object):
                         name,
                         start_time,
                         item_type,
-                        *args,
                         description=None,
                         attributes=None,
                         parameters=None,
@@ -243,7 +240,6 @@ class ReportPortalService(object):
                          item_id,
                          end_time,
                          status,
-                         *args,
                          issue=None,
                          attributes=None,
                          **kwargs):
