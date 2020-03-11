@@ -28,17 +28,15 @@ logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
 
-def _dict_to_payload(dictionary):
-    def _str(value):
-        if isinstance(value, six.text_type):
-            # Don't try to encode 'unicode' in Python 2.
-            return value
-        return str(value)
+def _covert_string(value):
+    if isinstance(value, six.text_type):
+        # Don't try to encode 'unicode' in Python 2.
+        return value
+    return str(value)
 
-    return [
-        {"key": key, "value": _str(value)}
-        for key, value in dictionary.items()
-    ]
+
+def _dict_to_payload(dictionary):
+    return {key: _covert_string(value) for key, value in dictionary.items()}
 
 
 def _get_id(response):
@@ -149,7 +147,7 @@ class ReportPortalService(object):
 
     def start_launch(self, name, start_time, description=None, attributes=None,
                      mode=None):
-        if attributes is not None:
+        if attributes:
             attributes = _dict_to_payload(attributes)
         data = {
             "name": name,
@@ -192,9 +190,9 @@ class ReportPortalService(object):
                 ...
             }
         """
-        if attributes is not None:
+        if attributes:
             attributes = _dict_to_payload(attributes)
-        if parameters is not None:
+        if parameters:
             parameters = _dict_to_payload(parameters)
 
         data = {
@@ -206,7 +204,7 @@ class ReportPortalService(object):
             "type": item_type,
             "parameters": parameters,
         }
-        if parent_item_id is not None:
+        if parent_item_id:
             url = uri_join(self.base_url_v2, "item", parent_item_id)
         else:
             url = uri_join(self.base_url_v2, "item")
@@ -223,7 +221,7 @@ class ReportPortalService(object):
                 and not self.is_skipped_an_issue:
             issue = {"issue_type": "NOT_ISSUE"}
 
-        if attributes is not None:
+        if attributes:
             attributes = _dict_to_payload(attributes)
 
         data = {
