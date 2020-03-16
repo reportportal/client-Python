@@ -117,8 +117,14 @@ def uri_join(*uri_parts):
 class ReportPortalService(object):
     """Service class with report portal event callbacks."""
 
-    def __init__(self, endpoint, project, token,
-                 is_skipped_an_issue=True, verify_ssl=True, retries=None):
+    def __init__(self,
+                 endpoint,
+                 project,
+                 token,
+                 is_skipped_an_issue=True,
+                 verify_ssl=True,
+                 retries=None,
+                 **kwargs):
         """Init the service class.
 
         Args:
@@ -148,9 +154,14 @@ class ReportPortalService(object):
     def terminate(self, *args, **kwargs):
         pass
 
-    def start_launch(self, name, start_time, description=None, attributes=None,
-                     mode=None):
-        if attributes:
+    def start_launch(self,
+                     name,
+                     start_time,
+                     description=None,
+                     attributes=None,
+                     mode=None,
+                     **kwargs):
+        if attributes is not None:
             attributes = _list_to_payload(attributes)
         data = {
             "name": name,
@@ -165,7 +176,7 @@ class ReportPortalService(object):
         logger.debug("start_launch - ID: %s", self.launch_id)
         return self.launch_id
 
-    def finish_launch(self, end_time, status=None):
+    def finish_launch(self, end_time, status=None, **kwargs):
         """
         status can be (PASSED, FAILED, STOPPED, SKIPPED, RESETED, CANCELLED)
         """
@@ -178,8 +189,16 @@ class ReportPortalService(object):
         logger.debug("finish_launch - ID: %s", self.launch_id)
         return _get_msg(r)
 
-    def start_test_item(self, name, start_time, item_type, description=None,
-                        attributes=None, parameters=None, parent_item_id=None):
+    def start_test_item(self,
+                        name,
+                        start_time,
+                        item_type,
+                        description=None,
+                        attributes=None,
+                        parameters=None,
+                        parent_item_id=None,
+                        has_stats=True,
+                        **kwargs):
         """
         item_type can be (SUITE, STORY, TEST, SCENARIO, STEP, BEFORE_CLASS,
         BEFORE_GROUPS, BEFORE_METHOD, BEFORE_SUITE, BEFORE_TEST, AFTER_CLASS,
@@ -206,6 +225,7 @@ class ReportPortalService(object):
             "launchUuid": self.launch_id,
             "type": item_type,
             "parameters": parameters,
+            "hasStats": has_stats
         }
         if parent_item_id:
             url = uri_join(self.base_url_v2, "item", parent_item_id)
@@ -217,8 +237,13 @@ class ReportPortalService(object):
         logger.debug("start_test_item - ID: %s", item_id)
         return item_id
 
-    def finish_test_item(self, item_id, end_time, status,
-                         issue=None, attributes=None):
+    def finish_test_item(self,
+                         item_id,
+                         end_time,
+                         status,
+                         issue=None,
+                         attributes=None,
+                         **kwargs):
         # check if skipped test should not be marked as "TO INVESTIGATE"
         if issue is None and status == "SKIPPED" \
                 and not self.is_skipped_an_issue:

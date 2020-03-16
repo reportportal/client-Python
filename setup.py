@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-__version__ = '4.0.0'
+__version__ = '5.0.1'
 
 setup(
     name='reportportal-client',
@@ -13,7 +13,12 @@ setup(
                   'tarball/%s' % __version__),
     license='Apache 2.0.',
     keywords=['testing', 'reporting', 'reportportal'],
-    classifiers=[],
+    classifiers=[
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6'
+    ],
     install_requires=['requests>=2.4.2', 'six'],
     setup_requires=['pytest-runner'],
     tests_require=[
