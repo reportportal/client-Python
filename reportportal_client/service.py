@@ -28,15 +28,18 @@ logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
 
-def _covert_string(value):
+def _convert_string(value):
     if isinstance(value, six.text_type):
         # Don't try to encode 'unicode' in Python 2.
         return value
     return str(value)
 
 
-def _dict_to_payload(dictionary):
-    return {key: _covert_string(value) for key, value in dictionary.items()}
+def _list_to_payload(dictionary):
+    return [
+        {"key": key, "value": _convert_string(value)}
+        for key, value in dictionary.items()
+    ]
 
 
 def _get_id(response):
@@ -148,7 +151,7 @@ class ReportPortalService(object):
     def start_launch(self, name, start_time, description=None, attributes=None,
                      mode=None):
         if attributes:
-            attributes = _dict_to_payload(attributes)
+            attributes = _list_to_payload(attributes)
         data = {
             "name": name,
             "description": description,
@@ -191,9 +194,9 @@ class ReportPortalService(object):
             }
         """
         if attributes:
-            attributes = _dict_to_payload(attributes)
+            attributes = _list_to_payload(attributes)
         if parameters:
-            parameters = _dict_to_payload(parameters)
+            parameters = _list_to_payload(parameters)
 
         data = {
             "name": name,
@@ -222,7 +225,7 @@ class ReportPortalService(object):
             issue = {"issue_type": "NOT_ISSUE"}
 
         if attributes:
-            attributes = _dict_to_payload(attributes)
+            attributes = _list_to_payload(attributes)
 
         data = {
             "endTime": end_time,
