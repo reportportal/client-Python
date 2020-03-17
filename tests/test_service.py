@@ -150,4 +150,3 @@ class ReportPortalServiceTest(unittest.TestCase):
             _get_msg = self.rp.finish_launch('name',
                                              datetime.now().isoformat())
         self.assertEqual(_get_msg, {"id": 111})
-
