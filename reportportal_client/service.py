@@ -38,7 +38,7 @@ def _convert_string(value):
 def _list_to_payload(dictionary):
     return [
         {"key": key, "value": _convert_string(value)}
-        for key, value in dictionary.items()
+        for key, value in sorted(dictionary.items())
     ]
 
 
