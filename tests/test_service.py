@@ -1,3 +1,5 @@
+"""Tests for service.py ."""
+
 try:
     from unittest.mock import create_autospec, Mock, patch, MagicMock
 except ImportError:
@@ -12,34 +14,25 @@ from datetime import datetime
 
 
 class TestServiceFunctions(unittest.TestCase):
-    """
-    Test for main functions in service.py
-    """
+    """Test for main functions in service.py."""
+
     def test_check_convert_to_string(self):
-        """
-        Test for support and convert strings to utf-8
-        """
+        """Test for support and convert strings to utf-8."""
         self.assertEqual(_convert_string("Hello world"), 'Hello world')
         self.assertEqual(type(_convert_string("Hello world")), str)
 
     def test_list_to_payload(self):
-        """
-        Test for convert dict to list of dicts
-        """
+        """Test for convert dict to list of dicts."""
         initial_dict = {'key': "value", 'key1': 'value1'}
         expected_list = [{'key': 'key', 'value': 'value'},
                          {'key': 'key1', 'value': 'value1'}]
         self.assertEqual(_list_to_payload(initial_dict), expected_list)
 
     def test_get_id(self):
-        """Test for get id from Response obj"""
+        """Test for get id from Response obj."""
         fake_json = {"id": 123}
 
-        """
-        Mocking Response obj
-        :param status_code 200
-        :param return JSON obj fake_json
-        """
+        """Mocking Response obj."""
         with patch('requests.Response', new_callable=MagicMock()) as mock_get:
             mock_get.status_code = 200
             mock_get.json.return_value = fake_json
@@ -49,15 +42,13 @@ class TestServiceFunctions(unittest.TestCase):
         self.assertEqual(obj, 123)
 
     def test_get_msg(self):
-        """Test  get_msg recieved from Response"""
+        """
+        Test  get_msg recieved from Response.
+
+        :return dict
+        """
         fake_json = {"id": 123}
 
-        """
-        Mocking Response object
-        :param status_code int
-        :param return_value json obj
-        :return (dict) fake_json
-        """
         with patch('requests.Response', new_callable=MagicMock()) as mock_get:
             mock_get.status_code = 200
             mock_get.json.return_value = fake_json
@@ -68,17 +59,12 @@ class TestServiceFunctions(unittest.TestCase):
 
     def test_get_data(self):
         """
-        Test for get data from Response
+        Test for get data from Response.
+
         :return: dict
         """
         fake_json = {"id": 123}
 
-        """
-        Mocking Response obj
-        :param status_code int
-        :param return_value dict
-        :return (dict) fake_json
-        """
         with patch('requests.Response', new_callable=MagicMock()) as mock_get:
             mock_get.status_code = 200
             mock_get.json.return_value = fake_json
@@ -88,15 +74,9 @@ class TestServiceFunctions(unittest.TestCase):
         self.assertEqual(obj, fake_json)
 
     def test_get_json(self):
-        """Test get json from Response"""
+        """Test get json from Response."""
         fake_json = {"id": 123}
 
-        """
-        Mocking Response obj
-        :param status_code int
-        :param return_value = dict
-        :return (dict) fake_json
-        """
         with patch('requests.Response', new_callable=MagicMock()) as mock_get:
             mock_get.status_code = 200
             mock_get.json.return_value = fake_json
@@ -106,8 +86,8 @@ class TestServiceFunctions(unittest.TestCase):
         self.assertEqual(obj, fake_json)
 
     def test_get_messages(self):
-        """Test for get message from response
-        :param: Response
+        """Test for get message from response.
+
         :return: list
         """
         data = {"responses": [{"errorCode": 422, "message": "error"}]}
@@ -118,17 +98,21 @@ class TestServiceFunctions(unittest.TestCase):
 
 
 class ReportPortalServiceTest(unittest.TestCase):
+    """Tests for ReportPortalService."""
+
     def setUp(self):
-        """Creating ReportPortalService Instance and Mocking session"""
+        """Create ReportPortalService Instance and Mocking session."""
         self.rp = ReportPortalService('http://endpoint', 'project', 'token')
         self.rp.session = MagicMock()
 
-    """Testing for start launch and sending request"""
     def test_start_launch(self):
         """
-        Mocking _get_data function
-        :param return_value dict
-        :return: (int) id
+        Testing for start launch and sending request.
+
+        Mocking _get_data function.
+
+        :param return_value - dict
+        :return: id - int
         """
         with patch('reportportal_client.service._get_data',
                    new_callable=Mock()) as mock_get:
@@ -137,9 +121,10 @@ class ReportPortalServiceTest(unittest.TestCase):
                                              datetime.now().isoformat())
         self.assertEqual(launch_id, 111)
 
-    """Testing for finish launch and sending request"""
     def test_finish_launch(self):
         """
+        Testing for finish launch and sending request.
+
         Mocking get_msg
         :param: return_value dict
         :return: (dict) json obj
