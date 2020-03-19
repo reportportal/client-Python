@@ -14,7 +14,7 @@ from datetime import datetime
 
 
 class TestServiceFunctions(unittest.TestCase):
-    """Test for main functions in service.py."""
+    """Test for additional functions."""
 
     def test_check_convert_to_string(self):
         """Test for support and convert strings to utf-8."""
@@ -22,7 +22,7 @@ class TestServiceFunctions(unittest.TestCase):
         self.assertEqual(type(_convert_string("Hello world")), str)
 
     def test_list_to_payload(self):
-        """Test for convert dict to list of dicts."""
+        """Test convert dict to list of dicts."""
         initial_dict = {'key': "value", 'key1': 'value1'}
         expected_list = [{'key': 'key', 'value': 'value'},
                          {'key': 'key1', 'value': 'value1'}]
@@ -32,7 +32,6 @@ class TestServiceFunctions(unittest.TestCase):
         """Test for get id from Response obj."""
         fake_json = {"id": 123}
 
-        """Mocking Response obj."""
         with patch('requests.Response', new_callable=MagicMock()) as mock_get:
             mock_get.status_code = 200
             mock_get.json.return_value = fake_json
@@ -43,7 +42,7 @@ class TestServiceFunctions(unittest.TestCase):
 
     def test_get_msg(self):
         """
-        Test  get_msg recieved from Response.
+        Test get_msg recieved from Response.
 
         :return dict
         """
@@ -59,7 +58,7 @@ class TestServiceFunctions(unittest.TestCase):
 
     def test_get_data(self):
         """
-        Test for get data from Response.
+        Test get data from Response.
 
         :return: dict
         """
@@ -74,7 +73,10 @@ class TestServiceFunctions(unittest.TestCase):
         self.assertEqual(obj, fake_json)
 
     def test_get_json(self):
-        """Test get json from Response."""
+        """Test get json from Response.
+
+        :return: json object
+        """
         fake_json = {"id": 123}
 
         with patch('requests.Response', new_callable=MagicMock()) as mock_get:
@@ -86,7 +88,7 @@ class TestServiceFunctions(unittest.TestCase):
         self.assertEqual(obj, fake_json)
 
     def test_get_messages(self):
-        """Test for get message from response.
+        """Test get errors from response.
 
         :return: list
         """
@@ -98,7 +100,7 @@ class TestServiceFunctions(unittest.TestCase):
 
 
 class ReportPortalServiceTest(unittest.TestCase):
-    """Tests for ReportPortalService."""
+    """Tests ReportPortalService."""
 
     def setUp(self):
         """Create ReportPortalService Instance and Mocking session."""
@@ -106,14 +108,7 @@ class ReportPortalServiceTest(unittest.TestCase):
         self.rp.session = MagicMock()
 
     def test_start_launch(self):
-        """
-        Testing for start launch and sending request.
-
-        Mocking _get_data function.
-
-        :param return_value - dict
-        :return: id - int
-        """
+        """Test start launch and sending request."""
         with patch('reportportal_client.service._get_data',
                    new_callable=Mock()) as mock_get:
             mock_get.return_value = {"id": 111}
@@ -122,13 +117,7 @@ class ReportPortalServiceTest(unittest.TestCase):
         self.assertEqual(launch_id, 111)
 
     def test_finish_launch(self):
-        """
-        Testing for finish launch and sending request.
-
-        Mocking get_msg
-        :param: return_value dict
-        :return: (dict) json obj
-        """
+        """Test finish launch and sending request."""
         with patch('reportportal_client.service._get_msg',
                    new_callable=Mock()) as mock_get:
             mock_get.return_value = {"id": 111}
