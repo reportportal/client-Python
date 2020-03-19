@@ -20,7 +20,6 @@ import json
 import requests
 import uuid
 import logging
-import platform
 
 import six
 from requests.adapters import HTTPAdapter
@@ -152,7 +151,6 @@ def uri_join(*uri_parts):
 
     Returns:
         An uri string.
-
     """
     return '/'.join(str(s).strip('/').strip('\\') for s in uri_parts)
 
@@ -195,7 +193,7 @@ class ReportPortalService(object):
         self.verify_ssl = verify_ssl
 
     def terminate(self, *args, **kwargs):
-       """Call this to terminate the service."""
+        """Call this to terminate the service."""
         pass
 
     def start_launch(self,
@@ -225,10 +223,6 @@ class ReportPortalService(object):
         """Finish a launch with the given parameters.
         
         Status can be one of the followings:
-        (PASSED, FAILED, STOPPED, SKIPPED, RESETED, CANCELLED)
-        """
-        Status can be.
-
         (PASSED, FAILED, STOPPED, SKIPPED, RESETED, CANCELLED)
         """
         data = {
@@ -297,7 +291,7 @@ class ReportPortalService(object):
                          issue=None,
                          attributes=None,
                          **kwargs):
-        """ Finish the test item and return HTTP response.
+        """Finish the test item and return HTTP response.
        
         :param item_id:    id of the test item
         :param end_time:   time in UTC format
@@ -306,16 +300,6 @@ class ReportPortalService(object):
         :param attributes: list of attributes
         :param kwargs:     other parameters
         :return:           json message
-        """
-        Finish test and returns msg.
-
-        :param item_id: id of test item
-        :param end_time: time in UTC format
-        :param status: status of test
-        :param issue: description of issue
-        :param attributes: list of attrs
-        :param kwargs: other params
-        :return: json message
         """
         # check if skipped test should not be marked as "TO INVESTIGATE"
         if issue is None and status == "SKIPPED" \
@@ -339,7 +323,7 @@ class ReportPortalService(object):
 
     def get_project_settings(self):
         """
-        Get settings from porject.
+        Get settings from project.
 
         :return: json body
         """
@@ -440,11 +424,3 @@ class ReportPortalService(object):
         logger.debug("log_batch response: %s", r.text)
 
         return _get_data(r)
-
-    def system_information(self):
-        """Get system information about OS, Machine, etc."""
-        system_info_dict = {"python_agent": "",
-                            "python_version": platform.python_version(),
-                            "os": platform.platform(),
-                            "cpu": platform.processor(),
-                            "other": platform.uname()}
