@@ -11,8 +11,8 @@ python:
 install:
   - pip install pycodestyle pydocstyle
 before_script:
-  - pycodestyle .
-  - pydocstyle .
+  - pycodestyle reportportal_client/ tests/
+  - pydocstyle reportportal_client/ tests/
 script:
   - python setup.py test
   - python setup.py -q install
