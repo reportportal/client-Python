@@ -9,9 +9,10 @@ python:
   - "3.5"
   - "3.6"
 install:
-  - pip install pycodestyle
+  - pip install pycodestyle pydocstyle
 before_script:
   - pycodestyle .
+  - pydocstyle .
 script:
   - python setup.py test
   - python setup.py -q install

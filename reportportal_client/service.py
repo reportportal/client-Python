@@ -20,6 +20,7 @@ import json
 import requests
 import uuid
 import logging
+import platform
 
 import six
 from requests.adapters import HTTPAdapter
@@ -31,6 +32,11 @@ logger.addHandler(logging.NullHandler())
 
 
 def _convert_string(value):
+    """Support and convert strings in py2 and py3.
+
+    :param value: input string
+    :return value: convert string
+    """
     if isinstance(value, six.text_type):
         # Don't try to encode 'unicode' in Python 2.
         return value
@@ -38,6 +44,11 @@ def _convert_string(value):
 
 
 def _list_to_payload(dictionary):
+    """Convert dict to list of dicts.
+
+    :param dictionary: initial dict
+    :return list: list of dicts
+    """
     return [
         {"key": key, "value": _convert_string(value)}
         for key, value in sorted(dictionary.items())
@@ -45,6 +56,11 @@ def _list_to_payload(dictionary):
 
 
 def _get_id(response):
+    """Get id from Response.
+
+    :param response: Response object
+    :return id: int value of id
+    """
     try:
         return _get_data(response)["id"]
     except KeyError:
@@ -53,6 +69,12 @@ def _get_id(response):
 
 
 def _get_msg(response):
+    """
+    Get message from Response.
+
+    :param response: Response object
+    :return: data: json data
+    """
     try:
         return _get_data(response)
     except KeyError:
@@ -61,6 +83,12 @@ def _get_msg(response):
 
 
 def _get_data(response):
+    """
+    Get data from Response.
+
+    :param response: Response object
+    :return: json data
+    """
     data = _get_json(response)
     error_messages = _get_messages(data)
     error_count = len(error_messages)
@@ -79,6 +107,12 @@ def _get_data(response):
 
 
 def _get_json(response):
+    """
+    Get json from Response.
+
+    :param response: Response object
+    :return: data: json object
+    """
     try:
         if response.text:
             return response.json()
@@ -90,6 +124,12 @@ def _get_json(response):
 
 
 def _get_messages(data):
+    """
+    Get messages (ErrorCode) from Response.
+
+    :param data: dict of datas
+    :return list: Empty list or list of errors
+    """
     error_messages = []
     for ret in data.get("responses", [data]):
         if "errorCode" in ret:
@@ -165,7 +205,7 @@ class ReportPortalService(object):
                      attributes=None,
                      mode=None,
                      **kwargs):
-        """Start launch tests."""
+        """Start a new launch with the given parameters."""
         if attributes is not None:
             attributes = _list_to_payload(attributes)
         data = {
@@ -387,3 +427,11 @@ class ReportPortalService(object):
         logger.debug("log_batch response: %s", r.text)
 
         return _get_data(r)
+
+    def system_information(self):
+        """Get system information about OS, Machine, etc."""
+        system_info_dict = {"python_agent": "",
+                            "python_version": platform.python_version(),
+                            "os": platform.platform(),
+                            "cpu": platform.processor(),
+                            "other": platform.uname()}

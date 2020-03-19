@@ -41,11 +41,7 @@ class TestServiceFunctions(unittest.TestCase):
         self.assertEqual(obj, 123)
 
     def test_get_msg(self):
-        """
-        Test get_msg recieved from Response.
-
-        :return dict
-        """
+        """Test get_msg recieved from Response."""
         fake_json = {"id": 123}
 
         with patch('requests.Response', new_callable=MagicMock()) as mock_get:
@@ -57,11 +53,7 @@ class TestServiceFunctions(unittest.TestCase):
         self.assertEqual(obj, fake_json)
 
     def test_get_data(self):
-        """
-        Test get data from Response.
-
-        :return: dict
-        """
+        """Test get data from Response."""
         fake_json = {"id": 123}
 
         with patch('requests.Response', new_callable=MagicMock()) as mock_get:
@@ -73,10 +65,7 @@ class TestServiceFunctions(unittest.TestCase):
         self.assertEqual(obj, fake_json)
 
     def test_get_json(self):
-        """Test get json from Response.
-
-        :return: json object
-        """
+        """Test get json from Response."""
         fake_json = {"id": 123}
 
         with patch('requests.Response', new_callable=MagicMock()) as mock_get:
@@ -88,10 +77,7 @@ class TestServiceFunctions(unittest.TestCase):
         self.assertEqual(obj, fake_json)
 
     def test_get_messages(self):
-        """Test get errors from response.
-
-        :return: list
-        """
+        """Test get errors from response."""
         data = {"responses": [{"errorCode": 422, "message": "error"}]}
 
         obj = _get_messages(data)
@@ -100,7 +86,7 @@ class TestServiceFunctions(unittest.TestCase):
 
 
 class ReportPortalServiceTest(unittest.TestCase):
-    """Tests ReportPortalService."""
+    """This class stores methods which test ReportPortalService."""
 
     def setUp(self):
         """Create ReportPortalService Instance and Mocking session."""
