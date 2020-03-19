@@ -151,6 +151,7 @@ def uri_join(*uri_parts):
 
     Returns:
         An uri string.
+
     """
     return '/'.join(str(s).strip('/').strip('\\') for s in uri_parts)
 
@@ -221,7 +222,7 @@ class ReportPortalService(object):
 
     def finish_launch(self, end_time, status=None, **kwargs):
         """Finish a launch with the given parameters.
-        
+
         Status can be one of the followings:
         (PASSED, FAILED, STOPPED, SKIPPED, RESETED, CANCELLED)
         """
@@ -292,7 +293,7 @@ class ReportPortalService(object):
                          attributes=None,
                          **kwargs):
         """Finish the test item and return HTTP response.
-       
+
         :param item_id:    id of the test item
         :param end_time:   time in UTC format
         :param status:     status of the test
@@ -300,6 +301,7 @@ class ReportPortalService(object):
         :param attributes: list of attributes
         :param kwargs:     other parameters
         :return:           json message
+
         """
         # check if skipped test should not be marked as "TO INVESTIGATE"
         if issue is None and status == "SKIPPED" \
