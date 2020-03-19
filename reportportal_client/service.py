@@ -195,7 +195,7 @@ class ReportPortalService(object):
         self.verify_ssl = verify_ssl
 
     def terminate(self, *args, **kwargs):
-        """terminate."""
+       """Call this to terminate the service."""
         pass
 
     def start_launch(self,
@@ -222,6 +222,10 @@ class ReportPortalService(object):
         return self.launch_id
 
     def finish_launch(self, end_time, status=None, **kwargs):
+        """Finish a launch with the given parameters.
+        
+        Status can be one of the followings:
+        (PASSED, FAILED, STOPPED, SKIPPED, RESETED, CANCELLED)
         """
         Status can be.
 
@@ -293,6 +297,15 @@ class ReportPortalService(object):
                          issue=None,
                          attributes=None,
                          **kwargs):
+        """ Finish the test item and return HTTP response.
+       
+        :param item_id:    id of the test item
+        :param end_time:   time in UTC format
+        :param status:     status of the test
+        :param issue:      description of an issue
+        :param attributes: list of attributes
+        :param kwargs:     other parameters
+        :return:           json message
         """
         Finish test and returns msg.
 
