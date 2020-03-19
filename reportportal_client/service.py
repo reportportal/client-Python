@@ -1,16 +1,18 @@
-#  Copyright (c) 2018 http://reportportal.io
-#
-#  Licensed under the Apache License, Version 2.0 (the "License");
-#  you may not use this file except in compliance with the License.
-#  You may obtain a copy of the License at
-#
-#      http://www.apache.org/licenses/LICENSE-2.0
-#
-#  Unless required by applicable law or agreed to in writing, software
-#  distributed under the License is distributed on an "AS IS" BASIS,
-#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#  See the License for the specific language governing permissions and
-#  limitations under the License.
+"""
+Copyright (c) 2018 http://reportportal.io .
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
 
 
 import collections
@@ -28,20 +30,36 @@ logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
 
-def _dict_to_payload(dictionary):
-    def _str(value):
-        if isinstance(value, six.text_type):
-            # Don't try to encode 'unicode' in Python 2.
-            return value
-        return str(value)
+def _convert_string(value):
+    """Support and convert strings in py2 and py3.
 
+    :param value: input string
+    :return value: convert string
+    """
+    if isinstance(value, six.text_type):
+        # Don't try to encode 'unicode' in Python 2.
+        return value
+    return str(value)
+
+
+def _list_to_payload(dictionary):
+    """Convert dict to list of dicts.
+
+    :param dictionary: initial dict
+    :return list: list of dicts
+    """
     return [
-        {"key": key, "value": _str(value)}
-        for key, value in dictionary.items()
+        {"key": key, "value": _convert_string(value)}
+        for key, value in sorted(dictionary.items())
     ]
 
 
 def _get_id(response):
+    """Get id from Response.
+
+    :param response: Response object
+    :return id: int value of id
+    """
     try:
         return _get_data(response)["id"]
     except KeyError:
@@ -50,6 +68,12 @@ def _get_id(response):
 
 
 def _get_msg(response):
+    """
+    Get message from Response.
+
+    :param response: Response object
+    :return: data: json data
+    """
     try:
         return _get_data(response)
     except KeyError:
@@ -58,6 +82,12 @@ def _get_msg(response):
 
 
 def _get_data(response):
+    """
+    Get data from Response.
+
+    :param response: Response object
+    :return: json data
+    """
     data = _get_json(response)
     error_messages = _get_messages(data)
     error_count = len(error_messages)
@@ -76,6 +106,12 @@ def _get_data(response):
 
 
 def _get_json(response):
+    """
+    Get json from Response.
+
+    :param response: Response object
+    :return: data: json object
+    """
     try:
         if response.text:
             return response.json()
@@ -87,6 +123,12 @@ def _get_json(response):
 
 
 def _get_messages(data):
+    """
+    Get messages (ErrorCode) from Response.
+
+    :param data: dict of datas
+    :return list: Empty list or list of errors
+    """
     error_messages = []
     for ret in data.get("responses", [data]):
         if "errorCode" in ret:
@@ -109,6 +151,7 @@ def uri_join(*uri_parts):
 
     Returns:
         An uri string.
+
     """
     return '/'.join(str(s).strip('/').strip('\\') for s in uri_parts)
 
@@ -151,6 +194,7 @@ class ReportPortalService(object):
         self.verify_ssl = verify_ssl
 
     def terminate(self, *args, **kwargs):
+        """Call this to terminate the service."""
         pass
 
     def start_launch(self,
@@ -160,8 +204,9 @@ class ReportPortalService(object):
                      attributes=None,
                      mode=None,
                      **kwargs):
+        """Start a new launch with the given parameters."""
         if attributes is not None:
-            attributes = _dict_to_payload(attributes)
+            attributes = _list_to_payload(attributes)
         data = {
             "name": name,
             "description": description,
@@ -176,8 +221,10 @@ class ReportPortalService(object):
         return self.launch_id
 
     def finish_launch(self, end_time, status=None, **kwargs):
-        """
-        status can be (PASSED, FAILED, STOPPED, SKIPPED, RESETED, CANCELLED)
+        """Finish a launch with the given parameters.
+
+        Status can be one of the followings:
+        (PASSED, FAILED, STOPPED, SKIPPED, RESETED, CANCELLED)
         """
         data = {
             "endTime": end_time,
@@ -199,9 +246,11 @@ class ReportPortalService(object):
                         has_stats=True,
                         **kwargs):
         """
-        item_type can be (SUITE, STORY, TEST, SCENARIO, STEP, BEFORE_CLASS,
+        Item_type can be.
+
+        (SUITE, STORY, TEST, SCENARIO, STEP, BEFORE_CLASS,
         BEFORE_GROUPS, BEFORE_METHOD, BEFORE_SUITE, BEFORE_TEST, AFTER_CLASS,
-        AFTER_GROUPS, AFTER_METHOD, AFTER_SUITE, AFTER_TEST)
+        AFTER_GROUPS, AFTER_METHOD, AFTER_SUITE, AFTER_TEST).
 
         attributes and parameters should be a dictionary
         with the following format:
@@ -211,10 +260,10 @@ class ReportPortalService(object):
                 ...
             }
         """
-        if attributes is not None:
-            attributes = _dict_to_payload(attributes)
-        if parameters is not None:
-            parameters = _dict_to_payload(parameters)
+        if attributes:
+            attributes = _list_to_payload(attributes)
+        if parameters:
+            parameters = _list_to_payload(parameters)
 
         data = {
             "name": name,
@@ -226,7 +275,7 @@ class ReportPortalService(object):
             "parameters": parameters,
             "hasStats": has_stats
         }
-        if parent_item_id is not None:
+        if parent_item_id:
             url = uri_join(self.base_url_v2, "item", parent_item_id)
         else:
             url = uri_join(self.base_url_v2, "item")
@@ -243,13 +292,24 @@ class ReportPortalService(object):
                          issue=None,
                          attributes=None,
                          **kwargs):
+        """Finish the test item and return HTTP response.
+
+        :param item_id:    id of the test item
+        :param end_time:   time in UTC format
+        :param status:     status of the test
+        :param issue:      description of an issue
+        :param attributes: list of attributes
+        :param kwargs:     other parameters
+        :return:           json message
+
+        """
         # check if skipped test should not be marked as "TO INVESTIGATE"
         if issue is None and status == "SKIPPED" \
                 and not self.is_skipped_an_issue:
             issue = {"issue_type": "NOT_ISSUE"}
 
-        if attributes is not None:
-            attributes = _dict_to_payload(attributes)
+        if attributes:
+            attributes = _list_to_payload(attributes)
 
         data = {
             "endTime": end_time,
@@ -264,12 +324,27 @@ class ReportPortalService(object):
         return _get_msg(r)
 
     def get_project_settings(self):
+        """
+        Get settings from project.
+
+        :return: json body
+        """
         url = uri_join(self.base_url_v1, "settings")
         r = self.session.get(url=url, json={}, verify=self.verify_ssl)
         logger.debug("settings")
         return _get_json(r)
 
     def log(self, time, message, level=None, attachment=None, item_id=None):
+        """
+        Create log for test.
+
+        :param time: time in UTC
+        :param message: description
+        :param level:
+        :param attachment: files
+        :param item_id:  id of item
+        :return: id of item from response
+        """
         data = {
             "launchUuid": self.launch_id,
             "time": time,
@@ -288,19 +363,18 @@ class ReportPortalService(object):
             return _get_id(r)
 
     def log_batch(self, log_data, item_id=None):
-        """Logs batch of messages with attachment.
+        """
+        Log batch of messages with attachment.
 
         Args:
-            log_data: list of log records.
+        log_data: list of log records.
             log record is a dict of;
                 time, message, level, attachment
                 attachment is a dict of:
                     name: name of attachment
                     data: fileobj or content
                     mime: content type for attachment
-
         """
-
         url = uri_join(self.base_url_v2, "log")
 
         attachments = []
