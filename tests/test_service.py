@@ -103,7 +103,7 @@ class ReportPortalServiceTest(unittest.TestCase):
     """Tests ReportPortalService."""
 
     def setUp(self):
-        """Create ReportPortalService Instance and Mocking session."""
+        """Instantiate the ReportPortalService class and mock its session."""
         self.rp = ReportPortalService('http://endpoint', 'project', 'token')
         self.rp.session = MagicMock()
 
