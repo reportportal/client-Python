@@ -182,6 +182,10 @@ class ReportPortalService(object):
         return self.launch_id
 
     def finish_launch(self, end_time, status=None, **kwargs):
+        """Finish a launch with the given parameters.
+        
+        Status can be one of the followings:
+        (PASSED, FAILED, STOPPED, SKIPPED, RESETED, CANCELLED)
         """
         Status can be.
 
