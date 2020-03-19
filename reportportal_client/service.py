@@ -155,7 +155,7 @@ class ReportPortalService(object):
         self.verify_ssl = verify_ssl
 
     def terminate(self, *args, **kwargs):
-        """terminate."""
+       """Call this to terminate the service."""
         pass
 
     def start_launch(self,
