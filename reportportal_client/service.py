@@ -257,6 +257,15 @@ class ReportPortalService(object):
                          issue=None,
                          attributes=None,
                          **kwargs):
+        """ Finish the test item and return HTTP response.
+       
+        :param item_id:    id of the test item
+        :param end_time:   time in UTC format
+        :param status:     status of the test
+        :param issue:      description of an issue
+        :param attributes: list of attributes
+        :param kwargs:     other parameters
+        :return:           json message
         """
         Finish test and returns msg.
 
