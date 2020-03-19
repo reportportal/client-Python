@@ -1,3 +1,5 @@
+"""Config for setup package client Python."""
+
 from setuptools import setup, find_packages
 
 __version__ = '5.0.1'
