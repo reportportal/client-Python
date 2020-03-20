@@ -1,112 +1,84 @@
-"""Tests for service.py ."""
+"""This modules includes unit tests for the service.py module."""
 
-try:
-    from unittest.mock import create_autospec, Mock, patch, MagicMock
-except ImportError:
-    from mock import create_autospec, Mock, patch, MagicMock
 
-from reportportal_client.service import _convert_string, _list_to_payload, \
-    uri_join, _get_id, _get_msg, _get_data, _get_json, _get_messages, \
-    ReportPortalService
-
-import unittest
 from datetime import datetime
+from six.moves import mock
+
+from delayed_assert import expect, assert_expectations
+
+from reportportal_client.service import (
+    _convert_string,
+    _get_data,
+    _get_id,
+    _get_json,
+    _get_messages,
+    _get_msg,
+    _list_to_payload
+)
 
 
-class TestServiceFunctions(unittest.TestCase):
-    """Test for additional functions."""
+class TestServiceFunctions:
+    """This class contains test methods for helper functions."""
 
     def test_check_convert_to_string(self):
         """Test for support and convert strings to utf-8."""
-        self.assertEqual(_convert_string("Hello world"), 'Hello world')
-        self.assertEqual(type(_convert_string("Hello world")), str)
+        expect(_convert_string("Hello world") == 'Hello world')
+        expect(lambda: isinstance(_convert_string("Hello world"), str))
+        assert_expectations()
 
     def test_list_to_payload(self):
         """Test convert dict to list of dicts."""
         initial_dict = {'key': "value", 'key1': 'value1'}
         expected_list = [{'key': 'key', 'value': 'value'},
                          {'key': 'key1', 'value': 'value1'}]
-        self.assertEqual(_list_to_payload(initial_dict), expected_list)
+        assert _list_to_payload(initial_dict) == expected_list
 
-    def test_get_id(self):
-        """Test for get id from Response obj."""
+    def test_get_id(self, response):
+        """Test for the get_id function."""
+        assert _get_id(response(200, {"id": 123})) == 123
+
+    def test_get_msg(self, response):
+        """Test for the get_msg function."""
         fake_json = {"id": 123}
+        assert _get_msg(response(200, fake_json)) == fake_json
 
-        with patch('requests.Response', new_callable=MagicMock()) as mock_get:
-            mock_get.status_code = 200
-            mock_get.json.return_value = fake_json
-
-            obj = _get_id(mock_get)
-
-        self.assertEqual(obj, 123)
-
-    def test_get_msg(self):
-        """Test get_msg recieved from Response."""
+    def test_get_data(self, response):
+        """Test for the get_data function."""
         fake_json = {"id": 123}
+        assert _get_data(response(200, fake_json)) == fake_json
 
-        with patch('requests.Response', new_callable=MagicMock()) as mock_get:
-            mock_get.status_code = 200
-            mock_get.json.return_value = fake_json
-
-            obj = _get_msg(mock_get)
-
-        self.assertEqual(obj, fake_json)
-
-    def test_get_data(self):
-        """Test get data from Response."""
+    def test_get_json(self, response):
+        """Test for the get_json function."""
         fake_json = {"id": 123}
-
-        with patch('requests.Response', new_callable=MagicMock()) as mock_get:
-            mock_get.status_code = 200
-            mock_get.json.return_value = fake_json
-
-            obj = _get_data(mock_get)
-
-        self.assertEqual(obj, fake_json)
-
-    def test_get_json(self):
-        """Test get json from Response."""
-        fake_json = {"id": 123}
-
-        with patch('requests.Response', new_callable=MagicMock()) as mock_get:
-            mock_get.status_code = 200
-            mock_get.json.return_value = fake_json
-
-            obj = _get_json(mock_get)
-
-        self.assertEqual(obj, fake_json)
+        assert _get_json(response(200, fake_json)) == fake_json
 
     def test_get_messages(self):
-        """Test get errors from response."""
+        """Test for the get_messages function."""
         data = {"responses": [{"errorCode": 422, "message": "error"}]}
-
-        obj = _get_messages(data)
-
-        self.assertEqual(obj, ['422: error'])
+        assert _get_messages(data) == ['422: error']
 
 
-class ReportPortalServiceTest(unittest.TestCase):
+class TestReportPortalService:
     """This class stores methods which test ReportPortalService."""
 
-    def setUp(self):
-        """Instantiate the ReportPortalService class and mock its session."""
-        self.rp = ReportPortalService('http://endpoint', 'project', 'token')
-        self.rp.session = MagicMock()
+    @mock.patch('reportportal_client.service._get_data')
+    def test_start_launch(self, mock_get, rp_service):
+        """Test start launch and sending request.
 
-    def test_start_launch(self):
-        """Test start launch and sending request."""
-        with patch('reportportal_client.service._get_data',
-                   new_callable=Mock()) as mock_get:
-            mock_get.return_value = {"id": 111}
-            launch_id = self.rp.start_launch('name',
-                                             datetime.now().isoformat())
-        self.assertEqual(launch_id, 111)
+        :param mock_get:   Mocked _get_data() function
+        :param rp_service: Pytest fixture
+        """
+        mock_get.return_value = {"id": 111}
+        launch_id = rp_service.start_launch('name', datetime.now().isoformat())
+        assert launch_id == 111
 
-    def test_finish_launch(self):
-        """Test finish launch and sending request."""
-        with patch('reportportal_client.service._get_msg',
-                   new_callable=Mock()) as mock_get:
-            mock_get.return_value = {"id": 111}
-            _get_msg = self.rp.finish_launch('name',
-                                             datetime.now().isoformat())
-        self.assertEqual(_get_msg, {"id": 111})
+    @mock.patch('reportportal_client.service._get_msg')
+    def test_finish_launch(self, mock_get, rp_service):
+        """Test finish launch and sending request.
+
+        :param mock_get:   Mocked _get_msg() function
+        :param rp_service: Pytest fixture
+        """
+        mock_get.return_value = {"id": 111}
+        _get_msg = rp_service.finish_launch('name', datetime.now().isoformat())
+        assert _get_msg == {"id": 111}
