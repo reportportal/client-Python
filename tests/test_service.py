@@ -7,6 +7,7 @@ from six.moves import mock
 from delayed_assert import expect, assert_expectations
 
 from reportportal_client.service import (
+    ReportPortalService,
     _convert_string,
     _get_data,
     _get_id,
@@ -82,3 +83,49 @@ class TestReportPortalService:
         mock_get.return_value = {"id": 111}
         _get_msg = rp_service.finish_launch('name', datetime.now().isoformat())
         assert _get_msg == {"id": 111}
+
+    @mock.patch('platform.system')
+    @mock.patch('platform.machine')
+    @mock.patch('platform.processor')
+    @mock.patch('pkg_resources.get_distribution')
+    @mock.patch('pkg_resources.Distribution')
+    def test_get_system_information(self, distribution_mock,
+                                    get_distribution_mock, processor_mock,
+                                    machine_mock, system_mock):
+        """
+        Test for validate get_system_information.
+
+        :param distribution_mock: Mock object of Distribution class
+        :param get_distribution_mock: Mock object of
+        pkg_resources.get_distribution()
+        :param processor_mock: Mock object of platform.processor()
+        :param machine_mock: Mock object of platform.machine()
+        :param system_mock: Mock object of platform.system()
+        """
+
+        def packet_name():
+            return 'pytest'
+
+        distribution_mock.egg_name.side_effect = packet_name
+        get_distribution_mock.return_value = distribution_mock
+
+        def cpu_name():
+            return 'amd'
+
+        processor_mock.side_effect = cpu_name
+
+        def machine_name():
+            return 'Windows PC'
+
+        machine_mock.side_effect = machine_name
+
+        def system_name():
+            return "Windows 10 OS"
+
+        system_mock.side_effect = system_name
+
+        expected_result = {'agent': 'pytest',
+                           'cpu': 'amd',
+                           'machine': 'Windows PC',
+                           'os': 'Windows 10 OS'}
+        assert ReportPortalService.get_system_infromation() == expected_result

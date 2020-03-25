@@ -14,12 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-
 import collections
 import json
 import requests
 import uuid
 import logging
+import pkg_resources
+import platform
 
 import six
 from requests.adapters import HTTPAdapter
@@ -426,3 +427,27 @@ class ReportPortalService(object):
         logger.debug("log_batch response: %s", r.text)
 
         return _get_data(r)
+
+    @staticmethod
+    def get_system_infromation():
+        """
+        Get system information about agent, os, cpu, system, etc.
+
+        :return: dict
+        """
+        list_of_agents = ['pytest', 'unittest', 'robotframework', ]
+        agent = ''
+        for agents in list_of_agents:
+            if not agent:
+                try:
+                    agent = pkg_resources.get_distribution(agents).egg_name()
+                except pkg_resources.DistributionNotFound:
+                    continue
+
+        system_information = {"agent": agent,
+                              "os": platform.system(),
+                              "cpu": platform.processor(),
+                              "machine": platform.machine()
+                              }
+
+        return system_information
