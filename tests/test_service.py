@@ -98,7 +98,7 @@ class TestReportPortalService:
     def test_get_system_information(self):
         """Test for validate get_system_information."""
 
-        expected_result = {'agent': 'pytest - pytest 5.0',
+        expected_result = {'agent': 'pytest-pytest 5.0',
                            'cpu': 'amd',
                            'machine': 'Windows-PC',
                            'os': 'linux'}
