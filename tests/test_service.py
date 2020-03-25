@@ -2,10 +2,10 @@
 
 from datetime import datetime
 from pkg_resources import DistributionNotFound
-import pytest
-from six.moves import mock
 
 from delayed_assert import expect, assert_expectations
+import pytest
+from six.moves import mock
 
 from reportportal_client.service import (
     ReportPortalService,
