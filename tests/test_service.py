@@ -27,14 +27,14 @@ class TestServiceFunctions:
         assert_expectations()
 
     def test_dict_to_payload_without_system_key(self):
-        """Test convert dict to list of dicts without key 'system'."""
+        """Test convert dict to list of dicts without key system."""
         initial_dict = {"aa": 1, "b": 2}
         expected_list = [{'key': 'aa', 'value': '1', 'system': False},
                          {'key': 'b', 'value': '2', 'system': False}]
         assert _dict_to_payload(initial_dict) == expected_list
 
     def test_dict_to_payload_with_system_key(self):
-        """Test convert dict to list of dicts with key 'system'."""
+        """Test convert dict to list of dicts with key system."""
         initial_dict = {"aa": 1, "b": 2, "system": True}
         expected_list = [{'key': 'aa', 'value': '1', 'system': True},
                          {'key': 'b', 'value': '2', 'system': True}]
