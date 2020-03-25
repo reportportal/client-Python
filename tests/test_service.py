@@ -1,8 +1,10 @@
 """This modules includes unit tests for the service.py module."""
 
 from datetime import datetime
-from six.moves import mock
 from pkg_resources import DistributionNotFound
+import pytest
+from six.moves import mock
+
 from delayed_assert import expect, assert_expectations
 
 from reportportal_client.service import (
@@ -26,18 +28,12 @@ class TestServiceFunctions:
         expect(lambda: isinstance(_convert_string("Hello world"), str))
         assert_expectations()
 
-    def test_dict_to_payload_without_system_key(self):
-        """Test convert dict to list of dicts without key system."""
-        initial_dict = {"aa": 1, "b": 2}
-        expected_list = [{'key': 'aa', 'value': '1', 'system': False},
-                         {'key': 'b', 'value': '2', 'system': False}]
-        assert _dict_to_payload(initial_dict) == expected_list
-
-    def test_dict_to_payload_with_system_key(self):
+    @pytest.mark.parametrize('system', [True, False])
+    def test_dict_to_payload_with_system_key(self, system):
         """Test convert dict to list of dicts with key system."""
-        initial_dict = {"aa": 1, "b": 2, "system": True}
-        expected_list = [{'key': 'aa', 'value': '1', 'system': True},
-                         {'key': 'b', 'value': '2', 'system': True}]
+        initial_dict = {"aa": 1, "b": 2, "system": system}
+        expected_list = [{'key': 'aa', 'value': '1', 'system': system},
+                         {'key': 'b', 'value': '2', 'system': system}]
         assert _dict_to_payload(initial_dict) == expected_list
 
     def test_get_id(self, response):
@@ -103,8 +99,9 @@ class TestReportPortalService:
                            'machine': 'Windows-PC',
                            'os': 'linux'}
 
-        assert ReportPortalService.get_system_information('pytest') \
-            == expected_result
+        cond = (ReportPortalService.get_system_information('pytest')
+                == expected_result)
+        assert cond
 
     @mock.patch('platform.system', mock.Mock(return_value='linux'))
     @mock.patch('platform.machine', mock.Mock(return_value='Windows-PC'))
@@ -119,5 +116,6 @@ class TestReportPortalService:
                            'machine': 'Windows-PC',
                            'os': 'linux'}
 
-        assert ReportPortalService.get_system_information('pytest') \
-            == expected_result
+        cond = (ReportPortalService.get_system_information('pytest')
+                == expected_result)
+        assert cond

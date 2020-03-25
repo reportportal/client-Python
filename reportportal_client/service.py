@@ -49,7 +49,7 @@ def _dict_to_payload(dictionary):
     :param dictionary: initial dict
     :return list: list of dicts
     """
-    system = dictionary.pop('system', False)
+    system = dictionary.pop("system", False)
     return [
         {"key": key, "value": _convert_string(value), "system": system}
         for key, value in sorted(dictionary.items())
@@ -433,7 +433,9 @@ class ReportPortalService(object):
     def get_system_information(agent_name='agent_name'):
         """Get system information about agent, os, cpu, system, etc.
 
-        :param agent_name: Name of the agent: pytest-reportportal, ..., ...
+        :param agent_name: Name of the agent: pytest-reportportal,
+        roborframework-reportportal, nosetest-reportportal,
+        behave-reportportal
         :return: dict {'agent': pytest - 5.0.5,
                         'os': 'Windows',
                         'cpu': 'AMD',
