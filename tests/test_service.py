@@ -1,9 +1,8 @@
 """This modules includes unit tests for the service.py module."""
 
-
 from datetime import datetime
 from six.moves import mock
-
+from pkg_resources import DistributionNotFound
 from delayed_assert import expect, assert_expectations
 
 from reportportal_client.service import (
@@ -14,7 +13,7 @@ from reportportal_client.service import (
     _get_json,
     _get_messages,
     _get_msg,
-    _list_to_payload
+    _dict_to_payload
 )
 
 
@@ -27,12 +26,19 @@ class TestServiceFunctions:
         expect(lambda: isinstance(_convert_string("Hello world"), str))
         assert_expectations()
 
-    def test_list_to_payload(self):
-        """Test convert dict to list of dicts."""
-        initial_dict = {'key': "value", 'key1': 'value1'}
-        expected_list = [{'key': 'key', 'value': 'value'},
-                         {'key': 'key1', 'value': 'value1'}]
-        assert _list_to_payload(initial_dict) == expected_list
+    def test_dict_to_payload_without_system_key(self):
+        """Test convert dict to list of dicts without key 'system'."""
+        initial_dict = {"aa": 1, "b": 2}
+        expected_list = [{'key': 'aa', 'value': '1', 'system': False},
+                         {'key': 'b', 'value': '2', 'system': False}]
+        assert _dict_to_payload(initial_dict) == expected_list
+
+    def test_dict_to_payload_with_system_key(self):
+        """Test convert dict to list of dicts with key 'system'."""
+        initial_dict = {"aa": 1, "b": 2, "system": True}
+        expected_list = [{'key': 'aa', 'value': '1', 'system': True},
+                         {'key': 'b', 'value': '2', 'system': True}]
+        assert _dict_to_payload(initial_dict) == expected_list
 
     def test_get_id(self, response):
         """Test for the get_id function."""
@@ -84,48 +90,34 @@ class TestReportPortalService:
         _get_msg = rp_service.finish_launch('name', datetime.now().isoformat())
         assert _get_msg == {"id": 111}
 
-    @mock.patch('platform.system')
-    @mock.patch('platform.machine')
-    @mock.patch('platform.processor')
-    @mock.patch('pkg_resources.get_distribution')
-    @mock.patch('pkg_resources.Distribution')
-    def test_get_system_information(self, distribution_mock,
-                                    get_distribution_mock, processor_mock,
-                                    machine_mock, system_mock):
-        """
-        Test for validate get_system_information.
+    @mock.patch('platform.system', mock.Mock(return_value='linux'))
+    @mock.patch('platform.machine', mock.Mock(return_value='Windows-PC'))
+    @mock.patch('platform.processor', mock.Mock(return_value='amd'))
+    @mock.patch('pkg_resources.get_distribution',
+                mock.Mock(return_value='pytest 5.0'))
+    def test_get_system_information(self):
+        """Test for validate get_system_information."""
 
-        :param distribution_mock: Mock object of Distribution class
-        :param get_distribution_mock: Mock object of
-        pkg_resources.get_distribution()
-        :param processor_mock: Mock object of platform.processor()
-        :param machine_mock: Mock object of platform.machine()
-        :param system_mock: Mock object of platform.system()
-        """
-
-        def packet_name():
-            return 'pytest'
-
-        distribution_mock.egg_name.side_effect = packet_name
-        get_distribution_mock.return_value = distribution_mock
-
-        def cpu_name():
-            return 'amd'
-
-        processor_mock.side_effect = cpu_name
-
-        def machine_name():
-            return 'Windows PC'
-
-        machine_mock.side_effect = machine_name
-
-        def system_name():
-            return "Windows 10 OS"
-
-        system_mock.side_effect = system_name
-
-        expected_result = {'agent': 'pytest',
+        expected_result = {'agent': 'pytest - pytest 5.0',
                            'cpu': 'amd',
-                           'machine': 'Windows PC',
-                           'os': 'Windows 10 OS'}
-        assert ReportPortalService.get_system_infromation() == expected_result
+                           'machine': 'Windows-PC',
+                           'os': 'linux'}
+
+        assert ReportPortalService.get_system_information('pytest') \
+            == expected_result
+
+    @mock.patch('platform.system', mock.Mock(return_value='linux'))
+    @mock.patch('platform.machine', mock.Mock(return_value='Windows-PC'))
+    @mock.patch('platform.processor', mock.Mock(return_value='amd'))
+    @mock.patch('pkg_resources.get_distribution',
+                mock.Mock(side_effect=DistributionNotFound))
+    def test_get_system_information_without_pkg(self):
+        """Test in negative form for validate get_system_information."""
+
+        expected_result = {'agent': 'not found',
+                           'cpu': 'amd',
+                           'machine': 'Windows-PC',
+                           'os': 'linux'}
+
+        assert ReportPortalService.get_system_information('pytest') \
+            == expected_result

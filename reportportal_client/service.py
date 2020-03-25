@@ -43,14 +43,15 @@ def _convert_string(value):
     return str(value)
 
 
-def _list_to_payload(dictionary):
+def _dict_to_payload(dictionary):
     """Convert dict to list of dicts.
 
     :param dictionary: initial dict
     :return list: list of dicts
     """
+    system = dictionary.pop('system', False)
     return [
-        {"key": key, "value": _convert_string(value)}
+        {"key": key, "value": _convert_string(value), "system": system}
         for key, value in sorted(dictionary.items())
     ]
 
@@ -207,7 +208,7 @@ class ReportPortalService(object):
                      **kwargs):
         """Start a new launch with the given parameters."""
         if attributes is not None:
-            attributes = _list_to_payload(attributes)
+            attributes = _dict_to_payload(attributes)
         data = {
             "name": name,
             "description": description,
@@ -262,9 +263,9 @@ class ReportPortalService(object):
             }
         """
         if attributes:
-            attributes = _list_to_payload(attributes)
+            attributes = _dict_to_payload(attributes)
         if parameters:
-            parameters = _list_to_payload(parameters)
+            parameters = _dict_to_payload(parameters)
 
         data = {
             "name": name,
@@ -310,7 +311,7 @@ class ReportPortalService(object):
             issue = {"issue_type": "NOT_ISSUE"}
 
         if attributes:
-            attributes = _list_to_payload(attributes)
+            attributes = _dict_to_payload(attributes)
 
         data = {
             "endTime": end_time,
@@ -429,25 +430,22 @@ class ReportPortalService(object):
         return _get_data(r)
 
     @staticmethod
-    def get_system_infromation():
+    def get_system_information(agent_name='agent_name'):
+        """Get system information about agent, os, cpu, system, etc.
+
+        :param agent_name: Name of the agent: pytest-reportportal, ..., ...
+        :return: dict {'agent': pytest - 5.0.5,
+                        'os': 'Windows',
+                        'cpu': 'AMD',
+                        'machine': "Windows10_pc"}
         """
-        Get system information about agent, os, cpu, system, etc.
+        try:
+            agent_version = pkg_resources.get_distribution(agent_name)
+            agent = f'{agent_name} - {agent_version}'
+        except pkg_resources.DistributionNotFound:
+            agent = 'not found'
 
-        :return: dict
-        """
-        list_of_agents = ['pytest', 'unittest', 'robotframework', ]
-        agent = ''
-        for agents in list_of_agents:
-            if not agent:
-                try:
-                    agent = pkg_resources.get_distribution(agents).egg_name()
-                except pkg_resources.DistributionNotFound:
-                    continue
-
-        system_information = {"agent": agent,
-                              "os": platform.system(),
-                              "cpu": platform.processor(),
-                              "machine": platform.machine()
-                              }
-
-        return system_information
+        return {'agent': agent,
+                'os': platform.system(),
+                'cpu': platform.processor(),
+                'machine': platform.machine()}
