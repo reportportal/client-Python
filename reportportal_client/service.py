@@ -441,7 +441,7 @@ class ReportPortalService(object):
         """
         try:
             agent_version = pkg_resources.get_distribution(agent_name)
-            agent = f'{agent_name} - {agent_version}'
+            agent = '{0}-{1}'.format(agent_name, agent_version)
         except pkg_resources.DistributionNotFound:
             agent = 'not found'
 
