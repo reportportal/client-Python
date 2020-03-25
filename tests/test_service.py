@@ -8,14 +8,14 @@ import pytest
 from six.moves import mock
 
 from reportportal_client.service import (
-    ReportPortalService,
     _convert_string,
+    _dict_to_payload,
     _get_data,
     _get_id,
     _get_json,
     _get_messages,
     _get_msg,
-    _dict_to_payload
+    ReportPortalService
 )
 
 
