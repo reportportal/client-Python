@@ -14,12 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-
 import collections
 import json
 import requests
 import uuid
 import logging
+import pkg_resources
+import platform
 
 import six
 from requests.adapters import HTTPAdapter
@@ -42,14 +43,15 @@ def _convert_string(value):
     return str(value)
 
 
-def _list_to_payload(dictionary):
+def _dict_to_payload(dictionary):
     """Convert dict to list of dicts.
 
     :param dictionary: initial dict
     :return list: list of dicts
     """
+    system = dictionary.pop("system", False)
     return [
-        {"key": key, "value": _convert_string(value)}
+        {"key": key, "value": _convert_string(value), "system": system}
         for key, value in sorted(dictionary.items())
     ]
 
@@ -206,7 +208,7 @@ class ReportPortalService(object):
                      **kwargs):
         """Start a new launch with the given parameters."""
         if attributes is not None:
-            attributes = _list_to_payload(attributes)
+            attributes = _dict_to_payload(attributes)
         data = {
             "name": name,
             "description": description,
@@ -261,9 +263,9 @@ class ReportPortalService(object):
             }
         """
         if attributes:
-            attributes = _list_to_payload(attributes)
+            attributes = _dict_to_payload(attributes)
         if parameters:
-            parameters = _list_to_payload(parameters)
+            parameters = _dict_to_payload(parameters)
 
         data = {
             "name": name,
@@ -309,7 +311,7 @@ class ReportPortalService(object):
             issue = {"issue_type": "NOT_ISSUE"}
 
         if attributes:
-            attributes = _list_to_payload(attributes)
+            attributes = _dict_to_payload(attributes)
 
         data = {
             "endTime": end_time,
@@ -426,3 +428,28 @@ class ReportPortalService(object):
         logger.debug("log_batch response: %s", r.text)
 
         return _get_data(r)
+
+    @staticmethod
+    def get_system_information(agent_name='agent_name'):
+        """
+        Get system information about agent, os, cpu, system, etc.
+
+        :param agent_name: Name of the agent: pytest-reportportal,
+                              roborframework-reportportal,
+                              nosetest-reportportal,
+                              behave-reportportal
+        :return: dict {'agent': pytest-pytest 5.0.5,
+                       'os': 'Windows',
+                       'cpu': 'AMD',
+                       'machine': "Windows10_pc"}
+        """
+        try:
+            agent_version = pkg_resources.get_distribution(agent_name)
+            agent = '{0}-{1}'.format(agent_name, agent_version)
+        except pkg_resources.DistributionNotFound:
+            agent = 'not found'
+
+        return {'agent': agent,
+                'os': platform.system(),
+                'cpu': platform.processor(),
+                'machine': platform.machine()}
