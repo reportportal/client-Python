@@ -29,4 +29,5 @@ def rp_service():
     """Prepare instance of the ReportPortalService for testing."""
     service = ReportPortalService('http://endpoint', 'project', 'token')
     service.session = mock.Mock()
+    service.session.post = mock.Mock()
     return service

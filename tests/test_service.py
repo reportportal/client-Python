@@ -2,6 +2,7 @@
 
 from datetime import datetime
 from pkg_resources import DistributionNotFound
+import sys
 
 from delayed_assert import expect, assert_expectations
 import pytest
@@ -119,3 +120,30 @@ class TestReportPortalService:
         cond = (ReportPortalService.get_system_information('pytest')
                 == expected_result)
         assert cond
+
+    @mock.patch.object(sys, 'argv', ["path_for_script"])
+    @mock.patch("reportportal_client.service._get_data",
+                mock.Mock(return_value={"id": 123}))
+    def test_start_item(self, rp_service):
+        """Test for validate start_test_item.
+            :param: rp_service: fixture of ReportPortal
+        """
+        rp_start = ReportPortalService.start_test_item(rp_service, name="name",
+                                                       start_time='1.2.3.',
+                                                       item_type='STORY',
+                                                       attributes={
+                                                           "codereq": True})
+        expected_result = dict(json={'name': 'name',
+                                     'description': None,
+                                     'attributes': [{'key': 'codereq',
+                                                     'value': 'True',
+                                                     'system': False}],
+                                     'startTime': '1.2.3.', 'launchUuid': 111,
+                                     'type': 'STORY', 'parameters': None,
+                                     'hasStats': True,
+                                     'code_ref': 'path_for_script'},
+                               url='http://endpoint/api/v2/project/item',
+                               verify=True)
+
+        rp_service.session.post.assert_called_with(**expected_result)
+        assert rp_start == 123
