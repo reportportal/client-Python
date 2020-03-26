@@ -439,9 +439,9 @@ class ReportPortalService(object):
                               nosetest-reportportal,
                               behave-reportportal
         :return: dict {'agent': pytest-pytest 5.0.5,
-                                    'os': 'Windows',
-                                    'cpu': 'AMD',
-                                    'machine': "Windows10_pc"}
+                       'os': 'Windows',
+                       'cpu': 'AMD',
+                       'machine': "Windows10_pc"}
         """
         try:
             agent_version = pkg_resources.get_distribution(agent_name)
