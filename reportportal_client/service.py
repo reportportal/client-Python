@@ -431,13 +431,14 @@ class ReportPortalService(object):
 
     @staticmethod
     def get_system_information(agent_name='agent_name'):
-        """Get system information about agent, os, cpu, system, etc.
+        """
+        Get system information about agent, os, cpu, system, etc.
 
         :param agent_name: Name of the agent: pytest-reportportal,
                               roborframework-reportportal,
                               nosetest-reportportal,
                               behave-reportportal
-        :return:           dict {'agent': pytest-pytest 5.0.5,
+        :return: dict {'agent': pytest-pytest 5.0.5,
                                     'os': 'Windows',
                                     'cpu': 'AMD',
                                     'machine': "Windows10_pc"}
