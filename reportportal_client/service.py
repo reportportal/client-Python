@@ -49,6 +49,8 @@ def _dict_to_payload(dictionary):
     :param dictionary: initial dict
     :return list: list of dicts
     """
+    if not isinstance(dictionary, dict) or len(dictionary) == 0:
+        return None
     system = dictionary.pop("system", False)
     return [
         {"key": key, "value": _convert_string(value), "system": system}
@@ -207,7 +209,7 @@ class ReportPortalService(object):
                      mode=None,
                      **kwargs):
         """Start a new launch with the given parameters."""
-        if isinstance(attributes, dict):
+        if attributes is not None:
             attributes = _dict_to_payload(attributes)
         data = {
             "name": name,
@@ -262,9 +264,9 @@ class ReportPortalService(object):
                 ...
             }
         """
-        if isinstance(attributes, dict):
+        if attributes is not None:
             attributes = _dict_to_payload(attributes)
-        if isinstance(parameters, dict):
+        if parameters is not None:
             parameters = _dict_to_payload(parameters)
 
         data = {
@@ -310,7 +312,7 @@ class ReportPortalService(object):
                 and not self.is_skipped_an_issue:
             issue = {"issue_type": "NOT_ISSUE"}
 
-        if attributes:
+        if attributes is not None:
             attributes = _dict_to_payload(attributes)
 
         data = {
