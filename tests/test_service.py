@@ -35,11 +35,11 @@ class TestServiceFunctions:
         expected_list = [{'key': 'aa', 'value': '1', 'system': system},
                          {'key': 'b', 'value': '2', 'system': system}]
         assert _dict_to_payload(initial_dict) == expected_list
-        
-    @pytest.mark.parametrize('initial_dict, expected_list', [(None, None), ({}, None)])
-    def test_dict_to_payload_with_empty(self, initial_dict, expected_list):
+
+    @pytest.mark.parametrize('input, expected', [(None, None), ({}, None)])
+    def test_dict_to_payload_with_empty(self, input, expected):
         """Test convert empty/None dict to list of dicts."""
-        assert _dict_to_payload(initial_dict) == expected_list
+        assert _dict_to_payload(input) == expected
 
     def test_get_id(self, response):
         """Test for the get_id function."""
