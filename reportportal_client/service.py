@@ -207,7 +207,7 @@ class ReportPortalService(object):
                      mode=None,
                      **kwargs):
         """Start a new launch with the given parameters."""
-        if attributes is not None:
+        if isinstance(attributes, dict):
             attributes = _dict_to_payload(attributes)
         data = {
             "name": name,
@@ -262,9 +262,9 @@ class ReportPortalService(object):
                 ...
             }
         """
-        if attributes:
+        if isinstance(attributes, dict):
             attributes = _dict_to_payload(attributes)
-        if parameters:
+        if isinstance(parameters, dict):
             parameters = _dict_to_payload(parameters)
 
         data = {
