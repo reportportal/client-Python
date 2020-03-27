@@ -141,7 +141,7 @@ class TestReportPortalService:
                                      'startTime': '1.2.3.', 'launchUuid': 111,
                                      'type': 'STORY', 'parameters': None,
                                      'hasStats': True,
-                                     'code_ref': 'path_for_script'},
+                                     'code_ref': None},
                                url='http://endpoint/api/v2/project/item',
                                verify=True)
 

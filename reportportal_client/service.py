@@ -21,7 +21,6 @@ import uuid
 import logging
 import pkg_resources
 import platform
-import sys
 
 import six
 from requests.adapters import HTTPAdapter
@@ -247,6 +246,7 @@ class ReportPortalService(object):
                         parameters=None,
                         parent_item_id=None,
                         has_stats=True,
+                        code_ref=None,
                         **kwargs):
         """
         Item_type can be.
@@ -268,8 +268,6 @@ class ReportPortalService(object):
         if parameters:
             parameters = _dict_to_payload(parameters)
 
-        code_ref = sys.argv[0]
-
         data = {
             "name": name,
             "description": description,
@@ -279,7 +277,7 @@ class ReportPortalService(object):
             "type": item_type,
             "parameters": parameters,
             "hasStats": has_stats,
-            "code_ref": code_ref
+            "codeRef": code_ref
         }
         if parent_item_id:
             url = uri_join(self.base_url_v2, "item", parent_item_id)
