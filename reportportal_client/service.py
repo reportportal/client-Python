@@ -207,7 +207,7 @@ class ReportPortalService(object):
                      mode=None,
                      **kwargs):
         """Start a new launch with the given parameters."""
-        if attributes is not None:
+        if attributes and isinstance(attributes, dict):
             attributes = _dict_to_payload(attributes)
         data = {
             "name": name,
@@ -262,7 +262,7 @@ class ReportPortalService(object):
                 ...
             }
         """
-        if attributes:
+        if attributes and isinstance(attributes, dict):
             attributes = _dict_to_payload(attributes)
         if parameters:
             parameters = _dict_to_payload(parameters)
@@ -287,6 +287,24 @@ class ReportPortalService(object):
         logger.debug("start_test_item - ID: %s", item_id)
         return item_id
 
+    def update_test_item(self, item_uuid, attributes=None, description=None):
+        """Update existing test item at the Report Portal.
+
+        :param str item_uuid:   Test item UUID returned on the item start
+        :param str description: Test item description
+        :param list attributes: Test item attributes
+                                [{'key': 'k_name', 'value': 'k_value'}, ...]
+        """
+        data = {
+            "description": description,
+            "attributes": attributes,
+        }
+        item_id = self.get_item_id_by_uuid(item_uuid)
+        url = uri_join(self.base_url_v1, "item", item_id, "update")
+        r = self.session.put(url=url, json=data, verify=self.verify_ssl)
+        logger.debug("update_test_item - Item: %s", item_id)
+        return _get_msg(r)
+
     def finish_test_item(self,
                          item_id,
                          end_time,
@@ -310,7 +328,7 @@ class ReportPortalService(object):
                 and not self.is_skipped_an_issue:
             issue = {"issue_type": "NOT_ISSUE"}
 
-        if attributes:
+        if attributes and isinstance(attributes, dict):
             attributes = _dict_to_payload(attributes)
 
         data = {
@@ -324,6 +342,16 @@ class ReportPortalService(object):
         r = self.session.put(url=url, json=data, verify=self.verify_ssl)
         logger.debug("finish_test_item - ID: %s", item_id)
         return _get_msg(r)
+
+    def get_item_id_by_uuid(self, uuid):
+        """Get test item ID by the given UUID.
+
+        :param str uuid: UUID returned on the item start
+        :return str:     Test item id
+        """
+        url = uri_join(self.base_url_v1, "item", "uuid", uuid)
+        return _get_json(self.session.get(
+            url=url, verify=self.verify_ssl))["id"]
 
     def get_project_settings(self):
         """
