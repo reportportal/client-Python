@@ -1,4 +1,2 @@
 requests>=2.23.0
 six
-pytest
-delayed-assert
