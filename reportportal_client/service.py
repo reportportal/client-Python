@@ -186,11 +186,14 @@ class ReportPortalService(object):
         self.is_skipped_an_issue = is_skipped_an_issue
         self.base_url_v1 = uri_join(self.endpoint, "api/v1", self.project)
         self.base_url_v2 = uri_join(self.endpoint, "api/v2", self.project)
+        self.max_pool_size = 50
 
         self.session = requests.Session()
         if retries:
-            self.session.mount('https://', HTTPAdapter(max_retries=retries))
-            self.session.mount('http://', HTTPAdapter(max_retries=retries))
+            self.session.mount('https://', HTTPAdapter(
+                max_retries=retries, pool_maxsize=self.max_pool_size))
+            self.session.mount('http://', HTTPAdapter(
+                max_retries=retries, pool_maxsize=self.max_pool_size))
         self.session.headers["Authorization"] = "bearer {0}".format(self.token)
         self.launch_id = None
         self.verify_ssl = verify_ssl
