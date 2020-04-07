@@ -482,5 +482,5 @@ class ReportPortalService(object):
 
         return {'agent': agent,
                 'os': platform.system(),
-                'cpu': platform.processor(),
+                'cpu': platform.processor() or 'unknown',
                 'machine': platform.machine()}
