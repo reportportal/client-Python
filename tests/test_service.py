@@ -3,7 +3,7 @@
 from datetime import datetime
 from pkg_resources import DistributionNotFound
 
-from delayed_assert import expect, assert_expectations
+from delayed_assert import assert_expectations, expect
 import pytest
 from six.moves import mock
 
@@ -102,6 +102,20 @@ class TestReportPortalService:
         cond = (ReportPortalService.get_system_information('pytest')
                 == expected_result)
         assert cond
+
+    @mock.patch('platform.system', mock.Mock())
+    @mock.patch('platform.machine', mock.Mock())
+    @mock.patch('platform.processor', mock.Mock(return_value=''))
+    @mock.patch('pkg_resources.get_distribution', mock.Mock())
+    def test_get_system_information_docker(self):
+        """Test that cpu key value is not empty.
+
+        platform.processor() returns empty string in case it was called
+        inside of the Docker container. API does not allow empty values
+        for the attributes.
+        """
+        result = ReportPortalService.get_system_information('pytest')
+        assert result['cpu'] == 'unknown'
 
     @mock.patch('platform.system', mock.Mock(return_value='linux'))
     @mock.patch('platform.machine', mock.Mock(return_value='Windows-PC'))
