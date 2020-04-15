@@ -2,7 +2,7 @@
 
 from setuptools import setup, find_packages
 
-__version__ = '5.0.2'
+__version__ = '5.0.3'
 
 setup(
     name='reportportal-client',
