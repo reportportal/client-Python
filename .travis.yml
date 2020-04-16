@@ -3,20 +3,12 @@ stages:
 - name: deploy
   if: tag IS present
 language: python
-python:
-  - "2.7"
-  - "3.5"
-  - "3.6"
-  - "3.7"
-  - "3.8"
+env:
+  global:
+    - PYTEST_ADDOPTS=-vv
 install:
-  - pip install pycodestyle pydocstyle pytest delayed-assert requests
-before_script:
-  - pycodestyle .
-  - pydocstyle .
-script:
-  - pytest tests/ -s -vv
-  - python setup.py -q install
+  - python -m pip install --upgrade --pre tox
+script: tox
 jobs:
   include:
   - stage: deploy
