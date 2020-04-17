@@ -71,6 +71,10 @@ target/
 # pyenv
 .python-version
 
+# virtualenv
+venv/
+.venv/
+
 # pycharm
 .idea/
 
