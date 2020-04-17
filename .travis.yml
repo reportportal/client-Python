@@ -3,9 +3,8 @@ stages:
 - name: deploy
   if: tag IS present
 language: python
-env:
-  global:
-    - PYTEST_ADDOPTS=-vv
+python:
+  - "3.6"
 install:
   - python -m pip install --upgrade --pre tox
 script: tox
