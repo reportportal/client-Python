@@ -28,6 +28,7 @@ logger.addHandler(logging.NullHandler())
 
 HTTP_REQUEST_RETRY_COUNT = 10
 
+
 def _get_id(response):
     try:
         return _get_data(response)["id"]
