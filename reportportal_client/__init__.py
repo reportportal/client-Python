@@ -21,4 +21,4 @@ __all__ = (
     ReportPortalServiceAsync,
 )
 
-POST_LOGBATCH_RETRY_COUNT = 10
+HTTP_REQUEST_RETRY_COUNT = 10

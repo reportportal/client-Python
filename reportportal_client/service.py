@@ -15,12 +15,13 @@
 
 import collections
 import json
-import requests
 import uuid
 import logging
+import requests
 
 from requests.adapters import HTTPAdapter
 
+from reportportal_client import HTTP_REQUEST_RETRY_COUNT
 from .errors import ResponseError, EntryCreatedError, OperationCompletionError
 
 logger = logging.getLogger(__name__)
@@ -65,8 +66,7 @@ def _get_json(response):
     try:
         if response.text:
             return response.json()
-        else:
-            return {}
+        return {}
     except ValueError as value_error:
         raise ResponseError(
             "Invalid response: {0}: {1}".format(value_error, response.text))
@@ -83,6 +83,25 @@ def _get_messages(data):
                 error_messages.append(ret["message"])
 
     return error_messages
+
+
+def _perform_reliably(request, **kwargs):
+    """Fix for https://github.com/reportportal/client-Python/issues/94
+    Attempt to perform provided HTTP request with kwargs,
+    Ingore KeyError exception first HTTP_REQUEST_RETRY_COUNT times.
+    Return a response or propagate last exception if HTTP_REQUEST_RETRY_COUNT exceeded.
+    """
+
+    res = None
+    for _ in range(HTTP_REQUEST_RETRY_COUNT):
+        try:
+            res = request(**kwargs)
+            break
+        except KeyError:
+            pass
+    else:
+        raise  # noqa: pylint: disable=misplaced-bare-raise
+    return res
 
 
 def uri_join(*uri_parts):
@@ -149,7 +168,7 @@ class ReportPortalService(object):
             "mode": mode
         }
         url = uri_join(self.base_url, "launch")
-        r = self.session.post(url=url, json=data, verify=self.verify_ssl)
+        r = _perform_reliably(self.session.post, url=url, json=data, verify=self.verify_ssl)
         self.launch_id = _get_id(r)
         self.stack.append(None)
         logger.debug("start_launch - Stack: %s", self.stack)
@@ -161,7 +180,7 @@ class ReportPortalService(object):
             "status": status
         }
         url = uri_join(self.base_url, "launch", self.launch_id, action)
-        r = self.session.put(url=url, json=data, verify=self.verify_ssl)
+        r = _perform_reliably(self.session.put, url=url, json=data, verify=self.verify_ssl)
         self.stack.pop()
         logger.debug("%s_launch - Stack: %s", action, self.stack)
         return _get_msg(r)
@@ -206,7 +225,7 @@ class ReportPortalService(object):
             url = uri_join(self.base_url, "item", parent_item_id)
         else:
             url = uri_join(self.base_url, "item")
-        r = self.session.post(url=url, json=data, verify=self.verify_ssl)
+        r = _perform_reliably(self.session.post, url=url, json=data, verify=self.verify_ssl)
 
         item_id = _get_id(r)
         self.stack.append(item_id)
@@ -226,13 +245,13 @@ class ReportPortalService(object):
         }
         item_id = self.stack.pop()
         url = uri_join(self.base_url, "item", item_id)
-        r = self.session.put(url=url, json=data, verify=self.verify_ssl)
+        r = _perform_reliably(self.session.put, url=url, json=data, verify=self.verify_ssl)
         logger.debug("finish_test_item - Stack: %s", self.stack)
         return _get_msg(r)
 
     def get_project_settings(self):
         url = uri_join(self.base_url, "settings")
-        r = self.session.get(url=url, json={}, verify=self.verify_ssl)
+        r = _perform_reliably(self.session.get, url=url, json={}, verify=self.verify_ssl)
         logger.debug("settings - Stack: %s", self.stack)
         return _get_json(r)
 
@@ -248,7 +267,7 @@ class ReportPortalService(object):
             return self.log_batch([data])
         else:
             url = uri_join(self.base_url, "log")
-            r = self.session.post(url=url, json=data, verify=self.verify_ssl)
+            r = _perform_reliably(self.session.post, url=url, json=data, verify=self.verify_ssl)
             logger.debug("log - Stack: %s", self.stack)
             return _get_id(r)
 
@@ -296,20 +315,7 @@ class ReportPortalService(object):
             )
         )]
         files.extend(attachments)
-        from reportportal_client import POST_LOGBATCH_RETRY_COUNT
-        for i in range(POST_LOGBATCH_RETRY_COUNT):
-            try:
-                r = self.session.post(
-                    url=url,
-                    files=files,
-                    verify=self.verify_ssl
-                )
-            except KeyError:
-                if i < POST_LOGBATCH_RETRY_COUNT - 1:
-                    continue
-                else:
-                    raise
-            break
+        r = _perform_reliably(self.session.post, url=url, files=files, verify=self.verify_ssl)
 
         logger.debug("log_batch - Stack: %s", self.stack)
         logger.debug("log_batch response: %s", r.text)
