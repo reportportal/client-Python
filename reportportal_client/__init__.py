@@ -20,5 +20,3 @@ __all__ = (
     ReportPortalService,
     ReportPortalServiceAsync,
 )
-
-HTTP_REQUEST_RETRY_COUNT = 10
