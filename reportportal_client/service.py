@@ -102,6 +102,7 @@ def _perform_reliably(request, **kwargs):
             to_raise = e
     raise to_raise
 
+
 def uri_join(*uri_parts):
     """Join uri parts.
 
