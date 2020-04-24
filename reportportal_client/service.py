@@ -94,18 +94,13 @@ def _perform_reliably(request, **kwargs):
     Return a response or propagate last exception
         if HTTP_REQUEST_RETRY_COUNT exceeded.
     """
-    res = None
     to_raise = None
     for _ in range(HTTP_REQUEST_RETRY_COUNT):
         try:
-            res = request(**kwargs)
-            break
+            return request(**kwargs)
         except KeyError as e:
             to_raise = e
-    else:
-        raise to_raise
-    return res
-
+    raise to_raise
 
 def uri_join(*uri_parts):
     """Join uri parts.
