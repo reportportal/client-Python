@@ -83,24 +83,23 @@ class TestReportPortalService:
         :param rp_service: Pytest fixture
         """
         mock_get.return_value = {"id": 111}
-        _get_msg = rp_service.finish_launch('name', datetime.now().isoformat())
+        _get_msg = rp_service.finish_launch(
+            'name', datetime.now().isoformat())
         assert _get_msg == {"id": 111}
 
     @mock.patch('platform.system', mock.Mock(return_value='linux'))
     @mock.patch('platform.machine', mock.Mock(return_value='Windows-PC'))
     @mock.patch('platform.processor', mock.Mock(return_value='amd'))
-    @mock.patch('pkg_resources.get_distribution',
-                mock.Mock(return_value='pytest 5.0'))
-    def test_get_system_information(self):
+    @mock.patch('pkg_resources.get_distribution')
+    def test_get_system_information(self, distro):
         """Test for validate get_system_information."""
-
-        expected_result = {'agent': 'pytest-pytest 5.0',
+        distro.return_value.version = '5.0'
+        expected_result = {'agent': 'reportportal-client-5.0',
                            'cpu': 'amd',
                            'machine': 'Windows-PC',
                            'os': 'linux'}
-
-        cond = (ReportPortalService.get_system_information('pytest')
-                == expected_result)
+        cond = (ReportPortalService.get_system_information(
+            'reportportal-client') == expected_result)
         assert cond
 
     @mock.patch('platform.system', mock.Mock())
