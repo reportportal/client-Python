@@ -73,6 +73,18 @@ Here is a simple overview below:
    If you need some help with Git, follow this quick start
    guide: https://git.wiki.kernel.org/index.php/QuickStart
 
+#. Install `pre-commit <https://pre-commit.com>`_ and its hook on the client-Python repo:
+
+   **Note: pre-commit must be installed as admin, as it will not function otherwise**::
+
+     $ pip install --user pre-commit
+     $ pre-commit install
+
+   Afterwards ``pre-commit`` will run whenever you commit.
+
+   https://pre-commit.com/ is a framework for managing and maintaining multi-language pre-commit hooks
+   to ensure code-style and code formatting is consistent.
+
 #. Install tox
 
    Tox is used to run all the tests and will automatically setup virtualenvs
