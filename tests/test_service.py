@@ -123,7 +123,6 @@ class TestReportPortalService:
                 mock.Mock(side_effect=DistributionNotFound))
     def test_get_system_information_without_pkg(self):
         """Test in negative form for validate get_system_information."""
-
         expected_result = {'agent': 'not found',
                            'cpu': 'amd',
                            'machine': 'Windows-PC',
