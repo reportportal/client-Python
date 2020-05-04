@@ -475,7 +475,8 @@ class ReportPortalService(object):
                        'machine': "Windows10_pc"}
         """
         try:
-            agent_version = pkg_resources.get_distribution(agent_name)
+            agent_version = pkg_resources.get_distribution(
+                agent_name).version
             agent = '{0}-{1}'.format(agent_name, agent_version)
         except pkg_resources.DistributionNotFound:
             agent = 'not found'
