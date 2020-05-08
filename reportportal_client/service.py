@@ -27,6 +27,7 @@ from requests.adapters import HTTPAdapter
 
 from .errors import ResponseError, EntryCreatedError, OperationCompletionError
 
+POST_LOGBATCH_RETRY_COUNT = 10
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
@@ -165,6 +166,7 @@ class ReportPortalService(object):
                  endpoint,
                  project,
                  token,
+                 log_batch_size=20,
                  is_skipped_an_issue=True,
                  verify_ssl=True,
                  retries=None,
@@ -175,12 +177,15 @@ class ReportPortalService(object):
             endpoint: endpoint of report portal service.
             project: project name to use for launch names.
             token: authorization token.
+            log_batch_size: option to set the maximum number of logs
+                            that can be processed in one batch
             is_skipped_an_issue: option to mark skipped tests as not
                 'To Investigate' items on Server side.
             verify_ssl: option to not verify ssl certificates
         """
-        super(ReportPortalService, self).__init__()
+        self._batch_logs = []
         self.endpoint = endpoint
+        self.log_batch_size = log_batch_size
         self.project = project
         self.token = token
         self.is_skipped_an_issue = is_skipped_an_issue
@@ -231,6 +236,9 @@ class ReportPortalService(object):
         Status can be one of the followings:
         (PASSED, FAILED, STOPPED, SKIPPED, RESETED, CANCELLED)
         """
+        # process log batches firstly:
+        if self._batch_logs:
+            self.log_batch([], force=True)
         data = {
             "endTime": end_time,
             "status": status
@@ -395,7 +403,7 @@ class ReportPortalService(object):
             logger.debug("log - ID: %s", item_id)
             return _get_id(r)
 
-    def log_batch(self, log_data, item_id=None):
+    def log_batch(self, log_data, item_id=None, force=False):
         """
         Log batch of messages with attachment.
 
@@ -407,11 +415,17 @@ class ReportPortalService(object):
                     name: name of attachment
                     data: fileobj or content
                     mime: content type for attachment
+        item_id: UUID of the test item that owns log_data
+        force:   Flag that forces client to process all the logs
+                 stored in self._batch_logs immediately
         """
+        self._batch_logs += log_data
+        if len(self._batch_logs) < self.log_batch_size and not force:
+            return
         url = uri_join(self.base_url_v2, "log")
 
         attachments = []
-        for log_item in log_data:
+        for log_item in self._batch_logs:
             if item_id:
                 log_item["itemUuid"] = item_id
             log_item["launchUuid"] = self.launch_id
@@ -435,12 +449,11 @@ class ReportPortalService(object):
         files = [(
             "json_request_part", (
                 None,
-                json.dumps(log_data),
+                json.dumps(self._batch_logs),
                 "application/json"
             )
         )]
         files.extend(attachments)
-        from reportportal_client import POST_LOGBATCH_RETRY_COUNT
         for i in range(POST_LOGBATCH_RETRY_COUNT):
             try:
                 r = self.session.post(
@@ -448,17 +461,15 @@ class ReportPortalService(object):
                     files=files,
                     verify=self.verify_ssl
                 )
+                logger.debug("log_batch - ID: %s", item_id)
+                logger.debug("log_batch response: %s", r.text)
+                self._batch_logs = []
+                return _get_data(r)
             except KeyError:
                 if i < POST_LOGBATCH_RETRY_COUNT - 1:
                     continue
                 else:
                     raise
-            break
-
-        logger.debug("log_batch - ID: %s", item_id)
-        logger.debug("log_batch response: %s", r.text)
-
-        return _get_data(r)
 
     @staticmethod
     def get_system_information(agent_name='agent_name'):
