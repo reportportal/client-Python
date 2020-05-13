@@ -14,7 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import collections
 import json
 import requests
 import uuid
@@ -23,9 +22,11 @@ import pkg_resources
 import platform
 
 import six
+from six.moves.collections_abc import Mapping
 from requests.adapters import HTTPAdapter
 
 from .errors import ResponseError, EntryCreatedError, OperationCompletionError
+
 
 POST_LOGBATCH_RETRY_COUNT = 10
 logger = logging.getLogger(__name__)
@@ -435,7 +436,7 @@ class ReportPortalService(object):
                 del log_item["attachment"]
 
             if attachment:
-                if not isinstance(attachment, collections.Mapping):
+                if not isinstance(attachment, Mapping):
                     attachment = {"data": attachment}
 
                 name = attachment.get("name", str(uuid.uuid4()))
