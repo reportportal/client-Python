@@ -67,9 +67,9 @@ class RPRequestBase(object):
         self._priority = DEFAULT_PRIORITY
         self._response = None
 
-    def __ge__(self, other):
-        """Use for comparison when put in to PriorityQueue."""
-        return self.priority >= other.priority
+    def __lt__(self, other):
+        """Priority protocol for the PriorityQueue."""
+        return self.priority < other.priority
 
     @property
     def http_request(self):
