@@ -145,7 +145,8 @@ class TestReportPortalService:
         expected_result = dict(json={'name': 'name',
                                      'description': None,
                                      'attributes': None,
-                                     'startTime': 1591032041348, 'launchUuid': 111,
+                                     'startTime': 1591032041348,
+                                     'launchUuid': 111,
                                      'type': 'STORY', 'parameters': None,
                                      'hasStats': True,
                                      'codeRef': None},
@@ -156,14 +157,20 @@ class TestReportPortalService:
         assert rp_start == 123
 
     start_item_optional = [
-        ('code_ref', '/path/to/test - test_item', "codeRef", '/path/to/test - test_item'),
-        ('attributes', {'attr1': True}, "attributes", [{'key': 'attr1', 'value': 'True', 'system': False}])
+        ('code_ref', '/path/to/test - test_item', "codeRef",
+         '/path/to/test - test_item'),
+        ('attributes', {'attr1': True}, "attributes",
+         [{'key': 'attr1', 'value': 'True', 'system': False}])
     ]
 
-    @pytest.mark.parametrize("field_name,field_value,expected_name,expected_value", start_item_optional)
+    @pytest.mark.parametrize(
+        "field_name,field_value,expected_name,expected_value",
+        start_item_optional)
     @mock.patch("reportportal_client.service._get_data",
                 mock.Mock(return_value={"id": 123}))
-    def test_start_item_code_optional_params(self, rp_service, field_name, field_value, expected_name, expected_value):
+    def test_start_item_code_optional_params(self, rp_service, field_name,
+                                             field_value, expected_name,
+                                             expected_value):
         """Test for validate different fields in start_test_item.
 
         :param: rp_service: fixture of ReportPortal
@@ -173,11 +180,13 @@ class TestReportPortalService:
         :param: expected_value an exact value of a field which should be in the result JSON request
         """
         rp_service.start_test_item(name="name", start_time=1591032041348,
-                                   item_type='STORY', **{field_name: field_value})
+                                   item_type='STORY',
+                                   **{field_name: field_value})
         expected_result = dict(json={'name': 'name',
                                      'description': None,
                                      'attributes': None,
-                                     'startTime': 1591032041348, 'launchUuid': 111,
+                                     'startTime': 1591032041348,
+                                     'launchUuid': 111,
                                      'type': 'STORY', 'parameters': None,
                                      'hasStats': True,
                                      'codeRef': None},
