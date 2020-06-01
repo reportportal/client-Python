@@ -174,10 +174,14 @@ class TestReportPortalService:
         """Test for validate different fields in start_test_item.
 
         :param: rp_service: fixture of ReportPortal
-        :param: field_name a name of a field bypassed to rp_service.start_test_item method
-        :param: field_value a value of a  field bypassed to rp_service.start_test_item method
-        :param: expected_name a name of a field which should be in the result JSON request
-        :param: expected_value an exact value of a field which should be in the result JSON request
+        :param: field_name a name of a field bypassed to
+        rp_service.start_test_item method
+        :param: field_value a value of a  field bypassed to
+        rp_service.start_test_item method
+        :param: expected_name a name of a field which should be in the result
+        JSON request
+        :param: expected_value an exact value of a field which should be in the
+        result JSON request
         """
         rp_service.start_test_item(name="name", start_time=1591032041348,
                                    item_type='STORY',
