@@ -1,10 +1,10 @@
 """This modules includes unit tests for the service.py module."""
 
 from datetime import datetime
-from pkg_resources import DistributionNotFound
 
-from delayed_assert import assert_expectations, expect
 import pytest
+from delayed_assert import assert_expectations, expect
+from pkg_resources import DistributionNotFound
 from six.moves import mock
 
 from reportportal_client.service import (
@@ -131,3 +131,51 @@ class TestReportPortalService:
         cond = (ReportPortalService.get_system_information('pytest')
                 == expected_result)
         assert cond
+
+    @mock.patch("reportportal_client.service._get_data",
+                mock.Mock(return_value={"id": 123}))
+    def test_start_item(self, rp_service):
+        """Test for validate start_test_item.
+            :param: rp_service: fixture of ReportPortal
+        """
+        rp_start = rp_service.start_test_item(name="name",
+                                              start_time=1591032041348,
+                                              item_type='STORY')
+        expected_result = dict(json={'name': 'name',
+                                     'description': None,
+                                     'attributes': None,
+                                     'startTime': 1591032041348, 'launchUuid': 111,
+                                     'type': 'STORY', 'parameters': None,
+                                     'hasStats': True,
+                                     'codeRef': None},
+                               url='http://endpoint/api/v2/project/item',
+                               verify=True)
+
+        rp_service.session.post.assert_called_with(**expected_result)
+        assert rp_start == 123
+
+    start_item_optional = [
+        ('code_ref', '/path/to/test - test_item', "codeRef", '/path/to/test - test_item'),
+        ('attributes', {'attr1': True}, "attributes", [{'key': 'attr1', 'value': 'True', 'system': False}])
+    ]
+
+    @pytest.mark.parametrize("field_name,field_value,expected_name,expected_value", start_item_optional)
+    @mock.patch("reportportal_client.service._get_data",
+                mock.Mock(return_value={"id": 123}))
+    def test_start_item_code_optional_params(self, rp_service, field_name, field_value, expected_name, expected_value):
+        """Test for validate different fields in start_test_item.
+            :param: rp_service: fixture of ReportPortal
+        """
+        rp_service.start_test_item(name="name", start_time=1591032041348,
+                                   item_type='STORY', **{field_name: field_value})
+        expected_result = dict(json={'name': 'name',
+                                     'description': None,
+                                     'attributes': None,
+                                     'startTime': 1591032041348, 'launchUuid': 111,
+                                     'type': 'STORY', 'parameters': None,
+                                     'hasStats': True,
+                                     'codeRef': None},
+                               url='http://endpoint/api/v2/project/item',
+                               verify=True)
+        expected_result['json'][expected_name] = expected_value
+        rp_service.session.post.assert_called_with(**expected_result)
