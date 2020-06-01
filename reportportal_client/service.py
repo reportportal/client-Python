@@ -14,7 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import collections
 import json
 import requests
 import uuid
@@ -23,10 +22,13 @@ import pkg_resources
 import platform
 
 import six
+from six.moves.collections_abc import Mapping
 from requests.adapters import HTTPAdapter
 
 from .errors import ResponseError, EntryCreatedError, OperationCompletionError
 
+
+POST_LOGBATCH_RETRY_COUNT = 10
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
@@ -165,6 +167,7 @@ class ReportPortalService(object):
                  endpoint,
                  project,
                  token,
+                 log_batch_size=20,
                  is_skipped_an_issue=True,
                  verify_ssl=True,
                  retries=None,
@@ -175,22 +178,28 @@ class ReportPortalService(object):
             endpoint: endpoint of report portal service.
             project: project name to use for launch names.
             token: authorization token.
+            log_batch_size: option to set the maximum number of logs
+                            that can be processed in one batch
             is_skipped_an_issue: option to mark skipped tests as not
                 'To Investigate' items on Server side.
             verify_ssl: option to not verify ssl certificates
         """
-        super(ReportPortalService, self).__init__()
+        self._batch_logs = []
         self.endpoint = endpoint
+        self.log_batch_size = log_batch_size
         self.project = project
         self.token = token
         self.is_skipped_an_issue = is_skipped_an_issue
         self.base_url_v1 = uri_join(self.endpoint, "api/v1", self.project)
         self.base_url_v2 = uri_join(self.endpoint, "api/v2", self.project)
+        self.max_pool_size = 50
 
         self.session = requests.Session()
         if retries:
-            self.session.mount('https://', HTTPAdapter(max_retries=retries))
-            self.session.mount('http://', HTTPAdapter(max_retries=retries))
+            self.session.mount('https://', HTTPAdapter(
+                max_retries=retries, pool_maxsize=self.max_pool_size))
+            self.session.mount('http://', HTTPAdapter(
+                max_retries=retries, pool_maxsize=self.max_pool_size))
         self.session.headers["Authorization"] = "bearer {0}".format(self.token)
         self.launch_id = None
         self.verify_ssl = verify_ssl
@@ -207,7 +216,7 @@ class ReportPortalService(object):
                      mode=None,
                      **kwargs):
         """Start a new launch with the given parameters."""
-        if attributes is not None:
+        if attributes and isinstance(attributes, dict):
             attributes = _dict_to_payload(attributes)
         data = {
             "name": name,
@@ -228,6 +237,9 @@ class ReportPortalService(object):
         Status can be one of the followings:
         (PASSED, FAILED, STOPPED, SKIPPED, RESETED, CANCELLED)
         """
+        # process log batches firstly:
+        if self._batch_logs:
+            self.log_batch([], force=True)
         data = {
             "endTime": end_time,
             "status": status
@@ -263,7 +275,7 @@ class ReportPortalService(object):
                 ...
             }
         """
-        if attributes:
+        if attributes and isinstance(attributes, dict):
             attributes = _dict_to_payload(attributes)
         if parameters:
             parameters = _dict_to_payload(parameters)
@@ -289,6 +301,24 @@ class ReportPortalService(object):
         logger.debug("start_test_item - ID: %s", item_id)
         return item_id
 
+    def update_test_item(self, item_uuid, attributes=None, description=None):
+        """Update existing test item at the Report Portal.
+
+        :param str item_uuid:   Test item UUID returned on the item start
+        :param str description: Test item description
+        :param list attributes: Test item attributes
+                                [{'key': 'k_name', 'value': 'k_value'}, ...]
+        """
+        data = {
+            "description": description,
+            "attributes": attributes,
+        }
+        item_id = self.get_item_id_by_uuid(item_uuid)
+        url = uri_join(self.base_url_v1, "item", item_id, "update")
+        r = self.session.put(url=url, json=data, verify=self.verify_ssl)
+        logger.debug("update_test_item - Item: %s", item_id)
+        return _get_msg(r)
+
     def finish_test_item(self,
                          item_id,
                          end_time,
@@ -312,7 +342,7 @@ class ReportPortalService(object):
                 and not self.is_skipped_an_issue:
             issue = {"issue_type": "NOT_ISSUE"}
 
-        if attributes:
+        if attributes and isinstance(attributes, dict):
             attributes = _dict_to_payload(attributes)
 
         data = {
@@ -326,6 +356,16 @@ class ReportPortalService(object):
         r = self.session.put(url=url, json=data, verify=self.verify_ssl)
         logger.debug("finish_test_item - ID: %s", item_id)
         return _get_msg(r)
+
+    def get_item_id_by_uuid(self, uuid):
+        """Get test item ID by the given UUID.
+
+        :param str uuid: UUID returned on the item start
+        :return str:     Test item id
+        """
+        url = uri_join(self.base_url_v1, "item", "uuid", uuid)
+        return _get_json(self.session.get(
+            url=url, verify=self.verify_ssl))["id"]
 
     def get_project_settings(self):
         """
@@ -366,7 +406,7 @@ class ReportPortalService(object):
             logger.debug("log - ID: %s", item_id)
             return _get_id(r)
 
-    def log_batch(self, log_data, item_id=None):
+    def log_batch(self, log_data, item_id=None, force=False):
         """
         Log batch of messages with attachment.
 
@@ -378,11 +418,17 @@ class ReportPortalService(object):
                     name: name of attachment
                     data: fileobj or content
                     mime: content type for attachment
+        item_id: UUID of the test item that owns log_data
+        force:   Flag that forces client to process all the logs
+                 stored in self._batch_logs immediately
         """
+        self._batch_logs += log_data
+        if len(self._batch_logs) < self.log_batch_size and not force:
+            return
         url = uri_join(self.base_url_v2, "log")
 
         attachments = []
-        for log_item in log_data:
+        for log_item in self._batch_logs:
             if item_id:
                 log_item["itemUuid"] = item_id
             log_item["launchUuid"] = self.launch_id
@@ -392,7 +438,7 @@ class ReportPortalService(object):
                 del log_item["attachment"]
 
             if attachment:
-                if not isinstance(attachment, collections.Mapping):
+                if not isinstance(attachment, Mapping):
                     attachment = {"data": attachment}
 
                 name = attachment.get("name", str(uuid.uuid4()))
@@ -406,12 +452,11 @@ class ReportPortalService(object):
         files = [(
             "json_request_part", (
                 None,
-                json.dumps(log_data),
+                json.dumps(self._batch_logs),
                 "application/json"
             )
         )]
         files.extend(attachments)
-        from reportportal_client import POST_LOGBATCH_RETRY_COUNT
         for i in range(POST_LOGBATCH_RETRY_COUNT):
             try:
                 r = self.session.post(
@@ -419,17 +464,15 @@ class ReportPortalService(object):
                     files=files,
                     verify=self.verify_ssl
                 )
+                logger.debug("log_batch - ID: %s", item_id)
+                logger.debug("log_batch response: %s", r.text)
+                self._batch_logs = []
+                return _get_data(r)
             except KeyError:
                 if i < POST_LOGBATCH_RETRY_COUNT - 1:
                     continue
                 else:
                     raise
-            break
-
-        logger.debug("log_batch - ID: %s", item_id)
-        logger.debug("log_batch response: %s", r.text)
-
-        return _get_data(r)
 
     @staticmethod
     def get_system_information(agent_name='agent_name'):
@@ -446,12 +489,13 @@ class ReportPortalService(object):
                        'machine': "Windows10_pc"}
         """
         try:
-            agent_version = pkg_resources.get_distribution(agent_name)
+            agent_version = pkg_resources.get_distribution(
+                agent_name).version
             agent = '{0}-{1}'.format(agent_name, agent_version)
         except pkg_resources.DistributionNotFound:
             agent = 'not found'
 
         return {'agent': agent,
                 'os': platform.system(),
-                'cpu': platform.processor(),
+                'cpu': platform.processor() or 'unknown',
                 'machine': platform.machine()}
