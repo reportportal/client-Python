@@ -1,10 +1,10 @@
 """This modules includes unit tests for the service.py module."""
 
 from datetime import datetime
-from pkg_resources import DistributionNotFound
 
-from delayed_assert import assert_expectations, expect
 import pytest
+from delayed_assert import assert_expectations, expect
+from pkg_resources import DistributionNotFound
 from six.moves import mock
 
 from reportportal_client.service import (
@@ -137,7 +137,7 @@ class TestReportPortalService:
     def test_start_item(self, rp_service):
         """Test for validate start_test_item.
 
-            :param: rp_service: fixture of ReportPortal
+           :param: rp_service: fixture of ReportPortal
         """
         rp_start = rp_service.start_test_item(name="name",
                                               start_time=1591032041348,
@@ -166,11 +166,11 @@ class TestReportPortalService:
     def test_start_item_code_optional_params(self, rp_service, field_name, field_value, expected_name, expected_value):
         """Test for validate different fields in start_test_item.
 
-            :param: rp_service: fixture of ReportPortal
-            :param: field_name a name of a field bypassed to rp_service.start_test_item method
-            :param: field_value a value of a  field bypassed to rp_service.start_test_item method
-            :param: expected_name a name of a field which should be in the result JSON request
-            :param: expected_value an exact value of a field which should be in the result JSON request
+           :param: rp_service: fixture of ReportPortal
+           :param: field_name a name of a field bypassed to rp_service.start_test_item method
+           :param: field_value a value of a  field bypassed to rp_service.start_test_item method
+           :param: expected_name a name of a field which should be in the result JSON request
+           :param: expected_value an exact value of a field which should be in the result JSON request
         """
         rp_service.start_test_item(name="name", start_time=1591032041348,
                                    item_type='STORY', **{field_name: field_value})
