@@ -2,10 +2,13 @@
 This module contains functional for Base RP test items management.
 
 Copyright (c) 2018 http://reportportal.io .
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
+
 http://www.apache.org/licenses/LICENSE-2.0
+
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -24,8 +27,7 @@ class RPBaseTestItem(BaseRPItem):
 
     def __init__(self, rp_url, session, api_version, project_name, item_name,
                  item_type, launch_uuid, **kwargs):
-        """
-        Initialize instance attributes.
+        """Initialize instance attributes.
 
         :param rp_url:         report portal url
         :param session:        Session object
@@ -71,8 +73,7 @@ class RPBaseTestItem(BaseRPItem):
                                          NOT_FOUND else self.uuid
 
     def add_child_item(self, item):
-        """
-        Add new child item to the list.
+        """Add new child item to the list.
 
         :param item:        test item object
         :return:            None
@@ -80,8 +81,7 @@ class RPBaseTestItem(BaseRPItem):
         self.child_items.append(item)
 
     def finish(self, end_time, status=None, description=None, issue=None):
-        """
-        Form finish request for RP test item.
+        """Form finish request for RP test item.
 
         :param end_time:    Test item end time
         :param status:      Test status. Allowable values: "passed",

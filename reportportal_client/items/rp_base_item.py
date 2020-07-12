@@ -1,10 +1,14 @@
 """
 This module contains functional for Base RP items management.
+
 Copyright (c) 2018 http://reportportal.io .
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
+
 http://www.apache.org/licenses/LICENSE-2.0
+
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,8 +23,7 @@ class BaseRPItem(object):
     """This model stores attributes related to RP item."""
 
     def __init__(self, rp_url, session, api_version, project_name, launch_uuid):
-        """
-        Initialize instance attributes.
+        """Initialize instance attributes.
 
         :param rp_url:         report portal url
         :param session:        Session object
@@ -39,8 +42,7 @@ class BaseRPItem(object):
         self.launch_uuid = launch_uuid
 
     def add_request(self, endpoint, method, request_class, *args, **kwargs):
-        """
-        Add new request object
+        """Add new request object.
 
         :param endpoint:       request endpoint
         :param method:         Session object method. Allowable values: get,

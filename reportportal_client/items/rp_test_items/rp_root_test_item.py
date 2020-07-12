@@ -2,10 +2,13 @@
 This module contains functional for Root RP test items management.
 
 Copyright (c) 2018 http://reportportal.io .
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
+
 http://www.apache.org/licenses/LICENSE-2.0
+
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -23,32 +26,29 @@ class RPRootTestItem(RPBaseTestItem):
 
     def __init__(self, rp_url, session, api_version, project_name, item_name,
                  item_type, launch_uuid, **kwargs):
-        """
-        Initialize instance attributes.
+        """Initialize instance attributes.
 
-        :param rp_url:         report portal url
-        :param session:        Session object
-        :param api_version:    RP API version
-        :param project_name:   RP project name
-        :param item_name:      RP item name
-        :param item_type:      Type of the test item. Allowable values:
-                               "suite", "story", "test", "scenario", "step",
-                               "before_class", "before_groups", "before_method",
-                               "before_suite", "before_test", "after_class",
-                               "after_groups", "after_method", "after_suite",
-                               "after_test"
-        :param launch_uuid:    Parent launch UUID
-        :param kwargs:         Dict of additional named parameters
+        :param rp_url:        report portal url
+        :param session:       Session object
+        :param api_version:   RP API version
+        :param project_name:  RP project name
+        :param item_name:     RP item name
+        :param item_type:     Type of the test item. Allowable values:
+                              "suite", "story", "test", "scenario", "step",
+                              "before_class", "before_groups", "before_method",
+                              "before_suite", "before_test", "after_class",
+                              "after_groups", "after_method", "after_suite",
+                              "after_test"
+        :param launch_uuid:   Parent launch UUID
+        :param kwargs:        Dict of additional named parameters
         """
-
         super(RPRootTestItem, self).__init__(rp_url, session, api_version,
-                                             project_name, item_name, item_type,
-                                             launch_uuid, **kwargs)
+                                             project_name, item_name,
+                                             item_type, launch_uuid, **kwargs)
         self.weight = 10
 
     def start(self, start_time):
-        """
-        Create request object to start root test item.
+        """Create request object to start root test item.
 
         :param start_time:     Test item start time
         """
@@ -61,7 +61,7 @@ class RPRootTestItem(RPBaseTestItem):
                          self.item_name, start_time,
                          self.item_type, self.launch_uuid,
                          attributes=self.attributes, code_ref=self.code_ref,
-                         description=self.description, has_stats=self.has_stats,
-                         parameters=self.parameters,
+                         description=self.description,
+                         has_stats=self.has_stats, parameters=self.parameters,
                          retry=self.retry, uuid=self.uuid,
                          unique_id=self.unique_id)

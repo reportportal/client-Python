@@ -2,10 +2,13 @@
 This module contains functional for RP log items management.
 
 Copyright (c) 2018 http://reportportal.io .
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
+
 http://www.apache.org/licenses/LICENSE-2.0
+
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -21,9 +24,9 @@ from reportportal_client.static.defines import RP_LOG_LEVELS
 class RPLogItem(BaseRPItem):
     """This model stores attributes for RP log items."""
 
-    def __init__(self, rp_url, session, api_version, project_name, launch_uuid):
-        """
-        Initialize instance attributes.
+    def __init__(self, rp_url, session, api_version, project_name,
+                 launch_uuid):
+        """Initialize instance attributes.
 
         :param rp_url:          report portal URL
         :param session:         Session object
@@ -47,8 +50,7 @@ class RPLogItem(BaseRPItem):
 
     def create(self, time, file_obj=None, item_uuid=None,
                level=RP_LOG_LEVELS[40000], message=None):
-        """
-        Add request for log item creation.
+        """Add request for log item creation.
 
         :param time:        Log item time
         :param file_obj:    Object of the RPFile
