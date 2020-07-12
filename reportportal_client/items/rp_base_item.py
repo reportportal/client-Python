@@ -16,18 +16,17 @@ from reportportal_client.core.rp_requests import HttpRequest
 
 
 class BaseRPItem(object):
-
     """This model stores attributes related to RP item."""
 
     def __init__(self, rp_url, session, api_version, project_name, launch_uuid):
         """
         Initialize instance attributes.
 
-        :param rp_url:          report portal url
-        :param session:         Session object
-        :param api_version:     RP API version
-        :param project_name:    RP project name
-        :param launch_uuid:     Parent launch UUID
+        :param rp_url:         report portal url
+        :param session:        Session object
+        :param api_version:    RP API version
+        :param project_name:   RP project name
+        :param launch_uuid:    Parent launch UUID
         """
         self.uuid = None
         self.weight = None
@@ -43,11 +42,12 @@ class BaseRPItem(object):
         """
         Add new request object
 
-        :param endpoint:        request endpoint
-        :param method:          Session object method. Allowable values: get, post, put, delete
-        :param request_class:   request class object
-        :param args:            request object attributes
-        :param kwargs:          request object named attributes
+        :param endpoint:       request endpoint
+        :param method:         Session object method. Allowable values: get,
+                               post, put, delete
+        :param request_class:  request class object
+        :param args:           request object attributes
+        :param kwargs:         request object named attributes
         :return: None
         """
         http_request = HttpRequest(method, endpoint)
