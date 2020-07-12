@@ -22,7 +22,8 @@ from reportportal_client.core.rp_requests import HttpRequest
 class BaseRPItem(object):
     """This model stores attributes related to RP item."""
 
-    def __init__(self, rp_url, session, api_version, project_name, launch_uuid):
+    def __init__(self, rp_url, session, api_version, project_name,
+                 launch_uuid):
         """Initialize instance attributes.
 
         :param rp_url:         report portal url

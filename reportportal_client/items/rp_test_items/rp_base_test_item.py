@@ -29,19 +29,19 @@ class RPBaseTestItem(BaseRPItem):
                  item_type, launch_uuid, **kwargs):
         """Initialize instance attributes.
 
-        :param rp_url:         report portal url
-        :param session:        Session object
-        :param api_version:    RP API version
-        :param project_name:   RP project name
-        :param item_name:      RP item name
-        :param item_type:      Type of the test item. Allowable values: "suite",
-                               "story", "test", "scenario", "step",
-                               "before_class", "before_groups", "before_method",
-                               "before_suite", "before_test", "after_class",
-                               "after_groups", "after_method", "after_suite",
-                               "after_test"
-        :param launch_uuid:    Parent launch UUID
-        :param kwargs:         Dict of additional named parameters
+        :param rp_url:        report portal url
+        :param session:       Session object
+        :param api_version:   RP API version
+        :param project_name:  RP project name
+        :param item_name:     RP item name
+        :param item_type:     Type of the test item. Allowable values: "suite",
+                              "story", "test", "scenario", "step",
+                              "before_class", "before_groups", "before_method",
+                              "before_suite", "before_test", "after_class",
+                              "after_groups", "after_method", "after_suite",
+                              "after_test"
+        :param launch_uuid:   Parent launch UUID
+        :param kwargs:        Dict of additional named parameters
         """
         super(RPBaseTestItem, self).__init__(rp_url, session, api_version,
                                              project_name, launch_uuid)
@@ -66,11 +66,11 @@ class RPBaseTestItem(BaseRPItem):
     def response(self, data):
         """Set the response object for the test item.
 
-        :param data:        Response data object
+        :param data:       Response data object
         """
         self._response = RPResponse(data)
-        self.uuid = self._response.id if self._response.id is not \
-                                         NOT_FOUND else self.uuid
+        self.uuid = self._response.id if (self._response.id is
+                                          not NOT_FOUND) else self.uuid
 
     def add_child_item(self, item):
         """Add new child item to the list.
