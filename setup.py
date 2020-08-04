@@ -2,7 +2,10 @@
 
 from setuptools import setup, find_packages
 
-__version__ = '5.0.3'
+__version__ = '5.0.4'
+
+with open('requirements.txt') as f:
+    requirements = f.read().splitlines()
 
 setup(
     name='reportportal-client',
@@ -22,5 +25,5 @@ setup(
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8'
     ],
-    install_requires=['requests>=2.4.2', 'six']
+    install_requires=requirements
 )
