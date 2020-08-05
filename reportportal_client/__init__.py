@@ -17,5 +17,3 @@ limitations under the License.
 from .service import ReportPortalService
 
 __all__ = ('ReportPortalService',)
-
-POST_LOGBATCH_RETRY_COUNT = 10
