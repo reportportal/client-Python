@@ -19,6 +19,7 @@ limitations under the License.
 from reportportal_client.items.rp_test_items.rp_base_test_item import \
     RPBaseTestItem
 from reportportal_client.core.rp_requests import ItemStartRequest
+from reportportal_client.items.helpers import ItemWeight
 
 
 class RPRootTestItem(RPBaseTestItem):
@@ -45,7 +46,7 @@ class RPRootTestItem(RPBaseTestItem):
         super(RPRootTestItem, self).__init__(rp_url, session, api_version,
                                              project_name, item_name,
                                              item_type, launch_uuid, **kwargs)
-        self.weight = 10
+        self.weight = ItemWeight.ROOT_ITEM_WEIGHT.value
 
     def start(self, start_time):
         """Create request object to start root test item.

@@ -19,6 +19,7 @@ limitations under the License.
 from reportportal_client.items.rp_base_item import BaseRPItem
 from reportportal_client.core.rp_requests import RPRequestLog
 from reportportal_client.static.defines import RP_LOG_LEVELS
+from reportportal_client.items.helpers import ItemWeight
 
 
 class RPLogItem(BaseRPItem):
@@ -36,7 +37,7 @@ class RPLogItem(BaseRPItem):
         """
         super(RPLogItem, self).__init__(rp_url, session, api_version,
                                         project_name, launch_uuid)
-        self.weight = 1
+        self.weight = ItemWeight.LOG_ITEM_WEIGHT.value
 
     @property
     def response(self):
@@ -46,7 +47,7 @@ class RPLogItem(BaseRPItem):
     @response.setter
     def response(self, value):
         """Set the response object for RP log item."""
-        assert NotImplementedError
+        raise NotImplementedError
 
     def create(self, time, file_obj=None, item_uuid=None,
                level=RP_LOG_LEVELS[40000], message=None):

@@ -34,7 +34,7 @@ class BaseRPItem(object):
         """
         self.uuid = None
         self.weight = None
-        self.http_requests = []
+        self.http_requests = list()
         self._response = None
         self.rp_url = rp_url
         self.session = session
