@@ -1,4 +1,5 @@
-"""This module contains common classes-helpers for the items.
+"""
+This module contains common classes-helpers for the items.
 
 Copyright (c) 2018 http://reportportal.io .
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,9 +17,7 @@ from enum import Enum
 
 
 class ItemWeight(Enum):
-    """
-    Enum with weights for different item types
-    """
+    """Enum with weights for different item types."""
 
     ROOT_ITEM_WEIGHT = 1
     LOG_ITEM_WEIGHT = 10
