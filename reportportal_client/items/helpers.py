@@ -13,10 +13,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from enum import Enum
+from enum import IntEnum
 
 
-class ItemWeight(Enum):
+class ItemWeight(IntEnum):
     """Enum with weights for different item types."""
 
     ROOT_ITEM_WEIGHT = 1

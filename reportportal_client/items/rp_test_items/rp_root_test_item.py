@@ -26,7 +26,7 @@ class RPRootTestItem(RPBaseTestItem):
     """This model stores attributes for RP Root test items."""
 
     def __init__(self, rp_url, session, api_version, project_name, item_name,
-                 item_type, launch_uuid, **kwargs):
+                 item_type, launch_uuid, generated_id, **kwargs):
         """Initialize instance attributes.
 
         :param rp_url:        report portal url
@@ -41,12 +41,15 @@ class RPRootTestItem(RPBaseTestItem):
                               "after_groups", "after_method", "after_suite",
                               "after_test"
         :param launch_uuid:   Parent launch UUID
+        :param generated_id:  Id generated to speed up client
         :param kwargs:        Dict of additional named parameters
         """
         super(RPRootTestItem, self).__init__(rp_url, session, api_version,
                                              project_name, item_name,
-                                             item_type, launch_uuid, **kwargs)
-        self.weight = ItemWeight.ROOT_ITEM_WEIGHT.value
+                                             item_type, launch_uuid,
+                                             generated_id, has_stats=True,
+                                             **kwargs)
+        self.weight = ItemWeight.ROOT_ITEM_WEIGHT
 
     def start(self, start_time):
         """Create request object to start root test item.

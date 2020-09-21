@@ -25,7 +25,8 @@ class RPChildTestItem(RPBaseTestItem):
     """This model stores attributes for RP child test items."""
 
     def __init__(self, rp_url, session, api_version, project_name, parent_item,
-                 item_name, item_type, launch_uuid, **kwargs):
+                 item_name, item_type, launch_uuid, generated_id,
+                 has_stats=True,**kwargs):
         """Initialize instance attributes.
 
         :param rp_url:        report portal url
@@ -40,12 +41,14 @@ class RPChildTestItem(RPBaseTestItem):
                               "after_groups", "after_method", "after_suite",
                               "after_test"
         :param launch_uuid:   Parent launch UUID
+        :param generated_id:  Id generated to speed up client
         :param kwargs:        Dict of additional named parameters
         """
         super(RPChildTestItem, self).__init__(rp_url, session, api_version,
                                               project_name, item_name,
-                                              item_type,
-                                              launch_uuid, **kwargs)
+                                              item_type, launch_uuid,
+                                              generated_id, has_stats,
+                                              **kwargs)
         self.parent_item = parent_item
         self.parent_item.add_child_item(self)
         self.weight = self.parent_item.weight - 1

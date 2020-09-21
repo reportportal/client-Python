@@ -26,7 +26,7 @@ class RPLogItem(BaseRPItem):
     """This model stores attributes for RP log items."""
 
     def __init__(self, rp_url, session, api_version, project_name,
-                 launch_uuid):
+                 launch_uuid, generated_id):
         """Initialize instance attributes.
 
         :param rp_url:          report portal URL
@@ -34,15 +34,17 @@ class RPLogItem(BaseRPItem):
         :param api_version:     RP API version
         :param project_name:    RP project name
         :param launch_uuid:     Parent launch UUID
+        :param generated_id:    Id generated to speed up client
         """
         super(RPLogItem, self).__init__(rp_url, session, api_version,
-                                        project_name, launch_uuid)
-        self.weight = ItemWeight.LOG_ITEM_WEIGHT.value
+                                        project_name, launch_uuid,
+                                        generated_id)
+        self.weight = ItemWeight.LOG_ITEM_WEIGHT
 
     @property
     def response(self):
         """Get the response object for RP log item."""
-        return self._response
+        return self._responses[0]
 
     @response.setter
     def response(self, value):

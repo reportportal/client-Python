@@ -23,7 +23,7 @@ class BaseRPItem(object):
     """This model stores attributes related to RP item."""
 
     def __init__(self, rp_url, session, api_version, project_name,
-                 launch_uuid):
+                 launch_uuid, generated_id):
         """Initialize instance attributes.
 
         :param rp_url:         report portal url
@@ -31,16 +31,35 @@ class BaseRPItem(object):
         :param api_version:    RP API version
         :param project_name:   RP project name
         :param launch_uuid:    Parent launch UUID
+        :param generated_id:   Id generated to speed up client
         """
         self.uuid = None
         self.weight = None
+        self.generated_id = generated_id
         self.http_requests = list()
-        self._response = None
+        self._responses = []
         self.rp_url = rp_url
         self.session = session
         self.api_version = api_version
         self.project_name = project_name
         self.launch_uuid = launch_uuid
+
+    @property
+    def http_request(self):
+        """Gets last http request
+
+        :return: request object
+        """
+        return self.http_requests[0]
+
+    @property
+    def unhandled_requests(self) -> list:
+        """Gets list of requests that were not handled
+
+        :return: list of HttpRequest objects
+        """
+        return [request for request in self.http_requests
+                if not request.response]
 
     def add_request(self, endpoint, method, request_class, *args, **kwargs):
         """Add new request object.
@@ -53,8 +72,7 @@ class BaseRPItem(object):
         :param kwargs:         request object named attributes
         :return: None
         """
-        http_request = HttpRequest(method, endpoint)
         rp_request = request_class(*args, **kwargs)
-        rp_request.http_request = http_request
+        rp_request.http_request = HttpRequest(method, endpoint)
         rp_request.priority = self.weight
         self.http_requests.insert(0, rp_request)

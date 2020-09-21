@@ -26,7 +26,7 @@ class RPBaseTestItem(BaseRPItem):
     """This model stores common attributes for RP test items."""
 
     def __init__(self, rp_url, session, api_version, project_name, item_name,
-                 item_type, launch_uuid, **kwargs):
+                 item_type, launch_uuid, generated_id, has_stats, **kwargs):
         """Initialize instance attributes.
 
         :param rp_url:        report portal url
@@ -41,10 +41,13 @@ class RPBaseTestItem(BaseRPItem):
                               "after_groups", "after_method", "after_suite",
                               "after_test"
         :param launch_uuid:   Parent launch UUID
+        :param generated_id:  Id generated to speed up client
+        :param has_stats:     If item has stats
         :param kwargs:        Dict of additional named parameters
         """
         super(RPBaseTestItem, self).__init__(rp_url, session, api_version,
-                                             project_name, launch_uuid)
+                                             project_name, launch_uuid,
+                                             generated_id)
         self.item_name = item_name
         self.item_type = item_type
         self.description = kwargs.get("description")
@@ -54,23 +57,24 @@ class RPBaseTestItem(BaseRPItem):
         self.parameters = kwargs.get("parameters")
         self.unique_id = kwargs.get("unique_id")
         self.retry = kwargs.get("retry", False)
-        self.has_stats = True
+        self.has_stats = has_stats
         self.child_items = list()
 
     @property
-    def response(self):
+    def responses(self):
         """Get the response object for the test item."""
-        return self._response
+        return self._responses
 
-    @response.setter
-    def response(self, data):
+    @responses.setter
+    def responses(self, data):
         """Set the response object for the test item.
 
         :param data:       Response data object
         """
-        self._response = RPResponse(data)
-        self.uuid = self._response.id if (self._response.id is
-                                          not NOT_FOUND) else self.uuid
+        response = RPResponse(data)
+        self._responses.append(response)
+        self.uuid = response.id if (response.id is
+                                    not NOT_FOUND) else self.uuid
 
     def add_child_item(self, item):
         """Add new child item to the list.
