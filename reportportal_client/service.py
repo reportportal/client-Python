@@ -225,6 +225,7 @@ class ReportPortalService(object):
             "startTime": start_time,
             "mode": mode
         }
+        data.update(kwargs)
         url = uri_join(self.base_url_v2, "launch")
         r = self.session.post(url=url, json=data, verify=self.verify_ssl)
         self.launch_id = _get_id(r)
@@ -244,6 +245,7 @@ class ReportPortalService(object):
             "endTime": end_time,
             "status": status
         }
+        data.update(kwargs)
         url = uri_join(self.base_url_v1, "launch", self.launch_id, "finish")
         r = self.session.put(url=url, json=data, verify=self.verify_ssl)
         logger.debug("finish_launch - ID: %s", self.launch_id)
@@ -291,6 +293,7 @@ class ReportPortalService(object):
             "hasStats": has_stats,
             "codeRef": code_ref
         }
+        data.update(kwargs)
         if parent_item_id:
             url = uri_join(self.base_url_v2, "item", parent_item_id)
         else:
@@ -352,6 +355,7 @@ class ReportPortalService(object):
             "launchUuid": self.launch_id,
             "attributes": attributes
         }
+        data.update(kwargs)
         url = uri_join(self.base_url_v2, "item", item_id)
         r = self.session.put(url=url, json=data, verify=self.verify_ssl)
         logger.debug("finish_test_item - ID: %s", item_id)
