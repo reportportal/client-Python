@@ -214,6 +214,7 @@ class ReportPortalService(object):
                      description=None,
                      attributes=None,
                      mode=None,
+                     uuid=None,
                      rerun=None,
                      rerunOf=None,
                      **kwargs):
@@ -226,6 +227,7 @@ class ReportPortalService(object):
             "attributes": attributes,
             "startTime": start_time,
             "mode": mode,
+            "uuid": uuid,
             "rerun": rerun,
             "rerunOf": rerunOf
         }
