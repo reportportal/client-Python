@@ -48,7 +48,7 @@ class BaseRPItem(object):
 
     @property
     def http_request(self):
-        """Gets last http request.
+        """Get last http request.
 
         :return: request object
         """
@@ -56,7 +56,7 @@ class BaseRPItem(object):
 
     @property
     def response(self):
-        """Gets last http response.
+        """Get last http response.
 
         :return: Response data object
         """
@@ -75,7 +75,7 @@ class BaseRPItem(object):
 
     @property
     def unhandled_requests(self):
-        """Gets list of requests that were not handled.
+        """Get list of requests that were not handled.
 
         :return: list of HttpRequest objects
         """
