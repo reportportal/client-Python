@@ -18,8 +18,6 @@ limitations under the License.
 
 from reportportal_client.items.rp_base_item import BaseRPItem
 from reportportal_client.core.rp_requests import ItemFinishRequest
-from reportportal_client.core.rp_responses import RPResponse
-from reportportal_client.static.defines import NOT_FOUND
 
 
 class RPBaseTestItem(BaseRPItem):
@@ -59,22 +57,6 @@ class RPBaseTestItem(BaseRPItem):
         self.retry = kwargs.get("retry", False)
         self.has_stats = has_stats
         self.child_items = list()
-
-    @property
-    def responses(self):
-        """Get the response object for the test item."""
-        return self._responses
-
-    @responses.setter
-    def responses(self, data):
-        """Set the response object for the test item.
-
-        :param data:       Response data object
-        """
-        response = RPResponse(data)
-        self._responses.append(response)
-        self.uuid = response.id if (response.id is
-                                    not NOT_FOUND) else self.uuid
 
     def add_child_item(self, item):
         """Add new child item to the list.

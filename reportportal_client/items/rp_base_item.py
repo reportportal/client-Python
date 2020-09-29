@@ -17,6 +17,8 @@ limitations under the License.
 """
 
 from reportportal_client.core.rp_requests import HttpRequest
+from reportportal_client.core.rp_responses import RPResponse
+from reportportal_client.static.defines import NOT_FOUND
 
 
 class BaseRPItem(object):
@@ -37,7 +39,7 @@ class BaseRPItem(object):
         self.weight = None
         self.generated_id = generated_id
         self.http_requests = list()
-        self._responses = []
+        self.responses = []
         self.rp_url = rp_url
         self.session = session
         self.api_version = api_version
@@ -46,15 +48,34 @@ class BaseRPItem(object):
 
     @property
     def http_request(self):
-        """Gets last http request
+        """Gets last http request.
 
         :return: request object
         """
-        return self.http_requests[0]
+        return self.http_requests[0] if self.http_requests else None
 
     @property
-    def unhandled_requests(self) -> list:
-        """Gets list of requests that were not handled
+    def response(self):
+        """Gets last http response.
+
+        :return: Response data object
+        """
+        return self.responses[0] if self.responses else None
+
+    @response.setter
+    def response(self, data):
+        """Set the response object for the test item.
+
+        :param data: Response data object
+        """
+        response = RPResponse(data)
+        self.responses.insert(0, response)
+        self.uuid = response.id if (response.id is
+                                    not NOT_FOUND) else self.uuid
+
+    @property
+    def unhandled_requests(self):
+        """Gets list of requests that were not handled.
 
         :return: list of HttpRequest objects
         """
