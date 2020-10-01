@@ -56,7 +56,7 @@ class RPBaseTestItem(BaseRPItem):
         self.unique_id = kwargs.get("unique_id")
         self.retry = kwargs.get("retry", False)
         self.has_stats = has_stats
-        self.child_items = list()
+        self.child_items = []
 
     def add_child_item(self, item):
         """Add new child item to the list.
