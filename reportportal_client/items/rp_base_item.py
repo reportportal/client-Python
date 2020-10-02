@@ -52,7 +52,7 @@ class BaseRPItem(object):
 
         :return: request object
         """
-        return self.http_requests[0] if self.http_requests else None
+        return self.http_requests[-1] if self.http_requests else None
 
     @property
     def response(self):
@@ -60,7 +60,7 @@ class BaseRPItem(object):
 
         :return: Response data object
         """
-        return self.responses[0] if self.responses else None
+        return self.responses[-1] if self.responses else None
 
     @response.setter
     def response(self, data):
@@ -69,7 +69,7 @@ class BaseRPItem(object):
         :param data: Response data object
         """
         response = RPResponse(data)
-        self.responses.insert(0, response)
+        self.responses.append(response)
         self.uuid = response.id if (response.id is
                                     not NOT_FOUND) else self.uuid
 
@@ -96,4 +96,4 @@ class BaseRPItem(object):
         rp_request = request_class(*args, **kwargs)
         rp_request.http_request = HttpRequest(method, endpoint)
         rp_request.priority = self.weight
-        self.http_requests.insert(0, rp_request)
+        self.http_requests.append(rp_request)
