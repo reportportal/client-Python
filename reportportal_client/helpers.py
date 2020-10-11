@@ -13,10 +13,17 @@ limitations under the License.
 """
 
 import logging
-from pkg_resources import DistributionNotFound, get_distribution
+import uuid
 from platform import machine, processor, system
 
+from pkg_resources import DistributionNotFound, get_distribution
+
 logger = logging.getLogger(__name__)
+
+
+def generate_uuid():
+    """Generate Uuid."""
+    return str(uuid.uuid4())
 
 
 def gen_attributes(rp_attributes):

@@ -24,7 +24,7 @@ class RPBaseTestItem(BaseRPItem):
     """This model stores common attributes for RP test items."""
 
     def __init__(self, rp_url, session, api_version, project_name, item_name,
-                 item_type, launch_uuid, generated_id, has_stats, **kwargs):
+                 item_type, launch_uuid, generated_id, **kwargs):
         """Initialize instance attributes.
 
         :param rp_url:        report portal url
@@ -55,7 +55,7 @@ class RPBaseTestItem(BaseRPItem):
         self.parameters = kwargs.get("parameters")
         self.unique_id = kwargs.get("unique_id")
         self.retry = kwargs.get("retry", False)
-        self.has_stats = has_stats
+        self.has_stats = kwargs.get("hasStats", True)
         self.child_items = []
 
     def add_child_item(self, item):

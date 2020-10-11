@@ -26,7 +26,7 @@ class RPChildTestItem(RPBaseTestItem):
 
     def __init__(self, rp_url, session, api_version, project_name, parent_item,
                  item_name, item_type, launch_uuid, generated_id,
-                 has_stats=True, **kwargs):
+                 **kwargs):
         """Initialize instance attributes.
 
         :param rp_url:        report portal url
@@ -47,8 +47,7 @@ class RPChildTestItem(RPBaseTestItem):
         super(RPChildTestItem, self).__init__(rp_url, session, api_version,
                                               project_name, item_name,
                                               item_type, launch_uuid,
-                                              generated_id, has_stats,
-                                              **kwargs)
+                                              generated_id, **kwargs)
         self.parent_item = parent_item
         self.parent_item.add_child_item(self)
         self.weight = self.parent_item.weight - 1

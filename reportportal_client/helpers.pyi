@@ -3,6 +3,10 @@ from typing import Dict, List, Text
 
 logger: Logger
 
+
+def generate_uuid() -> str: ...
+
+
 def gen_attributes(rp_attributes: List) -> List[Dict]: ...
 
 def get_launch_sys_attrs() -> Dict[Text]: ...
