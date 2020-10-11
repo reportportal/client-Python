@@ -249,6 +249,40 @@ class ReportPortalService(object):
         logger.debug("finish_launch - ID: %s", self.launch_id)
         return _get_msg(r)
 
+    def get_launch_info(self):
+        """Get the current launch information.
+
+        :return dict: launch information
+        """
+        url = uri_join(self.base_url_v1, "launch/uuid", self.launch_id)
+        launch_info = _get_json(self.session.get(
+            url=url, verify=self.verify_ssl))
+        logger.debug("get_launch_info - ID: %s", self.launch_id)
+        logger.debug("get_launch_info - Launch info: %s", launch_info)
+        return launch_info
+
+    def get_launch_ui_id(self):
+        """Get UI ID of the current launch.
+
+        :return str: UI ID of the given launch.
+        """
+        launch_info = self.get_launch_info()
+        if "id" in launch_info:
+            return launch_info["id"]
+
+        raise ResponseError("No UI ID in response {0}.".format(launch_info))
+
+    def get_launch_ui_url(self):
+        """Get UI URL of the current launch.
+
+        :return str: launch URL.
+        """
+        ui_id = self.get_launch_ui_id()
+        path = "ui/#{0}/launches/all/{1}".format(self.project, ui_id)
+        url = uri_join(self.endpoint, path)
+        logger.debug("get_launch_ui_url - ID: %s", self.launch_id)
+        return url
+
     def start_test_item(self,
                         name,
                         start_time,
