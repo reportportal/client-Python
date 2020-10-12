@@ -35,7 +35,7 @@ def gen_attributes(rp_attributes):
             key, value = rp_attr.split(':')
             attr_dict = {'key': key, 'value': value}
         except ValueError as exc:
-            logger.debug(str(exc))
+            # no need to log an error : logger.debug(str(exc))
             attr_dict = {'value': rp_attr}
 
         if all(attr_dict.values()):
