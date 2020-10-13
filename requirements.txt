@@ -1,4 +1,4 @@
 requests>=2.23.0
-six
+six>=1.13.0
 pytest
 delayed-assert

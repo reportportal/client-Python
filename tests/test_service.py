@@ -87,6 +87,53 @@ class TestReportPortalService:
             'name', datetime.now().isoformat())
         assert _get_msg == {'id': 111}
 
+    @mock.patch('reportportal_client.service._get_json',
+                mock.Mock(return_value={'id': 112}))
+    def test_get_launch_info(self, rp_service, monkeypatch):
+        """Test get current launch information.
+
+        :param rp_service:  Pytest fixture that represents ReportPortalService
+                            object with mocked session.
+        :param monkeypatch: Pytest fixture to safely set/delete an attribute
+        """
+        mock_get = mock.Mock(return_value={'id': 112})
+        monkeypatch.setattr(rp_service.session, 'get', mock_get)
+
+        launch_id = rp_service.get_launch_info()
+        mock_get.assert_called_once_with(
+            url='{0}/launch/uuid/{1}'.format(rp_service.base_url_v1,
+                                             rp_service.launch_id),
+            verify=rp_service.verify_ssl)
+        assert launch_id == {'id': 112}
+
+    def test_get_launch_ui_id(self, rp_service, monkeypatch):
+        """Test get launch UI ID.
+
+        :param rp_service:  Pytest fixture that represents ReportPortalService
+                            object with mocked session.
+        :param monkeypatch: Pytest fixture to safely set/delete an attribute
+        """
+        mock_get_launch_info = mock.Mock(return_value={'id': 113})
+        monkeypatch.setattr(rp_service,
+                            'get_launch_info',
+                            mock_get_launch_info)
+        assert rp_service.get_launch_ui_id() == 113
+
+    def test_get_launch_ui_url(self, rp_service, monkeypatch):
+        """Test get launch UI URL.
+
+        :param rp_service:  Pytest fixture that represents ReportPortalService
+                            object with mocked session.
+        :param monkeypatch: Pytest fixture to safely set/delete an attribute
+        """
+        mock_get_launch_ui_id = mock.Mock(return_value=1)
+        monkeypatch.setattr(rp_service,
+                            'get_launch_ui_id',
+                            mock_get_launch_ui_id)
+        url = rp_service.get_launch_ui_url()
+        assert url == '{0}/ui/#{1}/launches/all/1'.format(rp_service.endpoint,
+                                                          rp_service.project)
+
     @mock.patch('platform.system', mock.Mock(return_value='linux'))
     @mock.patch('platform.machine', mock.Mock(return_value='Windows-PC'))
     @mock.patch('platform.processor', mock.Mock(return_value='amd'))
