@@ -7,7 +7,6 @@ from delayed_assert import assert_expectations, expect
 from pkg_resources import DistributionNotFound
 from six.moves import mock
 
-from reportportal_client.errors import ResponseError
 from reportportal_client.service import (
     _convert_string,
     _dict_to_payload,
