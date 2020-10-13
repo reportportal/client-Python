@@ -118,24 +118,7 @@ class TestReportPortalService:
         monkeypatch.setattr(rp_service,
                             'get_launch_info',
                             mock_get_launch_info)
-        launch_ui_id = rp_service.get_launch_ui_id()
-        mock_get_launch_info.assert_called_once_with()
-        assert launch_ui_id == 113
-
-    def test_get_launch_ui_id_exception(self, rp_service, monkeypatch):
-        """Test get launch UI ID, response has no ID field.
-
-        :param rp_service:  Pytest fixture that represents ReportPortalService
-                            object with mocked session.
-        :param monkeypatch: Pytest fixture to safely set/delete an attribute
-        """
-        mock_get_launch_info = mock.Mock(return_value={'description': 'Test'})
-        monkeypatch.setattr(rp_service,
-                            'get_launch_info',
-                            mock_get_launch_info)
-
-        with pytest.raises(ResponseError):
-            rp_service.get_launch_ui_id()
+        assert rp_service.get_launch_ui_id() == 113
 
     def test_get_launch_ui_url(self, rp_service, monkeypatch):
         """Test get launch UI URL.

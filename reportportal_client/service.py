@@ -266,11 +266,7 @@ class ReportPortalService(object):
 
         :return str: UI ID of the given launch.
         """
-        launch_info = self.get_launch_info()
-        if "id" in launch_info:
-            return launch_info["id"]
-
-        raise ResponseError("No UI ID in response {0}.".format(launch_info))
+        return self.get_launch_info()["id"]
 
     def get_launch_ui_url(self):
         """Get UI URL of the current launch.
