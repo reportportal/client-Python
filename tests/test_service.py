@@ -96,8 +96,12 @@ class TestReportPortalService:
                             object with mocked session.
         :param monkeypatch: Pytest fixture to safely set/delete an attribute
         """
-        mock_get = mock.Mock(return_value={'id': 112})
+        mock_resp = mock.Mock()
+        mock_resp.status_code = 200
+
+        mock_get = mock.Mock(return_value=mock_resp)
         monkeypatch.setattr(rp_service.session, 'get', mock_get)
+        monkeypatch.setattr(rp_service, 'launch_id', '1234-cafe')
 
         launch_id = rp_service.get_launch_info()
         mock_get.assert_called_once_with(
