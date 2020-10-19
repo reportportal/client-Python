@@ -37,5 +37,5 @@ class OperationCompletionError(ResponseError):
     """
 
 
-class LaunchNotExistsError(Error):
-    """Launch does not exist error."""
+class LaunchExistsError(Error):
+    """Represents error in case Launch does not exist."""
