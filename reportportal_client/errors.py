@@ -35,7 +35,3 @@ class OperationCompletionError(ResponseError):
 
     No 'message' in the json response.
     """
-
-
-class LaunchExistsError(Error):
-    """Represents error in case Launch does not exist."""

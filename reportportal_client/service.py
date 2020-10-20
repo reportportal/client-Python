@@ -27,8 +27,7 @@ import six
 from six.moves.collections_abc import Mapping
 from requests.adapters import HTTPAdapter
 
-from .errors import ResponseError, EntryCreatedError, \
-                    OperationCompletionError, LaunchExistsError
+from .errors import ResponseError, EntryCreatedError, OperationCompletionError
 
 POST_LOGBATCH_RETRY_COUNT = 10
 logger = logging.getLogger(__name__)
@@ -261,8 +260,7 @@ class ReportPortalService(object):
         :return dict: launch information
         """
         if self.launch_id is None:
-            raise LaunchExistsError(
-                'Can`t request information for Launch ID "None".')
+            return {}
 
         url = uri_join(self.base_url_v1, "launch/uuid", self.launch_id)
 
