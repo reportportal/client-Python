@@ -44,7 +44,7 @@ class RPLogItem(BaseRPItem):
     @property
     def response(self):
         """Get the response object for RP log item."""
-        return self._responses[0]
+        return self.responses[0]
 
     @response.setter
     def response(self, value):
