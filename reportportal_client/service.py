@@ -277,9 +277,9 @@ class ReportPortalService(object):
                          resp.status_code, resp.text)
             sleep(0.5)
         else:
-            raise ResponseError(
-                "Failed to get the launch information after {0} retries."
-                .format(max_retries))
+            logger.warning("get_launch_info - Launch info: "
+                           "Failed to fetch launch ID from the API.")
+            launch_info = {}
 
         return launch_info
 
@@ -287,15 +287,18 @@ class ReportPortalService(object):
         """Get UI ID of the current launch.
 
         :return str: UI ID of the given launch.
+                     0 if UI ID has not been found.
         """
-        return self.get_launch_info(max_retries=max_retries)["id"]
+        return self.get_launch_info(max_retries=max_retries).get("id", 0)
 
     def get_launch_ui_url(self, max_retries=5):
         """Get UI URL of the current launch.
 
-        :return str: launch URL.
+        If UI ID can`t be found after max_retries, return URL of all launches.
+
+        :return str: launch URL or all launches URL.
         """
-        ui_id = self.get_launch_ui_id(max_retries=max_retries)
+        ui_id = self.get_launch_ui_id(max_retries=max_retries) or ""
         path = "ui/#{0}/launches/all/{1}".format(self.project, ui_id)
         url = uri_join(self.endpoint, path)
         logger.debug("get_launch_ui_url - ID: %s", self.launch_id)
