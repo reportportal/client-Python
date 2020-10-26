@@ -84,7 +84,6 @@ class TestReportPortalService:
         """
         mock_get.return_value = {'id': 111}
         launch_id = rp_service.start_launch('name', datetime.now().isoformat(),
-                                            uuid="111",
                                             rerun=True, rerunOf="111")
         assert launch_id == 111
 
