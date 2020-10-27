@@ -75,6 +75,18 @@ class TestReportPortalService:
         launch_id = rp_service.start_launch('name', datetime.now().isoformat())
         assert launch_id == 111
 
+    @mock.patch('reportportal_client.service._get_data')
+    def test_start_launch_with_rerun(self, mock_get, rp_service):
+        """Test start launch and sending request.
+
+        :param mock_get:   Mocked _get_data() function
+        :param rp_service: Pytest fixture
+        """
+        mock_get.return_value = {'id': 111}
+        launch_id = rp_service.start_launch('name', datetime.now().isoformat(),
+                                            rerun=True, rerunOf="111")
+        assert launch_id == 111
+
     @mock.patch('reportportal_client.service._get_msg')
     def test_finish_launch(self, mock_get, rp_service):
         """Test finish launch and sending request.
