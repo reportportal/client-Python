@@ -15,6 +15,8 @@ limitations under the License.
 """
 
 import json
+from time import sleep
+
 import requests
 import uuid
 import logging
@@ -26,7 +28,6 @@ from six.moves.collections_abc import Mapping
 from requests.adapters import HTTPAdapter
 
 from .errors import ResponseError, EntryCreatedError, OperationCompletionError
-
 
 POST_LOGBATCH_RETRY_COUNT = 10
 logger = logging.getLogger(__name__)
@@ -253,31 +254,55 @@ class ReportPortalService(object):
         logger.debug("finish_launch - ID: %s", self.launch_id)
         return _get_msg(r)
 
-    def get_launch_info(self):
+    def get_launch_info(self, max_retries=5):
         """Get the current launch information.
 
+        Perform "max_retries" attempts to get current launch information
+        with 0.5 second sleep between them.
+
+        :param int max_retries: Number of retries to get launch information.
         :return dict: launch information
         """
+        if self.launch_id is None:
+            return {}
+
         url = uri_join(self.base_url_v1, "launch/uuid", self.launch_id)
-        launch_info = _get_json(self.session.get(
-            url=url, verify=self.verify_ssl))
-        logger.debug("get_launch_info - ID: %s", self.launch_id)
-        logger.debug("get_launch_info - Launch info: %s", launch_info)
+
+        for _ in range(max_retries):
+            logger.debug("get_launch_info - ID: %s", self.launch_id)
+            resp = self.session.get(url=url, verify=self.verify_ssl)
+
+            if resp.status_code == 200:
+                launch_info = _get_json(resp)
+                logger.debug("get_launch_info - Launch info: %s", launch_info)
+                break
+
+            logger.debug("get_launch_info - Launch info: Response code %s\n%s",
+                         resp.status_code, resp.text)
+            sleep(0.5)
+        else:
+            logger.warning("get_launch_info - Launch info: "
+                           "Failed to fetch launch ID from the API.")
+            launch_info = {}
+
         return launch_info
 
-    def get_launch_ui_id(self):
+    def get_launch_ui_id(self, max_retries=5):
         """Get UI ID of the current launch.
 
         :return str: UI ID of the given launch.
+                     None if UI ID has not been found.
         """
-        return self.get_launch_info()["id"]
+        return self.get_launch_info(max_retries=max_retries).get("id")
 
-    def get_launch_ui_url(self):
+    def get_launch_ui_url(self, max_retries=5):
         """Get UI URL of the current launch.
 
-        :return str: launch URL.
+        If UI ID can`t be found after max_retries, return URL of all launches.
+
+        :return str: launch URL or all launches URL.
         """
-        ui_id = self.get_launch_ui_id()
+        ui_id = self.get_launch_ui_id(max_retries=max_retries) or ""
         path = "ui/#{0}/launches/all/{1}".format(self.project, ui_id)
         url = uri_join(self.endpoint, path)
         logger.debug("get_launch_ui_url - ID: %s", self.launch_id)

@@ -108,8 +108,12 @@ class TestReportPortalService:
                             object with mocked session.
         :param monkeypatch: Pytest fixture to safely set/delete an attribute
         """
-        mock_get = mock.Mock(return_value={'id': 112})
+        mock_resp = mock.Mock()
+        mock_resp.status_code = 200
+
+        mock_get = mock.Mock(return_value=mock_resp)
         monkeypatch.setattr(rp_service.session, 'get', mock_get)
+        monkeypatch.setattr(rp_service, 'launch_id', '1234-cafe')
 
         launch_id = rp_service.get_launch_info()
         mock_get.assert_called_once_with(
@@ -117,6 +121,64 @@ class TestReportPortalService:
                                              rp_service.launch_id),
             verify=rp_service.verify_ssl)
         assert launch_id == {'id': 112}
+
+    def test_get_launch_info_launch_id_none(self, rp_service, monkeypatch):
+        """Test get launch information for a non started launch.
+
+        :param rp_service:  Pytest fixture that represents ReportPortalService
+                            object with mocked session.
+        :param monkeypatch: Pytest fixture to safely set/delete an attribute
+        """
+        mock_get = mock.Mock()
+        monkeypatch.setattr(rp_service.session, 'get', mock_get)
+        monkeypatch.setattr(rp_service, 'launch_id', None)
+
+        launch_info = rp_service.get_launch_info()
+        mock_get.assert_not_called()
+        assert launch_info == {}
+
+    @mock.patch('reportportal_client.service.sleep', mock.Mock())
+    @mock.patch('reportportal_client.service._get_json',
+                mock.Mock(return_value={"errorCode": 4041}))
+    def test_get_launch_info_wrong_launch_id(self, rp_service, monkeypatch):
+        """Test get launch information for a non existed launch.
+
+        :param rp_service:  Pytest fixture that represents ReportPortalService
+                            object with mocked session.
+        :param monkeypatch: Pytest fixture to safely set/delete an attribute
+        """
+        mock_get = mock.Mock()
+        monkeypatch.setattr(rp_service.session, 'get', mock_get)
+        monkeypatch.setattr(rp_service, 'launch_id', '1234')
+
+        launch_info = rp_service.get_launch_info()
+        expect(mock_get.call_count == 5)
+        expect(launch_info == {})
+        assert_expectations()
+
+    @mock.patch('reportportal_client.service.sleep', mock.Mock())
+    @mock.patch('reportportal_client.service._get_json',
+                mock.Mock(return_value={'id': 112}))
+    def test_get_launch_info_1st_failed(self, rp_service, monkeypatch):
+        """Test get launch information with 1st attempt failed.
+
+        :param rp_service:  Pytest fixture that represents ReportPortalService
+                            object with mocked session.
+        :param monkeypatch: Pytest fixture to safely set/delete an attribute
+        """
+        mock_resp1 = mock.Mock()
+        mock_resp1.status_code = 404
+        mock_resp2 = mock.Mock()
+        mock_resp2.status_code = 200
+        mock_get = mock.Mock()
+        mock_get.side_effect = [mock_resp1, mock_resp2]
+        monkeypatch.setattr(rp_service.session, 'get', mock_get)
+        monkeypatch.setattr(rp_service, 'launch_id', '1234')
+
+        launch_info = rp_service.get_launch_info()
+        expect(mock_get.call_count == 2)
+        expect(launch_info == {'id': 112})
+        assert_expectations()
 
     def test_get_launch_ui_id(self, rp_service, monkeypatch):
         """Test get launch UI ID.
@@ -130,6 +192,19 @@ class TestReportPortalService:
                             'get_launch_info',
                             mock_get_launch_info)
         assert rp_service.get_launch_ui_id() == 113
+
+    def test_get_launch_ui_no_id(self, rp_service, monkeypatch):
+        """Test get launch UI ID when no ID has been retrieved.
+
+        :param rp_service:  Pytest fixture that represents ReportPortalService
+                            object with mocked session.
+        :param monkeypatch: Pytest fixture to safely set/delete an attribute
+        """
+        mock_get_launch_info = mock.Mock(return_value={})
+        monkeypatch.setattr(rp_service,
+                            'get_launch_info',
+                            mock_get_launch_info)
+        assert rp_service.get_launch_ui_id() is None
 
     def test_get_launch_ui_url(self, rp_service, monkeypatch):
         """Test get launch UI URL.
@@ -145,6 +220,21 @@ class TestReportPortalService:
         url = rp_service.get_launch_ui_url()
         assert url == '{0}/ui/#{1}/launches/all/1'.format(rp_service.endpoint,
                                                           rp_service.project)
+
+    def test_get_launch_ui_url_no_id(self, rp_service, monkeypatch):
+        """Test get launch UI URL no ID has been retrieved.
+
+        :param rp_service:  Pytest fixture that represents ReportPortalService
+                            object with mocked session.
+        :param monkeypatch: Pytest fixture to safely set/delete an attribute
+        """
+        mock_get_launch_ui_id = mock.Mock(return_value=0)
+        monkeypatch.setattr(rp_service,
+                            'get_launch_ui_id',
+                            mock_get_launch_ui_id)
+        url = rp_service.get_launch_ui_url()
+        assert url == '{0}/ui/#{1}/launches/all'.format(rp_service.endpoint,
+                                                        rp_service.project)
 
     @mock.patch('platform.system', mock.Mock(return_value='linux'))
     @mock.patch('platform.machine', mock.Mock(return_value='Windows-PC'))
