@@ -15,7 +15,7 @@ from reportportal_client.service import (
     _get_json,
     _get_messages,
     _get_msg,
-    ReportPortalService,
+    ReportPortalService
 )
 
 
@@ -140,8 +140,33 @@ class TestReportPortalService:
         monkeypatch.setattr(rp_service, 'launch_id', '1234')
 
         launch_info = rp_service.get_launch_info()
-        assert mock_get.call_count == 5
-        assert launch_info == {}
+        expect(mock_get.call_count == 5)
+        expect(launch_info == {})
+        assert_expectations()
+
+    @mock.patch('reportportal_client.service.sleep', mock.Mock())
+    @mock.patch('reportportal_client.service._get_json',
+                mock.Mock(return_value={'id': 112}))
+    def test_get_launch_info_1st_failed(self, rp_service, monkeypatch):
+        """Test get launch information with 1st attempt failed.
+
+        :param rp_service:  Pytest fixture that represents ReportPortalService
+                            object with mocked session.
+        :param monkeypatch: Pytest fixture to safely set/delete an attribute
+        """
+        mock_resp1 = mock.Mock()
+        mock_resp1.status_code = 404
+        mock_resp2 = mock.Mock()
+        mock_resp2.status_code = 200
+        mock_get = mock.Mock()
+        mock_get.side_effect = [mock_resp1, mock_resp2]
+        monkeypatch.setattr(rp_service.session, 'get', mock_get)
+        monkeypatch.setattr(rp_service, 'launch_id', '1234')
+
+        launch_info = rp_service.get_launch_info()
+        expect(mock_get.call_count == 2)
+        expect(launch_info == {'id': 112})
+        assert_expectations()
 
     def test_get_launch_ui_id(self, rp_service, monkeypatch):
         """Test get launch UI ID.
@@ -167,7 +192,7 @@ class TestReportPortalService:
         monkeypatch.setattr(rp_service,
                             'get_launch_info',
                             mock_get_launch_info)
-        assert rp_service.get_launch_ui_id() == 0
+        assert rp_service.get_launch_ui_id() is None
 
     def test_get_launch_ui_url(self, rp_service, monkeypatch):
         """Test get launch UI URL.
