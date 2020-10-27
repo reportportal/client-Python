@@ -214,7 +214,7 @@ class ReportPortalService(object):
                      description=None,
                      attributes=None,
                      mode=None,
-                     rerun=None,
+                     rerun=False,
                      rerunOf=None,
                      **kwargs):
         """Start a new launch with the given parameters."""
