@@ -1,10 +1,10 @@
 """This modules includes unit tests for the service.py module."""
 
 from datetime import datetime
-
-import pytest
-from delayed_assert import assert_expectations, expect
 from pkg_resources import DistributionNotFound
+
+from delayed_assert import assert_expectations, expect
+import pytest
 from six.moves import mock
 
 from reportportal_client.service import (
