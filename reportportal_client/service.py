@@ -20,8 +20,6 @@ from time import sleep
 import requests
 import uuid
 import logging
-import pkg_resources
-import platform
 
 import six
 from six.moves.collections_abc import Mapping
@@ -532,29 +530,3 @@ class ReportPortalService(object):
                     continue
                 else:
                     raise
-
-    @staticmethod
-    def get_system_information(agent_name='agent_name'):
-        """
-        Get system information about agent, os, cpu, system, etc.
-
-        :param agent_name: Name of the agent: pytest-reportportal,
-                              roborframework-reportportal,
-                              nosetest-reportportal,
-                              behave-reportportal
-        :return: dict {'agent': pytest-pytest 5.0.5,
-                       'os': 'Windows',
-                       'cpu': 'AMD',
-                       'machine': "Windows10_pc"}
-        """
-        try:
-            agent_version = pkg_resources.get_distribution(
-                agent_name).version
-            agent = '{0}-{1}'.format(agent_name, agent_version)
-        except pkg_resources.DistributionNotFound:
-            agent = 'not found'
-
-        return {'agent': agent,
-                'os': platform.system(),
-                'cpu': platform.processor() or 'unknown',
-                'machine': platform.machine()}

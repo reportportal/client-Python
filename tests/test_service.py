@@ -1,7 +1,6 @@
 """This modules includes unit tests for the service.py module."""
 
 from datetime import datetime
-from pkg_resources import DistributionNotFound
 
 from delayed_assert import assert_expectations, expect
 import pytest
@@ -14,8 +13,7 @@ from reportportal_client.service import (
     _get_id,
     _get_json,
     _get_messages,
-    _get_msg,
-    ReportPortalService
+    _get_msg
 )
 
 
@@ -235,51 +233,6 @@ class TestReportPortalService:
         url = rp_service.get_launch_ui_url()
         assert url == '{0}/ui/#{1}/launches/all'.format(rp_service.endpoint,
                                                         rp_service.project)
-
-    @mock.patch('platform.system', mock.Mock(return_value='linux'))
-    @mock.patch('platform.machine', mock.Mock(return_value='Windows-PC'))
-    @mock.patch('platform.processor', mock.Mock(return_value='amd'))
-    @mock.patch('pkg_resources.get_distribution')
-    def test_get_system_information(self, distro):
-        """Test for validate get_system_information."""
-        distro.return_value.version = '5.0'
-        expected_result = {'agent': 'reportportal-client-5.0',
-                           'cpu': 'amd',
-                           'machine': 'Windows-PC',
-                           'os': 'linux'}
-        cond = (ReportPortalService.get_system_information(
-            'reportportal-client') == expected_result)
-        assert cond
-
-    @mock.patch('platform.system', mock.Mock())
-    @mock.patch('platform.machine', mock.Mock())
-    @mock.patch('platform.processor', mock.Mock(return_value=''))
-    @mock.patch('pkg_resources.get_distribution', mock.Mock())
-    def test_get_system_information_docker(self):
-        """Test that cpu key value is not empty.
-
-        platform.processor() returns empty string in case it was called
-        inside of the Docker container. API does not allow empty values
-        for the attributes.
-        """
-        result = ReportPortalService.get_system_information('pytest')
-        assert result['cpu'] == 'unknown'
-
-    @mock.patch('platform.system', mock.Mock(return_value='linux'))
-    @mock.patch('platform.machine', mock.Mock(return_value='Windows-PC'))
-    @mock.patch('platform.processor', mock.Mock(return_value='amd'))
-    @mock.patch('pkg_resources.get_distribution',
-                mock.Mock(side_effect=DistributionNotFound))
-    def test_get_system_information_without_pkg(self):
-        """Test in negative form for validate get_system_information."""
-        expected_result = {'agent': 'not found',
-                           'cpu': 'amd',
-                           'machine': 'Windows-PC',
-                           'os': 'linux'}
-
-        cond = (ReportPortalService.get_system_information('pytest')
-                == expected_result)
-        assert cond
 
     @mock.patch('reportportal_client.service._get_data',
                 mock.Mock(return_value={'id': 123}))

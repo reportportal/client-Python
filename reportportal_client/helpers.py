@@ -13,6 +13,8 @@ limitations under the License.
 """
 
 import logging
+from pkg_resources import DistributionNotFound, get_distribution
+from platform import machine, processor, system
 
 logger = logging.getLogger(__name__)
 
@@ -44,3 +46,31 @@ def gen_attributes(rp_attributes):
         logger.debug('Failed to process "{0}" attribute, attribute value'
                      ' should not be empty.'.format(rp_attr))
     return attrs
+
+
+def get_launch_sys_attrs():
+    """Generate attributes for the launch containing system information.
+
+    :return: dict {'os': 'Windows',
+                   'cpu': 'AMD',
+                   'machine': 'Windows10_pc'}
+    """
+    return {
+        'os': system(),
+        'cpu': processor() or 'unknown',
+        'machine': machine(),
+        'system': True  # This one is the flag for RP to hide these attributes
+    }
+
+
+def get_package_version(package_name):
+    """Get version of the given package.
+
+    :param package_name: Name of the package
+    :return:             Version of the package
+    """
+    try:
+        package_version = get_distribution(package_name).version
+    except DistributionNotFound:
+        package_version = 'not found'
+    return package_version
