@@ -183,6 +183,9 @@ class ReportPortalService(object):
             is_skipped_an_issue: option to mark skipped tests as not
                 'To Investigate' items on Server side.
             verify_ssl: option to not verify ssl certificates
+            max_pool_size: option to set the maximum number of
+                           connections to save in the pool.
+
         """
         self._batch_logs = []
         self.endpoint = endpoint
@@ -192,14 +195,13 @@ class ReportPortalService(object):
         self.is_skipped_an_issue = is_skipped_an_issue
         self.base_url_v1 = uri_join(self.endpoint, "api/v1", self.project)
         self.base_url_v2 = uri_join(self.endpoint, "api/v2", self.project)
-        self.max_pool_size = max_pool_size
 
         self.session = requests.Session()
         if retries:
             self.session.mount('https://', HTTPAdapter(
-                max_retries=retries, pool_maxsize=self.max_pool_size))
+                max_retries=retries, pool_maxsize=max_pool_size))
             self.session.mount('http://', HTTPAdapter(
-                max_retries=retries, pool_maxsize=self.max_pool_size))
+                max_retries=retries, pool_maxsize=max_pool_size))
         self.session.headers["Authorization"] = "bearer {0}".format(self.token)
         self.launch_id = None
         self.verify_ssl = verify_ssl
