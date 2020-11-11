@@ -234,7 +234,7 @@ class ReportPortalService(object):
         logger.debug("start_launch - ID: %s", self.launch_id)
         return self.launch_id
 
-    def finish_launch(self, end_time, status=None, **kwargs):
+    def finish_launch(self, end_time, status=None, attributes=None, **kwargs):
         """Finish a launch with the given parameters.
 
         Status can be one of the followings:
@@ -243,11 +243,14 @@ class ReportPortalService(object):
         # process log batches firstly:
         if self._batch_logs:
             self.log_batch([], force=True)
+        if attributes and isinstance(attributes, dict):
+            attributes = _dict_to_payload(attributes)
         data = {
             "endTime": end_time,
-            "status": status
+            "status": status,
+            "attributes": attributes
         }
-        url = uri_join(self.base_url_v1, "launch", self.launch_id, "finish")
+        url = uri_join(self.base_url_v2, "launch", self.launch_id, "finish")
         r = self.session.put(url=url, json=data, verify=self.verify_ssl)
         logger.debug("finish_launch - ID: %s", self.launch_id)
         return _get_msg(r)
