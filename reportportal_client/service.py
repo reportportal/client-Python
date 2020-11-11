@@ -170,6 +170,7 @@ class ReportPortalService(object):
                  is_skipped_an_issue=True,
                  verify_ssl=True,
                  retries=None,
+                 max_pool_size=50,
                  **kwargs):
         """Init the service class.
 
@@ -191,7 +192,7 @@ class ReportPortalService(object):
         self.is_skipped_an_issue = is_skipped_an_issue
         self.base_url_v1 = uri_join(self.endpoint, "api/v1", self.project)
         self.base_url_v2 = uri_join(self.endpoint, "api/v2", self.project)
-        self.max_pool_size = 50
+        self.max_pool_size = max_pool_size
 
         self.session = requests.Session()
         if retries:
