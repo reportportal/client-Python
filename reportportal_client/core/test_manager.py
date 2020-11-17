@@ -126,7 +126,7 @@ class TestManager(object):
 
         :param str item_uuid:   test item UUID returned on the item start
         :param str description: test item description
-        :param list attributes: test item attributes(tags)
+        :param dict attributes: test item attributes(tags)
                                 Pairs of key and value (see class doc string)
         """
         self.get_test_item(item_uuid)
@@ -145,7 +145,7 @@ class TestManager(object):
         :param end_time:   time in UTC format
         :param status:     status of the test
         :param issue:      description of an issue
-        :param attributes: list of attributes
+        :param attributes: dict with attributes
         :param kwargs:     other parameters
         """
         # check if the test is skipped, if not - do not mark as TO INVESTIGATE
@@ -171,7 +171,7 @@ class TestManager(object):
         :param time:        log time
         :param message:     log message
         :param level:       log level
-        :param attachment:  attachments t o log (images,files,etc.)
+        :param attachment:  attachments to log (images,files,etc.)
         :param item_id:     parent item UUID
         :return:            log item UUID
         """
