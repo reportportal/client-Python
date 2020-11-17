@@ -14,43 +14,12 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import six
-
-from reportportal_client.helpers import generate_uuid
+from reportportal_client.helpers import generate_uuid, dict_to_payload
 from reportportal_client.items.rp_log_items.rp_log_item import RPLogItem
 from reportportal_client.items.rp_test_items.rp_child_test_item import \
     RPChildTestItem
 from reportportal_client.items.rp_test_items.rp_root_test_item import \
     RPRootTestItem
-
-
-# todo: add logging
-# todo: add type hinting (pyi)
-
-
-def _convert_string(value):
-    """Support and convert strings in py2 and py3.
-
-    :param value: input string
-    :return value: convert string
-    """
-    if isinstance(value, six.text_type):
-        # Don't try to encode 'unicode' in Python 2.
-        return value
-    return str(value)
-
-
-def _dict_to_payload(dictionary):
-    """Convert dict to list of dicts.
-
-    :param dictionary: initial dict
-    :return list: list of dicts
-    """
-    system = dictionary.pop("system", False)
-    return [
-        {"key": key, "value": _convert_string(value), "system": system}
-        for key, value in sorted(dictionary.items())
-    ]
 
 
 class TestManager(object):
@@ -113,9 +82,9 @@ class TestManager(object):
         :return:                test item UUID
         """
         if attributes and isinstance(attributes, dict):
-            attributes = _dict_to_payload(attributes)
+            attributes = dict_to_payload(attributes)
         if parameters:
-            parameters = _dict_to_payload(parameters)
+            parameters = dict_to_payload(parameters)
 
         item_data = {
             "description": description,
@@ -183,7 +152,7 @@ class TestManager(object):
         if issue is None and status == "SKIPPED":
             issue = {"issue_type": "NOT_ISSUE"}
         if attributes and isinstance(attributes, dict):
-            attributes = _dict_to_payload(attributes)
+            attributes = dict_to_payload(attributes)
         self.get_test_item(item_uuid).finish(end_time, status, issue=issue,
                                              attributes=attributes, **kwargs)
 
