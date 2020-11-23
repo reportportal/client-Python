@@ -16,10 +16,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+from reportportal_client.core.rp_requests import ItemStartRequest
+from reportportal_client.items.item_weight import ItemWeight
 from reportportal_client.items.rp_test_items.rp_base_test_item import \
     RPBaseTestItem
-from reportportal_client.core.rp_requests import ItemStartRequest
-from reportportal_client.items.helpers import ItemWeight
 
 
 class RPRootTestItem(RPBaseTestItem):

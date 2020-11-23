@@ -16,10 +16,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from reportportal_client.items.rp_base_item import BaseRPItem
 from reportportal_client.core.rp_requests import RPRequestLog
+from reportportal_client.items.item_weight import ItemWeight
+from reportportal_client.items.rp_base_item import BaseRPItem
 from reportportal_client.static.defines import RP_LOG_LEVELS
-from reportportal_client.items.helpers import ItemWeight
 
 
 class RPLogItem(BaseRPItem):
