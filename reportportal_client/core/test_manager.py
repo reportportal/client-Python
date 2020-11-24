@@ -214,4 +214,8 @@ class TestManager(object):
                         return found_item
 
     def get_storage(self):
+        """Get storage.
+
+        :return: storage with test items
+        """
         return self.__storage
