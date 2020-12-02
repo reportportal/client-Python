@@ -4,9 +4,7 @@ Copyright (c) 2018 http://reportportal.io .
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
-
 http://www.apache.org/licenses/LICENSE-2.0
-
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -148,14 +146,11 @@ def uri_join(*uri_parts):
 
     Avoiding usage of urlparse.urljoin and os.path.join
     as it does not clearly join parts.
-
     Args:
         *uri_parts: tuple of values for join, can contain back and forward
                     slashes (will be stripped up).
-
     Returns:
         An uri string.
-
     """
     return '/'.join(str(s).strip('/').strip('\\') for s in uri_parts)
 
@@ -186,7 +181,6 @@ class ReportPortalService(object):
             verify_ssl: option to not verify ssl certificates
             max_pool_size: option to set the maximum number of
                            connections to save in the pool.
-
         """
         self._batch_logs = []
         self.endpoint = endpoint
@@ -266,7 +260,6 @@ class ReportPortalService(object):
 
         Perform "max_retries" attempts to get current launch information
         with 0.5 second sleep between them.
-
         :param int max_retries: Number of retries to get launch information.
         :return dict: launch information
         """
@@ -306,7 +299,6 @@ class ReportPortalService(object):
         """Get UI URL of the current launch.
 
         If UI ID can`t be found after max_retries, return URL of all launches.
-
         :return str: launch URL or all launches URL.
         """
         ui_id = self.get_launch_ui_id(max_retries=max_retries) or ""
@@ -333,7 +325,6 @@ class ReportPortalService(object):
         (SUITE, STORY, TEST, SCENARIO, STEP, BEFORE_CLASS,
         BEFORE_GROUPS, BEFORE_METHOD, BEFORE_SUITE, BEFORE_TEST, AFTER_CLASS,
         AFTER_GROUPS, AFTER_METHOD, AFTER_SUITE, AFTER_TEST).
-
         attributes and parameters should be a dictionary
         with the following format:
             {
@@ -403,7 +394,6 @@ class ReportPortalService(object):
         :param attributes: list of attributes
         :param kwargs:     other parameters
         :return:           json message
-
         """
         # check if skipped test should not be marked as "TO INVESTIGATE"
         if issue is None and status == "SKIPPED" \

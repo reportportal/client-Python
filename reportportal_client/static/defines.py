@@ -80,5 +80,7 @@ class Priority(enum.IntEnum):
 
 ATTRIBUTE_LENGTH_LIMIT = 128
 DEFAULT_PRIORITY = Priority.PRIORITY_MEDIUM
+LOW_PRIORITY = Priority.PRIORITY_LOW
 NOT_FOUND = _PresenceSentinel()
 NOT_SET = _PresenceSentinel()
+SEND_RETRY_COUNT = 10
