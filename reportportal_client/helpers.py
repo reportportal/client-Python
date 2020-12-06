@@ -15,9 +15,8 @@ import logging
 import uuid
 from platform import machine, processor, system
 
-from pkg_resources import DistributionNotFound, get_distribution
-
 import six
+from pkg_resources import DistributionNotFound, get_distribution
 
 logger = logging.getLogger(__name__)
 
@@ -30,8 +29,8 @@ def generate_uuid():
 def convert_string(value):
     """Support and convert strings in py2 and py3.
 
-    :param value: input string
-    :return value: convert string
+    :param value:   input string
+    :return value:  converted string
     """
     if isinstance(value, six.text_type):
         # Don't try to encode 'unicode' in Python 2.
@@ -42,12 +41,12 @@ def convert_string(value):
 def dict_to_payload(dictionary):
     """Convert dict to list of dicts.
 
-    :param dictionary: initial dict
-    :return list: list of dicts
+    :param dictionary:  initial dict
+    :return list:       list of dicts
     """
-    system = dictionary.pop("system", False)
+    system = dictionary.pop('system', False)
     return [
-        {"key": key, "value": convert_string(value), "system": system}
+        {'key': key, 'value': convert_string(value), 'system': system}
         for key, value in sorted(dictionary.items())
     ]
 
