@@ -42,11 +42,11 @@ class TestManager(object):
     def __init__(self, rp_url, session, api_version, launch_id, project_name):
         """Initialize instance attributes.
 
-        :param rp_url:        report portal url
-        :param session:       Session object
-        :param api_version:   RP API version
-        :param launch_id:   Parent launch UUID
-        :param project_name:  RP project name
+        :param rp_url:          report portal url
+        :param session:         Session object
+        :param api_version:     RP API version
+        :param launch_id:       Parent launch UUID
+        :param project_name:    RP project name
         """
         self.rp_url = rp_url
         self.session = session
@@ -90,7 +90,7 @@ class TestManager(object):
             "description": description,
             "attributes": attributes,
             "parameters": parameters,
-            "hasStats": has_stats
+            "has_stats": has_stats
         }
         kwargs and item_data.update(kwargs)
         uuid = generate_uuid()
@@ -189,8 +189,8 @@ class TestManager(object):
     def get_test_item(self, item_uuid):
         """Get test item by its uuid in the storage.
 
-        :param item_uuid: test item uuid
-        :return: test item object if found else None
+        :param item_uuid:   test item uuid
+        :return:            test item object if found else None
         """
         # Todo: add 'force' parameter to get item from report portal server
         #  instead of cache and update cache data according to this request
@@ -199,9 +199,9 @@ class TestManager(object):
     def _find_item(self, item_uuid, storage):
         """Find test item by its uuid in given storage.
 
-        :param item_uuid: test item uuid
-        :param storage: list with test item objects
-        :return: test item object if found else None
+        :param item_uuid:   test item uuid
+        :param storage:     list with test item objects
+        :return:            test item object if found else None
         """
         for test_item in reversed(storage):
             if item_uuid == test_item.generated_id:

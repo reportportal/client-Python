@@ -20,6 +20,7 @@ from pkg_resources import DistributionNotFound, get_distribution
 from platform import machine, processor, system
 
 import six
+from pkg_resources import DistributionNotFound, get_distribution
 
 from .static.defines import ATTRIBUTE_LENGTH_LIMIT
 
