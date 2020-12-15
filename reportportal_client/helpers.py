@@ -11,12 +11,44 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-
 import logging
-from pkg_resources import DistributionNotFound, get_distribution
+import uuid
 from platform import machine, processor, system
 
+import six
+from pkg_resources import DistributionNotFound, get_distribution
+
 logger = logging.getLogger(__name__)
+
+
+def generate_uuid():
+    """Generate Uuid."""
+    return str(uuid.uuid4())
+
+
+def convert_string(value):
+    """Support and convert strings in py2 and py3.
+
+    :param value:   input string
+    :return value:  converted string
+    """
+    if isinstance(value, six.text_type):
+        # Don't try to encode 'unicode' in Python 2.
+        return value
+    return str(value)
+
+
+def dict_to_payload(dictionary):
+    """Convert dict to list of dicts.
+
+    :param dictionary:  initial dict
+    :return list:       list of dicts
+    """
+    system = dictionary.pop('system', False)
+    return [
+        {'key': key, 'value': convert_string(value), 'system': system}
+        for key, value in sorted(dictionary.items())
+    ]
 
 
 def gen_attributes(rp_attributes):

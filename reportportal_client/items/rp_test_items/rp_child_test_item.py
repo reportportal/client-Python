@@ -16,6 +16,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+from weakref import proxy
+
 from reportportal_client.core.rp_requests import ItemStartRequest
 from reportportal_client.items.rp_test_items.rp_base_test_item import \
     RPBaseTestItem
@@ -26,7 +28,7 @@ class RPChildTestItem(RPBaseTestItem):
 
     def __init__(self, rp_url, session, api_version, project_name, parent_item,
                  item_name, item_type, launch_uuid, generated_id,
-                 has_stats=True, **kwargs):
+                 **kwargs):
         """Initialize instance attributes.
 
         :param rp_url:        report portal url
@@ -47,11 +49,10 @@ class RPChildTestItem(RPBaseTestItem):
         super(RPChildTestItem, self).__init__(rp_url, session, api_version,
                                               project_name, item_name,
                                               item_type, launch_uuid,
-                                              generated_id, has_stats,
-                                              **kwargs)
-        self.parent_item = parent_item
+                                              generated_id, **kwargs)
+        self.parent_item = proxy(parent_item)
         self.parent_item.add_child_item(self)
-        self.weight = self.parent_item.weight - 1
+        self.weight = self.parent_item.weight + 1
 
     def start(self, start_time):
         """Create request object to start child test item.

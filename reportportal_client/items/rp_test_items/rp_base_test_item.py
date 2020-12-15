@@ -24,7 +24,7 @@ class RPBaseTestItem(BaseRPItem):
     """This model stores common attributes for RP test items."""
 
     def __init__(self, rp_url, session, api_version, project_name, item_name,
-                 item_type, launch_uuid, generated_id, has_stats, **kwargs):
+                 item_type, launch_uuid, generated_id, **kwargs):
         """Initialize instance attributes.
 
         :param rp_url:        report portal url
@@ -55,7 +55,7 @@ class RPBaseTestItem(BaseRPItem):
         self.parameters = kwargs.get("parameters")
         self.unique_id = kwargs.get("unique_id")
         self.retry = kwargs.get("retry", False)
-        self.has_stats = has_stats
+        self.has_stats = kwargs.get("has_stats", True)
         self.child_items = []
 
     def add_child_item(self, item):
@@ -66,7 +66,8 @@ class RPBaseTestItem(BaseRPItem):
         """
         self.child_items.append(item)
 
-    def finish(self, end_time, status=None, description=None, issue=None):
+    def finish(self, end_time, status=None, description=None,
+               attributes=None, issue=None):
         """Form finish request for RP test item.
 
         :param end_time:    Test item end time
@@ -74,13 +75,15 @@ class RPBaseTestItem(BaseRPItem):
                             "failed", "stopped", "skipped", "interrupted",
                             "cancelled"
         :param description: Test item description.
+        :param attributes:  List with attributes
         :param issue:       Issue of the current test item
         """
+        attributes = attributes or self.attributes
         endpoint = "{url}/api/{version}/{projectName}/item/{itemUuid}". \
             format(url=self.rp_url, version=self.api_version,
                    projectName=self.project_name, itemUuid=self.uuid)
 
         self.add_request(endpoint, self.session.post, ItemFinishRequest,
                          end_time, self.launch_uuid, status,
-                         attributes=self.attributes, description=description,
+                         attributes=attributes, description=description,
                          issue=issue, retry=self.retry)
