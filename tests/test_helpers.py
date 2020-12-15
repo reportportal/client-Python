@@ -5,7 +5,8 @@ from six.moves import mock
 from reportportal_client.helpers import (
     gen_attributes,
     get_launch_sys_attrs,
-    get_package_version
+    get_package_version,
+    verify_value_length
 )
 
 
@@ -49,3 +50,12 @@ def test_get_launch_sys_attrs_docker():
 def test_get_package_version():
     """Test for the get_package_version() function-helper."""
     assert get_package_version('noname') == 'not found'
+
+
+def test_verify_value_length():
+    """Test for validate verify_value_length() function."""
+    inputl = [{'key': 'tn', 'value': 'v' * 130}, [1, 2],
+              {'value': 'tv2'}, {'value': 300}]
+    expected = [{'key': 'tn', 'value': 'v' * 128}, [1, 2],
+                {'value': 'tv2'}, {'value': 300}]
+    assert verify_value_length(inputl) == expected

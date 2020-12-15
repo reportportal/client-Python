@@ -26,6 +26,7 @@ from six.moves.collections_abc import Mapping
 from requests.adapters import HTTPAdapter
 
 from .errors import ResponseError, EntryCreatedError, OperationCompletionError
+from .helpers import verify_value_length
 
 POST_LOGBATCH_RETRY_COUNT = 10
 logger = logging.getLogger(__name__)
@@ -225,7 +226,7 @@ class ReportPortalService(object):
         data = {
             "name": name,
             "description": description,
-            "attributes": attributes,
+            "attributes": verify_value_length(attributes),
             "startTime": start_time,
             "mode": mode,
             "rerun": rerun,
@@ -251,7 +252,7 @@ class ReportPortalService(object):
         data = {
             "endTime": end_time,
             "status": status,
-            "attributes": attributes
+            "attributes": verify_value_length(attributes)
         }
         url = uri_join(self.base_url_v2, "launch", self.launch_id, "finish")
         r = self.session.put(url=url, json=data, verify=self.verify_ssl)
@@ -346,7 +347,7 @@ class ReportPortalService(object):
         data = {
             "name": name,
             "description": description,
-            "attributes": attributes,
+            "attributes": verify_value_length(attributes),
             "startTime": start_time,
             "launchUuid": self.launch_id,
             "type": item_type,
@@ -374,7 +375,7 @@ class ReportPortalService(object):
         """
         data = {
             "description": description,
-            "attributes": attributes,
+            "attributes": verify_value_length(attributes),
         }
         item_id = self.get_item_id_by_uuid(item_uuid)
         url = uri_join(self.base_url_v1, "item", item_id, "update")
@@ -413,7 +414,7 @@ class ReportPortalService(object):
             "status": status,
             "issue": issue,
             "launchUuid": self.launch_id,
-            "attributes": attributes
+            "attributes": verify_value_length(attributes)
         }
         url = uri_join(self.base_url_v2, "item", item_id)
         r = self.session.put(url=url, json=data, verify=self.verify_ssl)

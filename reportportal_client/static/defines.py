@@ -78,6 +78,7 @@ class Priority(enum.IntEnum):
     PRIORITY_LOW = 0x3
 
 
+ATTRIBUTE_LENGTH_LIMIT = 128
 DEFAULT_PRIORITY = Priority.PRIORITY_MEDIUM
 NOT_FOUND = _PresenceSentinel()
 NOT_SET = _PresenceSentinel()
