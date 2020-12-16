@@ -13,10 +13,12 @@ limitations under the License.
 """
 import logging
 import uuid
+from pkg_resources import DistributionNotFound, get_distribution
 from platform import machine, processor, system
 
 import six
-from pkg_resources import DistributionNotFound, get_distribution
+
+from .static.defines import ATTRIBUTE_LENGTH_LIMIT
 
 logger = logging.getLogger(__name__)
 
@@ -106,3 +108,27 @@ def get_package_version(package_name):
     except DistributionNotFound:
         package_version = 'not found'
     return package_version
+
+
+def verify_value_length(attributes):
+    """Verify length of the attribute value.
+
+    The length of the attribute value should have size from '1' to '128'.
+    Otherwise HTTP response will return an error.
+    Example of the input list:
+    [{'key': 'tag_name', 'value': 'tag_value1'}, {'value': 'tag_value2'}]
+    :param attributes: List of attributes(tags)
+    :return:           List of attributes with corrected value length
+    """
+    if attributes is not None:
+        for pair in attributes:
+            if not isinstance(pair, dict):
+                continue
+            attr_value = pair.get('value')
+            if attr_value is None:
+                continue
+            try:
+                pair['value'] = attr_value[:ATTRIBUTE_LENGTH_LIMIT]
+            except TypeError:
+                continue
+    return attributes
