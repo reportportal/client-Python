@@ -22,7 +22,7 @@ class TestManager:
                         description: Optional[str] = ...,
                         attributes: Optional[Dict] = ...,
                         parameters: Optional[Dict] = ...,
-                        parent_item_id: Optional[str] = ...,
+                        parent_uuid: Optional[str] = ...,
                         has_stats: bool = ..., **kwargs: Any) -> str: ...
 
     def update_test_item(self, item_uuid: str, attributes: Optional[Dict] = ...,

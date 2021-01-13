@@ -25,18 +25,17 @@ from reportportal_client.static.defines import RP_LOG_LEVELS
 class RPLogItem(BaseRPItem):
     """This model stores attributes for RP log items."""
 
-    def __init__(self, rp_url, session, api_version, project_name,
+    def __init__(self, rp_url, session, project_name,
                  launch_uuid, generated_id):
         """Initialize instance attributes.
 
         :param rp_url:          report portal URL
         :param session:         Session object
-        :param api_version:     RP API version
         :param project_name:    RP project name
         :param launch_uuid:     Parent launch UUID
         :param generated_id:    Id generated to speed up client
         """
-        super(RPLogItem, self).__init__(rp_url, session, api_version,
+        super(RPLogItem, self).__init__(rp_url, session,
                                         project_name, launch_uuid,
                                         generated_id)
         self.weight = ItemWeight.LOG_ITEM_WEIGHT
@@ -51,10 +50,11 @@ class RPLogItem(BaseRPItem):
         """Set the response object for RP log item."""
         raise NotImplementedError
 
-    def create(self, time, file_obj=None, item_uuid=None,
+    def create(self, api_version, time, file_obj=None, item_uuid=None,
                level=RP_LOG_LEVELS[40000], message=None):
         """Add request for log item creation.
 
+        :param api_version: RP API version
         :param time:        Log item time
         :param file_obj:    Object of the RPFile
         :param item_uuid:   Parent test item UUID
@@ -64,7 +64,7 @@ class RPLogItem(BaseRPItem):
         :param message:     Log message
         """
         endpoint = "/api/{version}/{projectName}/log".format(
-            version=self.api_version, projectName=self.project_name)
+            version=api_version, projectName=self.project_name)
         self.add_request(endpoint, self.session.post, RPRequestLog,
                          self.launch_uuid, time, file=file_obj,
                          item_uuid=item_uuid, level=level, message=message)
