@@ -493,8 +493,6 @@ class ReportPortalService(object):
 
         attachments = []
         for log_item in self._batch_logs:
-            if item_id:
-                log_item["itemUuid"] = item_id
             log_item["launchUuid"] = self.launch_id
             attachment = log_item.get("attachment", None)
 
