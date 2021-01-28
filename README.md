@@ -88,7 +88,7 @@ service = ReportPortalServiceAsync(endpoint=endpoint, project=project,
                                    token=token, error_handler=my_error_handler)
 
 # Report Portal versions >= 5.0.0:
-service = ReportPortalServiceAsync(endpoint=endpoint, project=project,
+service = ReportPortalService(endpoint=endpoint, project=project,
                                    token=token)
 
 # Start launch.
