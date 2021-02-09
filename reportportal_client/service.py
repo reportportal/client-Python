@@ -463,12 +463,7 @@ class ReportPortalService(object):
             data["itemUuid"] = item_id
         if attachment:
             data["attachment"] = attachment
-            return self.log_batch([data], item_id=item_id)
-        else:
-            url = uri_join(self.base_url_v2, "log")
-            r = self.session.post(url=url, json=data, verify=self.verify_ssl)
-            logger.debug("log - ID: %s", item_id)
-            return _get_id(r)
+        return self.log_batch([data], item_id=item_id)
 
     def log_batch(self, log_data, item_id=None, force=False):
         """
