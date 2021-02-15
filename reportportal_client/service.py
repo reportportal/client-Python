@@ -246,7 +246,7 @@ class ReportPortalService(object):
         """
         # process log batches firstly:
         if self._batch_logs:
-            self.log_batch([], force=True)
+            self._log_batch(None, force=True)
         if attributes and isinstance(attributes, dict):
             attributes = _dict_to_payload(attributes)
         data = {
@@ -463,14 +463,14 @@ class ReportPortalService(object):
             data["itemUuid"] = item_id
         if attachment:
             data["attachment"] = attachment
-        return self.log_batch([data], item_id=item_id)
+        return self._log_batch(data)
 
-    def log_batch(self, log_data, item_id=None, force=False):
+    def _log_batch(self, log_data, force=False):
         """
         Log batch of messages with attachment.
 
         Args:
-        log_data: list of log records.
+        log_data: log record that needs to be processed.
             log record is a dict of;
                 time, message, level, attachment
                 attachment is a dict of:
@@ -481,21 +481,17 @@ class ReportPortalService(object):
         force:   Flag that forces client to process all the logs
                  stored in self._batch_logs immediately
         """
-        self._batch_logs += log_data
+        if log_data:
+            self._batch_logs.append(log_data)
+
         if len(self._batch_logs) < self.log_batch_size and not force:
             return
-        url = uri_join(self.base_url_v2, "log")
 
+        url = uri_join(self.base_url_v2, "log")
         attachments = []
         for log_item in self._batch_logs:
-            if item_id:
-                log_item["itemUuid"] = item_id
             log_item["launchUuid"] = self.launch_id
-            attachment = log_item.get("attachment", None)
-
-            if "attachment" in log_item:
-                del log_item["attachment"]
-
+            attachment = log_item.pop("attachment", None)
             if attachment:
                 if not isinstance(attachment, Mapping):
                     attachment = {"data": attachment}
@@ -523,12 +519,9 @@ class ReportPortalService(object):
                     files=files,
                     verify=self.verify_ssl
                 )
-                logger.debug("log_batch - ID: %s", item_id)
                 logger.debug("log_batch response: %s", r.text)
                 self._batch_logs = []
                 return _get_data(r)
             except KeyError:
-                if i < POST_LOGBATCH_RETRY_COUNT - 1:
-                    continue
-                else:
+                if i + 1 == POST_LOGBATCH_RETRY_COUNT:
                     raise
