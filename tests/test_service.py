@@ -82,7 +82,7 @@ class TestReportPortalService:
         """
         mock_get.return_value = {'id': 111}
         launch_id = rp_service.start_launch('name', datetime.now().isoformat(),
-                                            rerun=True, rerunOf="111")
+                                            rerun=True, rerun_of="111")
         assert launch_id == 111
 
     @mock.patch('reportportal_client.service._get_msg')

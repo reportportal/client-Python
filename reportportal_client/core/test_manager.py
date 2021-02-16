@@ -45,7 +45,7 @@ class TestManager(object):
 
     def __init__(self,
                  session,  # type: requests.Session
-                 endpoint,
+                 endpoint,  # type: str
                  project_name,  # type: str
                  launch_id=None  # type: Optional[str]
                  ):
@@ -189,7 +189,6 @@ class TestManager(object):
         :return:                log item UUID
         """
         uuid = generate_uuid()
-        # Todo: Do we store log items?
         log_item = RPLogItem(self.endpoint,
                              self.session,
                              self.project_name,
