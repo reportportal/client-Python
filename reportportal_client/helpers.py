@@ -17,15 +17,11 @@ import uuid
 from platform import machine, processor, system
 from typing import Dict, List
 
-from pkg_resources import DistributionNotFound, get_distribution
-from platform import machine, processor, system
-
 import six
 from pkg_resources import DistributionNotFound, get_distribution
 from requests import Response
 
 from .errors import ResponseError, EntryCreatedError, OperationCompletionError
-
 from .static.defines import ATTRIBUTE_LENGTH_LIMIT
 
 logger = logging.getLogger(__name__)
