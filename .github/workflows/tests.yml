@@ -21,11 +21,11 @@ jobs:
     - name: Test with tox
       run: tox
     - name: Upload coverage to Codecov
+      if: matrix.python-version == "3.6" && success()
       uses: codecov/codecov-action@v1
       with:
         files: coverage.xml
         flags: unittests
         name: codecov-client-reportportal
         path_to_write_report: codecov_report.txt
-        python-version: 3.6
         verbose: true
