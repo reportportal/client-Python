@@ -1,4 +1,4 @@
-name: Test Report Portal Python client
+name: Tests
 
 on: [push, pull_request]
 
@@ -28,4 +28,3 @@ jobs:
         flags: unittests
         name: codecov-client-reportportal
         path_to_write_report: codecov_report.txt
-        verbose: true
