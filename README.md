@@ -1,6 +1,7 @@
 # ReportPortal python client
 
 [![PyPI](https://img.shields.io/pypi/v/reportportal-client.svg?maxAge=259200)](https://pypi.python.org/pypi/reportportal-client)
+[![Python versions](https://img.shields.io/pypi/pyversions/reportportal-client.svg)](https://pypi.org/project/reportportal-client)
 [![Build Status](https://github.com/reportportal/client-Python/actions/workflows/tests.yml/badge.svg)](https://github.com/reportportal/client-Python/actions/workflows/tests.yml)
 [![codecov.io](https://codecov.io/gh/reportportal/client-Python/branch/master/graph/badge.svg)](https://codecov.io/gh/reportportal/client-Python)
 
