@@ -251,7 +251,8 @@ class TestReportPortalService:
                                      'launchUuid': 111,
                                      'type': 'STORY', 'parameters': None,
                                      'hasStats': True,
-                                     'codeRef': None},
+                                     'codeRef': None,
+                                     'testCaseId': None},
                                url='http://endpoint/api/v2/project/item',
                                verify=True)
 
@@ -295,7 +296,8 @@ class TestReportPortalService:
                                      'launchUuid': 111,
                                      'type': 'STORY', 'parameters': None,
                                      'hasStats': True,
-                                     'codeRef': None},
+                                     'codeRef': None,
+                                     'testCaseId': None},
                                url='http://endpoint/api/v2/project/item',
                                verify=True)
         expected_result['json'][expected_name] = expected_value
