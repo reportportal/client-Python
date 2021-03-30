@@ -323,6 +323,7 @@ class ReportPortalService(object):
                         parent_item_id=None,
                         has_stats=True,
                         code_ref=None,
+                        test_case_id=None,
                         **kwargs):
         """
         Item_type can be.
@@ -353,7 +354,8 @@ class ReportPortalService(object):
             "type": item_type,
             "parameters": parameters,
             "hasStats": has_stats,
-            "codeRef": code_ref
+            "codeRef": code_ref,
+            "testCaseId": test_case_id,
         }
         if parent_item_id:
             url = uri_join(self.base_url_v2, "item", parent_item_id)

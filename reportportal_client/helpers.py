@@ -12,6 +12,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import logging
+import time
 import uuid
 from pkg_resources import DistributionNotFound, get_distribution
 from platform import machine, processor, system
@@ -132,3 +133,8 @@ def verify_value_length(attributes):
             except TypeError:
                 continue
     return attributes
+
+
+def timestamp():
+    """Return string representation of the current time in milliseconds."""
+    return str(int(time.time() * 1000))
