@@ -12,6 +12,7 @@ Library used only for implementors of custom listeners for ReportPortal
 
 - [PyTest Framework](https://github.com/reportportal/agent-python-pytest)
 - [Robot Framework](https://github.com/reportportal/agent-Python-RobotFramework)
+- [Behave Framework](https://github.com/reportportal/agent-python-behave)
 - [Nose Framework](https://github.com/reportportal/agent-python-nosetests)
 
 
