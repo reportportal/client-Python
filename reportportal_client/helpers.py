@@ -15,7 +15,6 @@ import logging
 import time
 import uuid
 from platform import machine, processor, system
-from typing import Dict, List
 
 import six
 from pkg_resources import DistributionNotFound, get_distribution
@@ -191,7 +190,7 @@ def get_msg(response):
 
 
 def get_data(response):
-    # type: (Response)-> Dict
+    # type: (Response)-> dict
     """
     Get data from Response.
 
@@ -216,7 +215,7 @@ def get_data(response):
 
 
 def get_json(response):
-    # type: (Response)-> Dict
+    # type: (Response)-> dict
     """
     Get json from Response.
 
@@ -234,7 +233,7 @@ def get_json(response):
 
 
 def get_error_messages(data):
-    # type: (Dict)-> List
+    # type: (dict)-> list
     """
     Get messages (ErrorCode) from Response.
 

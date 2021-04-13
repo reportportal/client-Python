@@ -15,13 +15,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import logging
-from typing import Any, Optional, Dict, List
 
 import requests
 from requests.adapters import HTTPAdapter
 
 from reportportal_client.core.test_manager import TestManager
-from reportportal_client.helpers import uri_join, dict_to_payload, get_id, get_msg
+from reportportal_client.helpers import uri_join, dict_to_payload, get_id, \
+    get_msg
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
@@ -37,9 +37,9 @@ class RPClient(object):
                  log_batch_size=20,  # type: int
                  is_skipped_an_issue=True,  # type: bool
                  verify_ssl=True,  # type: bool
-                 retries=None,  # type: Optional[int]
+                 retries=None,  # type: int
                  max_pool_size=50,  # type: int
-                 launch_id=None,  # type: Optional[str]
+                 launch_id=None,  # type: str
                  ):
         # type: (...) -> None
         """Initialize required attributes.
@@ -47,26 +47,30 @@ class RPClient(object):
         :param endpoint:                Endpoint of report portal service
         :param project:                 Project name to use for launch names
         :param token:                   authorization token.
-        :param log_batch_size:          option to set the maximum number of logs
+        :param log_batch_size:          option to set the maximum number of
+                                        logs
                                         that can be processed in one batch
         :param is_skipped_an_issue:     option to mark skipped tests as not
                                         'To Investigate' items on Server side.
         :param verify_ssl:              option to not verify ssl certificates
-        :param max_pool_size:           option to set the maximum number of connections to save in the pool.
+        :param max_pool_size:           option to set the maximum number of
+                                        connections to save in the pool.
         """
-        self._batch_logs = []  # type: List
+        self._batch_logs = []  # type: list
         self.endpoint = endpoint  # type: str
         self.log_batch_size = log_batch_size  # type: int
         self.project = project  # type: str
         self.token = token  # type: str
-        self.launch_id = launch_id  # type: Optional[str]
+        self.launch_id = launch_id  # type: str
         self.verify_ssl = verify_ssl  # type: bool
         self.is_skipped_an_issue = is_skipped_an_issue  # type: bool
 
         self.api_v1 = 'v1'
         self.api_v2 = 'v2'
-        self.base_url_v1 = uri_join(self.endpoint, f"api/{self.api_v1}", self.project)  # type: str
-        self.base_url_v2 = uri_join(self.endpoint, f"api/{self.api_v2}", self.project)  # type: str
+        self.base_url_v1 = uri_join(self.endpoint, f"api/{self.api_v1}",
+                                    self.project)  # type: str
+        self.base_url_v2 = uri_join(self.endpoint, f"api/{self.api_v2}",
+                                    self.project)  # type: str
 
         self.session = requests.Session()  # type: requests.Session
         if retries:
@@ -84,12 +88,12 @@ class RPClient(object):
     def start_launch(self,
                      name,  # type: str
                      start_time,  # type: str
-                     description=None,  # type: Optional[str]
-                     attributes=None,  # type: Optional[Dict]
-                     mode=None,  # type: Optional[str]
+                     description=None,  # type: str
+                     attributes=None,  # type: dict
+                     mode=None,  # type: str
                      rerun=False,  # type: bool
-                     rerun_of=None,  # type: Optional[List]
-                     **kwargs  # type: Any
+                     rerun_of=None,  # type: list
+                     **kwargs
                      ):
         # type: (...) -> str
         """Start a new launch with the given parameters.
@@ -102,7 +106,6 @@ class RPClient(object):
         :param rerun:       Launch rerun
         :param rerun_of:    Items to rerun in launch
         """
-
         if attributes and isinstance(attributes, dict):
             attributes = dict_to_payload(attributes)
         data = {
@@ -116,20 +119,26 @@ class RPClient(object):
         }
         data.update(kwargs)
         url = uri_join(self.base_url_v2, "launch")
-        response = self.session.post(url=url, json=data, verify=self.verify_ssl)
+        response = self.session.post(url=url, json=data,
+                                     verify=self.verify_ssl)
         self.launch_id = get_id(response)
         # Set launch id for test manager
         self._test_manager.launch_id = self.launch_id
         logger.debug("start_launch - ID: %s", self.launch_id)
         return self.launch_id
 
-    def finish_launch(self, end_time, status=None, attributes=None, **kwargs):
-        # type: (str, Optional[str], Optional[Dict], Any) -> Dict
+    def finish_launch(self,
+                      end_time,  # type: str
+                      status=None,  # type: str
+                      attributes=None,  # type: dict
+                      **kwargs):
+        # type: (...) -> dict
         """Finish launch.
 
         :param end_time:    Launch end time
         :param status:      Launch status. Can be one of the followings:
-                            PASSED, FAILED, STOPPED, SKIPPED, RESETED, CANCELLED
+                            PASSED, FAILED, STOPPED, SKIPPED, RESETED,
+                            CANCELLED
         :param attributes:  Launch attributes
         """
         # process log batches firstly:
@@ -150,13 +159,13 @@ class RPClient(object):
                    name,  # type: str
                    start_time,  # type: str
                    item_type,  # type: str
-                   description=None,  # type: Optional[str]
-                   attributes=None,  # type: Optional[Dict]
-                   parameters=None,  # type: Optional[Dict]
-                   parent_item_id=None,  # type: Optional[str]
+                   description=None,  # type: str
+                   attributes=None,  # type: dict
+                   parameters=None,  # type: dict
+                   parent_item_id=None,  # type: str
                    has_stats=True,  # type: bool
-                   code_ref=None,  # type: Optional[str]
-                   **kwargs  # type: Any
+                   code_ref=None,  # type: str
+                   **kwargs
                    ):
         # type: (...) -> str
         """Start case/step/nested step item.
@@ -187,9 +196,9 @@ class RPClient(object):
                     item_id,  # type: str
                     end_time,  # type: str
                     status,  # type: str
-                    issue=None,  # type: Optional[str]
-                    attributes=None,  # type: Optional[Dict]
-                    **kwargs  # type: Any
+                    issue=None,  # type: str
+                    attributes=None,  # type: dict
+                    **kwargs
                     ):
         # type: (...) -> None
         """Finish suite/case/step/nested step item.

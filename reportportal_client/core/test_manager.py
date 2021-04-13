@@ -14,8 +14,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-from typing import Optional
-
 import requests
 
 from reportportal_client.helpers import generate_uuid, dict_to_payload
@@ -47,7 +45,7 @@ class TestManager(object):
                  session,  # type: requests.Session
                  endpoint,  # type: str
                  project_name,  # type: str
-                 launch_id=None  # type: Optional[str]
+                 launch_id=None  # type: str
                  ):
         # type: (...) -> None
         """Initialize instance attributes.
@@ -128,8 +126,8 @@ class TestManager(object):
         test_item.start(api_version, start_time)
         return uuid
 
-    def update_test_item(self, api_version, item_uuid, attributes=None, description=None,
-                         **kwargs):
+    def update_test_item(self, api_version, item_uuid, attributes=None,
+                         description=None, **kwargs):
         """Update existing test item at the Report Portal.
 
         :param api_version:     RP API version
@@ -164,8 +162,12 @@ class TestManager(object):
             issue = {"issue_type": "NOT_ISSUE"}
         if attributes and isinstance(attributes, dict):
             attributes = dict_to_payload(attributes)
-        self.get_test_item(item_uuid).finish(api_version, end_time, status, issue=issue,
-                                             attributes=attributes, **kwargs)
+        self.get_test_item(item_uuid).finish(api_version,
+                                             end_time,
+                                             status,
+                                             issue=issue,
+                                             attributes=attributes,
+                                             **kwargs)
 
     def remove_test_item(self, api_version, item_uuid):
         """Remove test item by uuid.
