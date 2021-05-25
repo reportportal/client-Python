@@ -19,9 +19,13 @@ import logging
 import requests
 from requests.adapters import HTTPAdapter
 
+from reportportal_client.core.rp_requests import (
+    HttpRequest,
+    LaunchStartRequest,
+    LaunchFinishRequest
+)
 from reportportal_client.core.test_manager import TestManager
-from reportportal_client.helpers import uri_join, dict_to_payload, get_id, \
-    get_msg
+from reportportal_client.helpers import uri_join
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
@@ -31,17 +35,16 @@ class RPClient(object):
     """Report portal client."""
 
     def __init__(self,
-                 endpoint,  # type: str
-                 project,  # type: str
-                 token,  # type: str
-                 log_batch_size=20,  # type: int
-                 is_skipped_an_issue=True,  # type: bool
-                 verify_ssl=True,  # type: bool
-                 retries=None,  # type: int
-                 max_pool_size=50,  # type: int
-                 launch_id=None,  # type: str
+                 endpoint,
+                 project,
+                 token,
+                 log_batch_size=20,
+                 is_skipped_an_issue=True,
+                 verify_ssl=True,
+                 retries=None,
+                 max_pool_size=50,
+                 launch_id=None,
                  ):
-        # type: (...) -> None
         """Initialize required attributes.
 
         :param endpoint:                Endpoint of report portal service
@@ -56,23 +59,25 @@ class RPClient(object):
         :param max_pool_size:           option to set the maximum number of
                                         connections to save in the pool.
         """
-        self._batch_logs = []  # type: list
-        self.endpoint = endpoint  # type: str
-        self.log_batch_size = log_batch_size  # type: int
-        self.project = project  # type: str
-        self.token = token  # type: str
-        self.launch_id = launch_id  # type: str
-        self.verify_ssl = verify_ssl  # type: bool
-        self.is_skipped_an_issue = is_skipped_an_issue  # type: bool
+        self._batch_logs = []
+        self.endpoint = endpoint
+        self.log_batch_size = log_batch_size
+        self.project = project
+        self.token = token
+        self.launch_id = launch_id
+        self.verify_ssl = verify_ssl
+        self.is_skipped_an_issue = is_skipped_an_issue
 
         self.api_v1 = 'v1'
         self.api_v2 = 'v2'
-        self.base_url_v1 = uri_join(self.endpoint, f"api/{self.api_v1}",
-                                    self.project)  # type: str
-        self.base_url_v2 = uri_join(self.endpoint, f"api/{self.api_v2}",
-                                    self.project)  # type: str
+        self.base_url_v1 = uri_join(self.endpoint,
+                                    "api/{}".format(self.api_v1),
+                                    self.project)
+        self.base_url_v2 = uri_join(self.endpoint,
+                                    "api/{}".format(self.api_v2),
+                                    self.project)
 
-        self.session = requests.Session()  # type: requests.Session
+        self.session = requests.Session()
         if retries:
             self.session.mount('https://', HTTPAdapter(
                 max_retries=retries, pool_maxsize=max_pool_size))
@@ -83,19 +88,18 @@ class RPClient(object):
         self._test_manager = TestManager(self.session,
                                          self.endpoint,
                                          project,
-                                         self.launch_id)  # type: TestManager
+                                         self.launch_id)
 
     def start_launch(self,
-                     name,  # type: str
-                     start_time,  # type: str
-                     description=None,  # type: str
-                     attributes=None,  # type: dict
-                     mode=None,  # type: str
-                     rerun=False,  # type: bool
-                     rerun_of=None,  # type: list
+                     name,
+                     start_time,
+                     description=None,
+                     attributes=None,
+                     mode=None,
+                     rerun=False,
+                     rerun_of=None,
                      **kwargs
                      ):
-        # type: (...) -> str
         """Start a new launch with the given parameters.
 
         :param name:        Name of launch
@@ -106,33 +110,32 @@ class RPClient(object):
         :param rerun:       Launch rerun
         :param rerun_of:    Items to rerun in launch
         """
-        if attributes and isinstance(attributes, dict):
-            attributes = dict_to_payload(attributes)
-        data = {
-            "name": name,
-            "description": description,
-            "attributes": attributes,
-            "startTime": start_time,
-            "mode": mode,
-            "rerun": rerun,
-            "rerunOf": rerun_of
-        }
-        data.update(kwargs)
         url = uri_join(self.base_url_v2, "launch")
-        response = self.session.post(url=url, json=data,
-                                     verify=self.verify_ssl)
-        self.launch_id = get_id(response)
-        # Set launch id for test manager
-        self._test_manager.launch_id = self.launch_id
+
+        request_payload = LaunchStartRequest(
+            name=name,
+            start_time=start_time,
+            attributes=attributes,
+            description=description,
+            mode=mode,
+            rerun=rerun,
+            rerun_of=rerun_of,
+            **kwargs
+        ).payload
+
+        response = HttpRequest(self.session.post,
+                               url=url,
+                               json=request_payload,
+                               verify=self.verify_ssl).make()
+        self._test_manager.launch_id = self.launch_id = response.id
         logger.debug("start_launch - ID: %s", self.launch_id)
         return self.launch_id
 
     def finish_launch(self,
-                      end_time,  # type: str
-                      status=None,  # type: str
-                      attributes=None,  # type: dict
+                      end_time,
+                      status=None,
+                      attributes=None,
                       **kwargs):
-        # type: (...) -> dict
         """Finish launch.
 
         :param end_time:    Launch end time
@@ -141,33 +144,33 @@ class RPClient(object):
                             CANCELLED
         :param attributes:  Launch attributes
         """
-        # process log batches firstly:
-        if attributes and isinstance(attributes, dict):
-            attributes = dict_to_payload(attributes)
-        data = {
-            "endTime": end_time,
-            "status": status,
-            "attributes": attributes
-        }
-        data.update(kwargs)
         url = uri_join(self.base_url_v2, "launch", self.launch_id, "finish")
-        response = self.session.put(url=url, json=data, verify=self.verify_ssl)
+
+        request_payload = LaunchFinishRequest(
+            end_time=end_time,
+            status=status,
+            attributes=attributes,
+            **kwargs
+        ).payload
+
+        response = HttpRequest(self.session.put, url=url, json=request_payload,
+                               verify=self.verify_ssl).make()
+
         logger.debug("finish_launch - ID: %s", self.launch_id)
-        return get_msg(response)
+        return response.message
 
     def start_item(self,
-                   name,  # type: str
-                   start_time,  # type: str
-                   item_type,  # type: str
-                   description=None,  # type: str
-                   attributes=None,  # type: dict
-                   parameters=None,  # type: dict
-                   parent_item_id=None,  # type: str
-                   has_stats=True,  # type: bool
-                   code_ref=None,  # type: str
+                   name,
+                   start_time,
+                   item_type,
+                   description=None,
+                   attributes=None,
+                   parameters=None,
+                   parent_item_id=None,
+                   has_stats=True,
+                   code_ref=None,
                    **kwargs
                    ):
-        # type: (...) -> str
         """Start case/step/nested step item.
 
         :param name:            Name of test item
@@ -185,7 +188,7 @@ class RPClient(object):
                                                   start_time,
                                                   item_type,
                                                   description=description,
-                                                  attributes=attributes,
+                                                  attributes=attributes[0],
                                                   parameters=parameters,
                                                   parent_uuid=parent_item_id,
                                                   has_stats=has_stats,
@@ -193,14 +196,13 @@ class RPClient(object):
                                                   **kwargs)
 
     def finish_item(self,
-                    item_id,  # type: str
-                    end_time,  # type: str
-                    status,  # type: str
-                    issue=None,  # type: str
-                    attributes=None,  # type: dict
+                    item_id,
+                    end_time,
+                    status,
+                    issue=None,
+                    attributes=None,
                     **kwargs
                     ):
-        # type: (...) -> None
         """Finish suite/case/step/nested step item.
 
         :param item_id:    id of the test item
@@ -216,7 +218,7 @@ class RPClient(object):
                                             end_time,
                                             status,
                                             issue=issue,
-                                            attributes=attributes,
+                                            attributes=attributes[0],
                                             **kwargs)
 
     def save_log(self, log_time, **kwargs):

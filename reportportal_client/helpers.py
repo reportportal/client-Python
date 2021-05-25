@@ -18,7 +18,6 @@ from platform import machine, processor, system
 
 import six
 from pkg_resources import DistributionNotFound, get_distribution
-from requests import Response
 
 from .errors import ResponseError, EntryCreatedError, OperationCompletionError
 from .static.defines import ATTRIBUTE_LENGTH_LIMIT
@@ -143,7 +142,6 @@ def timestamp():
 
 
 def uri_join(*uri_parts):
-    # type: (*str)-> str
     """Join uri parts.
 
     Avoiding usage of urlparse.urljoin and os.path.join
@@ -161,7 +159,6 @@ def uri_join(*uri_parts):
 
 
 def get_id(response):
-    # type: (Response)-> str
     """Get id from Response.
 
     :param response: Response object
@@ -175,7 +172,6 @@ def get_id(response):
 
 
 def get_msg(response):
-    # type: (Response)-> dict
     """
     Get message from Response.
 
@@ -190,7 +186,6 @@ def get_msg(response):
 
 
 def get_data(response):
-    # type: (Response)-> dict
     """
     Get data from Response.
 
@@ -215,7 +210,6 @@ def get_data(response):
 
 
 def get_json(response):
-    # type: (Response)-> dict
     """
     Get json from Response.
 
@@ -233,7 +227,6 @@ def get_json(response):
 
 
 def get_error_messages(data):
-    # type: (dict)-> list
     """
     Get messages (ErrorCode) from Response.
 

@@ -14,7 +14,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import requests
 
 from reportportal_client.helpers import generate_uuid, dict_to_payload
 from reportportal_client.items.rp_log_items.rp_log_item import RPLogItem
@@ -42,12 +41,11 @@ class TestManager(object):
     """
 
     def __init__(self,
-                 session,  # type: requests.Session
-                 endpoint,  # type: str
-                 project_name,  # type: str
-                 launch_id=None  # type: str
+                 session,
+                 endpoint,
+                 project_name,
+                 launch_id=None
                  ):
-        # type: (...) -> None
         """Initialize instance attributes.
 
         :param session:         Session object
