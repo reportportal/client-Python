@@ -209,7 +209,8 @@ class ReportPortalService(object):
 
     def terminate(self, *args, **kwargs):
         """Call this to terminate the service."""
-        pass
+        if self._batch_logs:
+            self._log_batch(None, force=True)
 
     def start_launch(self,
                      name,
@@ -244,7 +245,8 @@ class ReportPortalService(object):
         Status can be one of the followings:
         (PASSED, FAILED, STOPPED, SKIPPED, RESETED, CANCELLED)
         """
-        # process log batches firstly:
+        # process log batches firstly. Remove this step when all the agents
+        # start using terminate() method.
         if self._batch_logs:
             self._log_batch(None, force=True)
         if attributes and isinstance(attributes, dict):
