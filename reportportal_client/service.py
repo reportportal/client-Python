@@ -203,7 +203,7 @@ class ReportPortalService(object):
                 max_retries=retries, pool_maxsize=max_pool_size))
             self.session.mount('http://', HTTPAdapter(
                 max_retries=retries, pool_maxsize=max_pool_size))
-        self.session.headers["Authorization"] = "bearer {0}".format(self.token)
+        self.session.headers["Authorization"] = "Bearer {0}".format(self.token)
         self.launch_id = kwargs.get('launch_id')
         self.verify_ssl = verify_ssl
 
