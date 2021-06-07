@@ -36,7 +36,7 @@ from .rp_responses import RPResponse
 class HttpRequest:
     """This model stores attributes related to RP HTTP requests."""
 
-    def __init__(self, session_method, url, data=None, json=None):
+    def __init__(self, session_method, url, data=None, json=None, verify=None):
         """Initialize instance attributes.
 
         :param session_method: Method of the requests.Session instance
@@ -44,16 +44,18 @@ class HttpRequest:
         :param data:           Dictionary, list of tuples, bytes, or file-like
                                object to send in the body of the request
         :param json:           JSON to be send in the body of the request
+        :param verify:         Is certificate verification required
         """
         self.data = data
         self.json = json
         self.session_method = session_method
         self.url = url
+        self.verify = verify
 
     def make(self):
         """Make HTTP request to the Report Portal API."""
         return RPResponse(self.session_method(
-            self.url, data=self.data, json=self.json))
+            self.url, data=self.data, json=self.json, verify=self.verify))
 
 
 class RPRequestBase(object):

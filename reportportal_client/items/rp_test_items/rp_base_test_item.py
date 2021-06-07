@@ -23,13 +23,12 @@ from reportportal_client.core.rp_requests import ItemFinishRequest
 class RPBaseTestItem(BaseRPItem):
     """This model stores common attributes for RP test items."""
 
-    def __init__(self, rp_url, session, api_version, project_name, item_name,
+    def __init__(self, rp_url, session, project_name, item_name,
                  item_type, launch_uuid, generated_id, **kwargs):
         """Initialize instance attributes.
 
         :param rp_url:        report portal url
         :param session:       Session object
-        :param api_version:   RP API version
         :param project_name:  RP project name
         :param item_name:     RP item name
         :param item_type:     Type of the test item. Allowable values: "suite",
@@ -43,7 +42,7 @@ class RPBaseTestItem(BaseRPItem):
         :param has_stats:     If item has stats
         :param kwargs:        Dict of additional named parameters
         """
-        super(RPBaseTestItem, self).__init__(rp_url, session, api_version,
+        super(RPBaseTestItem, self).__init__(rp_url, session,
                                              project_name, launch_uuid,
                                              generated_id)
         self.item_name = item_name
@@ -66,10 +65,11 @@ class RPBaseTestItem(BaseRPItem):
         """
         self.child_items.append(item)
 
-    def finish(self, end_time, status=None, description=None,
+    def finish(self, api_version, end_time, status=None, description=None,
                attributes=None, issue=None):
         """Form finish request for RP test item.
 
+        :param api_version: RP API version
         :param end_time:    Test item end time
         :param status:      Test status. Allowable values: "passed",
                             "failed", "stopped", "skipped", "interrupted",
@@ -80,7 +80,7 @@ class RPBaseTestItem(BaseRPItem):
         """
         attributes = attributes or self.attributes
         endpoint = "{url}/api/{version}/{projectName}/item/{itemUuid}". \
-            format(url=self.rp_url, version=self.api_version,
+            format(url=self.rp_url, version=api_version,
                    projectName=self.project_name, itemUuid=self.uuid)
 
         self.add_request(endpoint, self.session.post, ItemFinishRequest,

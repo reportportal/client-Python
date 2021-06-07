@@ -14,6 +14,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+
 from reportportal_client.helpers import generate_uuid, dict_to_payload
 from reportportal_client.items.rp_log_items.rp_log_item import RPLogItem
 from reportportal_client.items.rp_test_items.rp_child_test_item import \
@@ -39,34 +40,39 @@ class TestManager(object):
             }
     """
 
-    def __init__(self, rp_url, session, api_version, launch_id, project_name):
+    def __init__(self,
+                 session,
+                 endpoint,
+                 project_name,
+                 launch_id=None
+                 ):
         """Initialize instance attributes.
 
-        :param rp_url:          report portal url
         :param session:         Session object
-        :param api_version:     RP API version
-        :param launch_id:       Parent launch UUID
+        :param endpoint:        Endpoint url
+        :param launch_id:       Report portal launch UUID
         :param project_name:    RP project name
         """
-        self.rp_url = rp_url
         self.session = session
-        self.api_version = api_version
-        self.launch_id = launch_id
+        self.endpoint = endpoint
         self.project_name = project_name
+        self.launch_id = launch_id
         self.__storage = []
 
     def start_test_item(self,
+                        api_version,
                         name,
                         start_time,
                         item_type,
                         description=None,
                         attributes=None,
                         parameters=None,
-                        parent_item_id=None,
+                        parent_uuid=None,
                         has_stats=True,
                         **kwargs):
         """Start new test item.
 
+        :param api_version:     RP API version
         :param name:            test item name
         :param start_time:      test item execution start time
         :param item_type:       test item type (see class doc string)
@@ -75,7 +81,7 @@ class TestManager(object):
                                 Pairs of key and value (see class doc string)
         :param parameters:      test item set of parameters
                                 (for parametrized tests) (see class doc string)
-        :param parent_item_id:  UUID of parent test item
+        :param parent_uuid:  UUID of parent test item
         :param has_stats:       True - regular test item, False - test item
                                 without statistics (nested step)
         :param kwargs:          other parameters
@@ -94,10 +100,9 @@ class TestManager(object):
         }
         kwargs and item_data.update(kwargs)
         uuid = generate_uuid()
-        if not parent_item_id:
-            test_item = RPRootTestItem(self.rp_url,
+        if not parent_uuid:
+            test_item = RPRootTestItem(self.endpoint,
                                        self.session,
-                                       self.api_version,
                                        self.project_name,
                                        name,
                                        item_type,
@@ -106,10 +111,9 @@ class TestManager(object):
                                        **item_data)
             self.__storage.append(test_item)
         else:
-            parent_item = self.get_test_item(parent_item_id)
-            test_item = RPChildTestItem(self.rp_url,
+            parent_item = self.get_test_item(parent_uuid)
+            test_item = RPChildTestItem(self.endpoint,
                                         self.session,
-                                        self.api_version,
                                         self.project_name,
                                         parent_item,
                                         name,
@@ -117,13 +121,14 @@ class TestManager(object):
                                         self.launch_id,
                                         uuid,
                                         **item_data)
-        test_item.start(start_time)
+        test_item.start(api_version, start_time)
         return uuid
 
-    def update_test_item(self, item_uuid, attributes=None, description=None,
-                         **kwargs):
+    def update_test_item(self, api_version, item_uuid, attributes=None,
+                         description=None, **kwargs):
         """Update existing test item at the Report Portal.
 
+        :param api_version:     RP API version
         :param str item_uuid:   test item UUID returned on the item start
         :param str description: test item description
         :param dict attributes: test item attributes(tags)
@@ -133,6 +138,7 @@ class TestManager(object):
         raise NotImplementedError()
 
     def finish_test_item(self,
+                         api_version,
                          item_uuid,
                          end_time,
                          status,
@@ -141,6 +147,7 @@ class TestManager(object):
                          **kwargs):
         """Finish test item.
 
+        :param api_version:RP API version
         :param item_uuid:  id of the test item
         :param end_time:   time in UTC format
         :param status:     status of the test
@@ -153,37 +160,41 @@ class TestManager(object):
             issue = {"issue_type": "NOT_ISSUE"}
         if attributes and isinstance(attributes, dict):
             attributes = dict_to_payload(attributes)
-        self.get_test_item(item_uuid).finish(end_time, status, issue=issue,
-                                             attributes=attributes, **kwargs)
+        self.get_test_item(item_uuid).finish(api_version,
+                                             end_time,
+                                             status,
+                                             issue=issue,
+                                             attributes=attributes,
+                                             **kwargs)
 
-    def remove_test_item(self, item_uuid):
+    def remove_test_item(self, api_version, item_uuid):
         """Remove test item by uuid.
 
-        :param item_uuid: test item uuid
+        :param api_version:     RP API version
+        :param item_uuid:       test item uuid
         """
         self.get_test_item(item_uuid)
         raise NotImplementedError()
 
-    def log(self, time, message=None, level=None, attachment=None,
+    def log(self, api_version, time, message=None, level=None, attachment=None,
             item_id=None):
         """Log message. Can be added to test item in any state.
 
-        :param time:        log time
-        :param message:     log message
-        :param level:       log level
-        :param attachment:  attachments to log (images,files,etc.)
-        :param item_id:     parent item UUID
-        :return:            log item UUID
+        :param api_version:     RP API version
+        :param time:            log time
+        :param message:         log message
+        :param level:           log level
+        :param attachment:      attachments to log (images,files,etc.)
+        :param item_id:         parent item UUID
+        :return:                log item UUID
         """
         uuid = generate_uuid()
-        # Todo: Do we store log items?
-        log_item = RPLogItem(self.rp_url,
+        log_item = RPLogItem(self.endpoint,
                              self.session,
-                             self.api_version,
                              self.project_name,
                              self.launch_id,
                              uuid)
-        log_item.create(time, attachment, item_id, level, message)
+        log_item.create(api_version, time, attachment, item_id, level, message)
         return uuid
 
     def get_test_item(self, item_uuid):
