@@ -24,13 +24,12 @@ from reportportal_client.static.defines import NOT_FOUND
 class BaseRPItem(object):
     """This model stores attributes related to RP item."""
 
-    def __init__(self, rp_url, session, api_version, project_name,
+    def __init__(self, rp_url, session, project_name,
                  launch_uuid, generated_id):
         """Initialize instance attributes.
 
         :param rp_url:         report portal url
         :param session:        Session object
-        :param api_version:    RP API version
         :param project_name:   RP project name
         :param launch_uuid:    Parent launch UUID
         :param generated_id:   Id generated to speed up client
@@ -42,7 +41,6 @@ class BaseRPItem(object):
         self.responses = []
         self.rp_url = rp_url
         self.session = session
-        self.api_version = api_version
         self.project_name = project_name
         self.launch_uuid = launch_uuid
 

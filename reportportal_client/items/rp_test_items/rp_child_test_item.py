@@ -26,14 +26,13 @@ from reportportal_client.items.rp_test_items.rp_base_test_item import \
 class RPChildTestItem(RPBaseTestItem):
     """This model stores attributes for RP child test items."""
 
-    def __init__(self, rp_url, session, api_version, project_name, parent_item,
+    def __init__(self, rp_url, session, project_name, parent_item,
                  item_name, item_type, launch_uuid, generated_id,
                  **kwargs):
         """Initialize instance attributes.
 
         :param rp_url:        report portal url
         :param session:       Session object
-        :param api_version:   RP API version
         :param project_name:  RP project name
         :param item_name:     RP item name
         :param item_type:     Type of the test item. Allowable values: "suite",
@@ -46,7 +45,7 @@ class RPChildTestItem(RPBaseTestItem):
         :param generated_id:  Id generated to speed up client
         :param kwargs:        Dict of additional named parameters
         """
-        super(RPChildTestItem, self).__init__(rp_url, session, api_version,
+        super(RPChildTestItem, self).__init__(rp_url, session,
                                               project_name, item_name,
                                               item_type, launch_uuid,
                                               generated_id, **kwargs)
@@ -54,14 +53,15 @@ class RPChildTestItem(RPBaseTestItem):
         self.parent_item.add_child_item(self)
         self.weight = self.parent_item.weight + 1
 
-    def start(self, start_time):
+    def start(self, api_version, start_time):
         """Create request object to start child test item.
 
+        :param api_version:   RP API version
         :param start_time:    Test item start time
         """
         endpoint = "{url}/{api_version}/{project_name}/item/" \
                    "{parentItemUuid}". \
-            format(url=self.rp_url, api_version=self.api_version,
+            format(url=self.rp_url, api_version=api_version,
                    project_name=self.project_name,
                    parentItemUuid=self.parent_item.uuid)
 
