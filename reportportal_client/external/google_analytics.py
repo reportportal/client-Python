@@ -16,6 +16,7 @@ limitations under the License.
 """
 
 import logging
+from platform import python_version
 from pkg_resources import get_distribution
 import requests
 from uuid import uuid4
@@ -34,6 +35,14 @@ def _get_client_info():
     return client.project_name, client.version
 
 
+def _get_platform_info():
+    """Get current platform basic info, e.g.: 'Python 3.6.1'
+
+    :return: str represents the current platform, e.g.: 'Python 3.6.1'
+    """
+    return "Python " + python_version()
+
+
 def send_event(agent_name, agent_version):
     """Send an event to GA about client and agent versions with their names.
 
@@ -47,8 +56,8 @@ def send_event(agent_name, agent_version):
         'aip': '1',
         'cid': str(uuid4()),
         't': 'event',
-        'ec': 'Client name "{}", version "{}"'.format(
-            client_name, client_version
+        'ec': 'Client name "{}", version "{}", interpreter "{}"'.format(
+            client_name, client_version, _get_platform_info()
         ),
         'ea': 'Start launch',
         'el': 'Agent name "{}", version "{}"'.format(
