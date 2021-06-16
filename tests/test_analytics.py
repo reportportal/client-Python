@@ -22,8 +22,6 @@ from six.moves import mock
 from reportportal_client.external.constants import GA_ENDPOINT, GA_INSTANCE
 from reportportal_client.external.google_analytics import send_event
 
-TEST_PYTHON_VERSION = '3.6.6'
-
 
 @mock.patch('reportportal_client.external.google_analytics.uuid4',
             mock.Mock(return_value=555))
