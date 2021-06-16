@@ -53,7 +53,7 @@ def test_send_event(mocked_distribution, mocked_requests):
         'ea': 'Start launch',
         'el': 'Agent name "{}", version "{}"'.format(
             agent_name, agent_version
-        )
+            )
     }
     send_event(agent_name, agent_version)
     mocked_requests.assert_called_with(
