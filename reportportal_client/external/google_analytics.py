@@ -36,7 +36,7 @@ def _get_client_info():
 
 
 def _get_platform_info():
-    """Get current platform basic info, e.g.: 'Python 3.6.1'
+    """Get current platform basic info, e.g.: 'Python 3.6.1'.
 
     :return: str represents the current platform, e.g.: 'Python 3.6.1'
     """
