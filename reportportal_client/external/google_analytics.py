@@ -40,7 +40,7 @@ def _get_platform_info():
 
     :return: str represents the current platform, e.g.: 'Python 3.6.1'
     """
-    return "Python " + python_version()
+    return 'Python ' + python_version()
 
 
 def send_event(agent_name, agent_version):

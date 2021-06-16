@@ -30,7 +30,7 @@ TEST_PYTHON_VERSION = '3.6.6'
 @mock.patch('reportportal_client.external.google_analytics.requests.post')
 @mock.patch('reportportal_client.external.google_analytics.get_distribution')
 @mock.patch('reportportal_client.external.google_analytics.python_version',
-            mock.Mock(return_value=TEST_PYTHON_VERSION))
+            mock.Mock(return_value='3.6.6'))
 def test_send_event(mocked_distribution, mocked_requests):
     """Test functionality of the send_event() function.
 
@@ -50,9 +50,8 @@ def test_send_event(mocked_distribution, mocked_requests):
         'aip': '1',
         'cid': '555',
         't': 'event',
-        'ec': 'Client name "{}", version "{}", interpreter "Python {}"'.format(
-            expected_cl_name, expected_cl_version, TEST_PYTHON_VERSION
-        ),
+        'ec': 'Client name "{}", version "{}", interpreter "Python 3.6.6"'
+              .format(expected_cl_name, expected_cl_version),
         'ea': 'Start launch',
         'el': 'Agent name "{}", version "{}"'.format(
             agent_name, agent_version
