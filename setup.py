@@ -9,7 +9,7 @@ with open('requirements.txt') as f:
 
 setup(
     name='reportportal-client',
-    packages=find_packages(),
+    packages=find_packages(exclude=('tests', 'tests.*')),
     version=__version__,
     description='Python client for Report Portal v5.',
     author_email='SupportEPMC-TSTReportPortal@epam.com',
