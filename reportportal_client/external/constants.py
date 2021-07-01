@@ -31,3 +31,4 @@ def _decode_string(text):
 
 GA_INSTANCE = _decode_string('VUEtMTczNDU2ODA5LTE=')
 GA_ENDPOINT = 'https://www.google-analytics.com/collect'
+TEST_STATUSES = ('failed', 'passed', 'skipped', 'interrupted', 'in_progress')

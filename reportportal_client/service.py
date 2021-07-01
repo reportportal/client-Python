@@ -529,3 +529,31 @@ class ReportPortalService(object):
             except KeyError:
                 if i + 1 == POST_LOGBATCH_RETRY_COUNT:
                     raise
+
+    def read(self, endpoint=None, **params):
+        """GET requester to fetch the data from ReportPortal.
+
+        This method creates a part of url that does filtering,
+        makes HTTP request, checks request for the status and
+        finally returns the data read from RP.
+
+        :param str component: The endpoint name of the ReportPortal Component
+        :param params: Extra parameters to the GET request
+        """
+        adaptive_params = {}
+        for attr, value in params.items():
+            if 'filter_' in attr:
+                _, oprtr, field = attr.split('_')
+                field = field.replace('__', '$')
+                attr = f'filter.{oprtr}.{field}'
+            adaptive_params[attr] = value
+        url = uri_join(self.base_url_v1, endpoint)
+        resp = self.session.get(url, params=adaptive_params)
+        resp.raise_for_status()
+        return resp
+
+    @property
+    def defect_types(self):
+        """Return the list of all the defect types in Report Portal project."""
+        data = _get_data(self.read(component='settings'))
+        return data.get('subTypes')
