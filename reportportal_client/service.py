@@ -205,7 +205,32 @@ class ReportPortalService(object):
                 max_retries=retries, pool_maxsize=max_pool_size))
         self.session.headers["Authorization"] = "Bearer {0}".format(self.token)
         self.launch_id = kwargs.get('launch_id')
+        self.launch_name = None
+        self.launch_number = None
         self.verify_ssl = verify_ssl
+
+        if self.launch_id:
+            self.update_launch_name_and_number()
+
+    def update_launch_name_and_number(self):
+        """
+        This method updates the self.launch_name and self.launch_number attributes according to the self.launch_id
+        """
+        url = uri_join(self.base_url_v1, "launch", self.launch_id)
+        logger.debug(f"Updating the RP Launch '{self.launch_id}' by issuing the GET request as following:\n"
+                     f"URL: {url}")
+        # Sometimes it takes a while for the RP launch to be fully created so we need to wait a bit and retry in case
+        # we get Response 404 from the ReportPortal server
+        for _ in range(5):
+            r = self.session.get(url=url)
+            if r.status_code == 200:
+                break
+            sleep(1)
+        else:
+            raise ResponseError(f"Could not get the information about the ReportPortal Launch '{self.launch_id}'")
+        launch_info = _get_data(r)
+        self.launch_name = launch_info['name']
+        self.launch_number = launch_info['number']
 
     def terminate(self, *args, **kwargs):
         """Call this to terminate the service."""
@@ -236,6 +261,7 @@ class ReportPortalService(object):
         url = uri_join(self.base_url_v2, "launch")
         r = self.session.post(url=url, json=data, verify=self.verify_ssl)
         self.launch_id = _get_id(r)
+        self.update_launch_name_and_number()
         logger.debug("start_launch - ID: %s", self.launch_id)
         return self.launch_id
 
