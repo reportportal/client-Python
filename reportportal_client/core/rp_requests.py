@@ -28,15 +28,20 @@ from reportportal_client.static.abstract import (
     AbstractBaseClass,
     abstractmethod
 )
-from reportportal_client.static.defines import DEFAULT_PRIORITY, RP_LOG_LEVELS
-
+from reportportal_client.static.defines import (
+    DEFAULT_PRIORITY,
+    LOW_PRIORITY,
+    RP_LOG_LEVELS,
+    SEND_RETRY_COUNT
+)
 from .rp_responses import RPResponse
 
 
 class HttpRequest:
     """This model stores attributes related to RP HTTP requests."""
 
-    def __init__(self, session_method, url, data=None, json=None, verify=None):
+    def __init__(self, session_method, url, data=None, json=None,
+                 files=None, verify_ssl=True):
         """Initialize instance attributes.
 
         :param session_method: Method of the requests.Session instance
@@ -47,15 +52,24 @@ class HttpRequest:
         :param verify:         Is certificate verification required
         """
         self.data = data
+        self.files = files
         self.json = json
         self.session_method = session_method
         self.url = url
-        self.verify = verify
+        self.verify_ssl = verify_ssl
 
     def make(self):
         """Make HTTP request to the Report Portal API."""
-        return RPResponse(self.session_method(
-            self.url, data=self.data, json=self.json, verify=self.verify))
+        for attempt in range(SEND_RETRY_COUNT):
+            try:
+                return RPResponse(self.session_method(
+                    self.url, data=self.data, json=self.json,
+                    files=self.files, verify=self.verify_ssl)
+                )
+            # https://github.com/reportportal/client-Python/issues/39
+            except KeyError:
+                if attempt + 1 == SEND_RETRY_COUNT:
+                    raise
 
 
 class RPRequestBase(object):
@@ -353,6 +367,7 @@ class RPRequestLog(RPRequestBase):
         self.message = message
         self.time = time
         self.item_uuid = item_uuid
+        self.priority = LOW_PRIORITY
 
     def __file(self):
         """Form file payload part of the payload."""
@@ -370,7 +385,8 @@ class RPRequestLog(RPRequestBase):
             'time': self.time,
             'itemUuid': self.item_uuid
         }
-        return payload.update(self.__file())
+        payload.update(self.__file())
+        return payload
 
 
 class RPLogBatch(RPRequestBase):
@@ -387,6 +403,7 @@ class RPLogBatch(RPRequestBase):
         super(RPLogBatch, self).__init__()
         self.default_content = 'application/octet-stream'
         self.log_reqs = log_reqs
+        self.priority = LOW_PRIORITY
 
     def __get_file(self, rp_file):
         """Form a tuple for the single file."""
@@ -420,13 +437,15 @@ class RPLogBatch(RPRequestBase):
            '<html lang="utf-8">\n<body><p>Paragraph</p></body></html>',
            'text/html'))]
         """
-        return [(
+        body = [(
             'json_request_part', (
                 None,
                 json.dumps([log.payload for log in self.log_reqs]),
                 'application/json'
             )
-        )].extend(self.__get_files())
+        )]
+        body.extend(self.__get_files())
+        return body
 
     @property
     def payload(self):

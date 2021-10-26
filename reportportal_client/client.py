@@ -19,12 +19,13 @@ import logging
 import requests
 from requests.adapters import HTTPAdapter
 
+from reportportal_client.core.log_manager import LogManager
+from reportportal_client.core.test_manager import TestManager
 from reportportal_client.core.rp_requests import (
     HttpRequest,
     LaunchStartRequest,
     LaunchFinishRequest
 )
-from reportportal_client.core.test_manager import TestManager
 from reportportal_client.helpers import uri_join
 
 logger = logging.getLogger(__name__)
@@ -44,92 +45,46 @@ class RPClient(object):
                  retries=None,
                  max_pool_size=50,
                  launch_id=None,
-                 ):
+                 **_):
         """Initialize required attributes.
 
-        :param endpoint:                Endpoint of report portal service
-        :param project:                 Project name to use for launch names
-        :param token:                   authorization token.
-        :param log_batch_size:          option to set the maximum number of
-                                        logs
-                                        that can be processed in one batch
-        :param is_skipped_an_issue:     option to mark skipped tests as not
-                                        'To Investigate' items on Server side.
-        :param verify_ssl:              option to not verify ssl certificates
-        :param max_pool_size:           option to set the maximum number of
-                                        connections to save in the pool.
+        :param endpoint:             Endpoint of the report portal service
+        :param project:              Project name to report to
+        :param token:                Authorization token
+        :param log_batch_size:       Option to set the maximum number of
+                                     logs that can be processed in one batch
+        :param is_skipped_an_issue:  Option to mark skipped tests as not
+                                     'To Investigate' items on the server side
+        :param verify_ssl:           Option to skip ssl verification
+        :param max_pool_size:        Option to set the maximum number of
+                                     connections to save the pool.
         """
         self._batch_logs = []
+        self.api_v1, self.api_v2 = 'v1', 'v2'
         self.endpoint = endpoint
-        self.log_batch_size = log_batch_size
         self.project = project
-        self.token = token
-        self.launch_id = launch_id
-        self.verify_ssl = verify_ssl
+        self.base_url_v1 = uri_join(
+            self.endpoint, 'api/{}'.format(self.api_v1), self.project)
+        self.base_url_v2 = uri_join(
+            self.endpoint, 'api/{}'.format(self.api_v2), self.project)
         self.is_skipped_an_issue = is_skipped_an_issue
-
-        self.api_v1 = 'v1'
-        self.api_v2 = 'v2'
-        self.base_url_v1 = uri_join(self.endpoint,
-                                    "api/{}".format(self.api_v1),
-                                    self.project)
-        self.base_url_v2 = uri_join(self.endpoint,
-                                    "api/{}".format(self.api_v2),
-                                    self.project)
-
+        self.launch_id = launch_id
+        self.log_batch_size = log_batch_size
+        self.token = token
+        self.verify_ssl = verify_ssl
         self.session = requests.Session()
         if retries:
             self.session.mount('https://', HTTPAdapter(
                 max_retries=retries, pool_maxsize=max_pool_size))
             self.session.mount('http://', HTTPAdapter(
                 max_retries=retries, pool_maxsize=max_pool_size))
-        self.session.headers["Authorization"] = "bearer {0}".format(self.token)
+        self.session.headers['Authorization'] = 'bearer {0}'.format(self.token)
 
-        self._test_manager = TestManager(self.session,
-                                         self.endpoint,
-                                         project,
-                                         self.launch_id)
-
-    def start_launch(self,
-                     name,
-                     start_time,
-                     description=None,
-                     attributes=None,
-                     mode=None,
-                     rerun=False,
-                     rerun_of=None,
-                     **kwargs
-                     ):
-        """Start a new launch with the given parameters.
-
-        :param name:        Name of launch
-        :param start_time:  Launch start time
-        :param description: Launch description
-        :param attributes:  Launch attributes
-        :param mode:        Launch mode
-        :param rerun:       Launch rerun
-        :param rerun_of:    Items to rerun in launch
-        """
-        url = uri_join(self.base_url_v2, "launch")
-
-        request_payload = LaunchStartRequest(
-            name=name,
-            start_time=start_time,
-            attributes=attributes,
-            description=description,
-            mode=mode,
-            rerun=rerun,
-            rerun_of=rerun_of,
-            **kwargs
-        ).payload
-
-        response = HttpRequest(self.session.post,
-                               url=url,
-                               json=request_payload,
-                               verify=self.verify_ssl).make()
-        self._test_manager.launch_id = self.launch_id = response.id
-        logger.debug("start_launch - ID: %s", self.launch_id)
-        return self.launch_id
+        self._log_manager = LogManager(
+            self.endpoint, self.session, self.api_v2, self.launch_id,
+            self.project, log_batch_size=log_batch_size)
+        self._test_manager = TestManager(
+            self.session, self.endpoint, project, self.launch_id)
 
     def finish_launch(self,
                       end_time,
@@ -144,33 +99,118 @@ class RPClient(object):
                             CANCELLED
         :param attributes:  Launch attributes
         """
-        url = uri_join(self.base_url_v2, "launch", self.launch_id, "finish")
-
+        url = uri_join(self.base_url_v2, 'launch', self.launch_id, 'finish')
         request_payload = LaunchFinishRequest(
             end_time=end_time,
             status=status,
             attributes=attributes,
             **kwargs
         ).payload
-
         response = HttpRequest(self.session.put, url=url, json=request_payload,
-                               verify=self.verify_ssl).make()
-
-        logger.debug("finish_launch - ID: %s", self.launch_id)
+                               verify_ssl=self.verify_ssl).make()
+        logger.debug('finish_launch - ID: %s', self.launch_id)
         return response.message
 
-    def start_item(self,
-                   name,
-                   start_time,
-                   item_type,
-                   description=None,
-                   attributes=None,
-                   parameters=None,
-                   parent_item_id=None,
-                   has_stats=True,
-                   code_ref=None,
-                   **kwargs
-                   ):
+    def finish_test_item(self,
+                         item_id,
+                         end_time,
+                         status,
+                         issue=None,
+                         attributes=None,
+                         **kwargs):
+        """Finish suite/case/step/nested step item.
+
+        :param item_id:    id of the test item
+        :param end_time:   time in UTC format
+        :param status:     status of the test
+        :param issue:      description of an issue
+        :param attributes: list of attributes
+        :param kwargs:     other parameters
+        :return:           json message
+        """
+        self._test_manager.finish_test_item(self.api_v2,
+                                            item_id,
+                                            end_time,
+                                            status,
+                                            issue=issue,
+                                            attributes=attributes,
+                                            **kwargs)
+
+    def get_project_settings(self):
+        """Get settings from project.
+
+        :return: json body
+        """
+        url = uri_join(self.base_url_v1, 'settings')
+        r = self.session.get(url=url, json={}, verify=self.verify_ssl)
+        return r.json()
+
+    def log(self, time, message, level=None, attachment=None, item_id=None):
+        """Send log message to the Report Portal.
+
+        :param time:       Time in UTC
+        :param message:    Log message
+        :param level:      Message's log level
+        :param attachment: Message attachments
+        :param item_id:    ID of the RP item the message belongs to
+        """
+        self._log_manager.log(time, message, level, attachment, item_id)
+
+    def start(self):
+        """Start the client."""
+        self._log_manager.start()
+
+    def start_launch(self,
+                     name,
+                     start_time,
+                     description=None,
+                     attributes=None,
+                     mode=None,
+                     rerun=False,
+                     rerun_of=None,
+                     **kwargs
+                     ):
+        """Start a new launch with the given parameters.
+
+        :param name:        Launch name
+        :param start_time:  Launch start time
+        :param description: Launch description
+        :param attributes:  Launch attributes
+        :param mode:        Launch mode
+        :param rerun:       Enables launch rerun mode
+        :param rerun_of:    Rerun mode. Specifies launch to be re-runned.
+                            Should be used with the 'rerun' option.
+        """
+        url = uri_join(self.base_url_v2, 'launch')
+        request_payload = LaunchStartRequest(
+            name=name,
+            start_time=start_time,
+            attributes=attributes,
+            description=description,
+            mode=mode,
+            rerun=rerun,
+            rerun_of=rerun_of,
+            **kwargs
+        ).payload
+        response = HttpRequest(self.session.post,
+                               url=url,
+                               json=request_payload,
+                               verify_ssl=self.verify_ssl).make()
+        self._test_manager.launch_id = self.launch_id = response.id
+        logger.debug('start_launch - ID: %s', self.launch_id)
+        return self.launch_id
+
+    def start_test_item(self,
+                        name,
+                        start_time,
+                        item_type,
+                        description=None,
+                        attributes=None,
+                        parameters=None,
+                        parent_item_id=None,
+                        has_stats=True,
+                        code_ref=None,
+                        **kwargs):
         """Start case/step/nested step item.
 
         :param name:            Name of test item
@@ -188,42 +228,13 @@ class RPClient(object):
                                                   start_time,
                                                   item_type,
                                                   description=description,
-                                                  attributes=attributes[0],
+                                                  attributes=attributes,
                                                   parameters=parameters,
                                                   parent_uuid=parent_item_id,
                                                   has_stats=has_stats,
                                                   code_ref=code_ref,
                                                   **kwargs)
 
-    def finish_item(self,
-                    item_id,
-                    end_time,
-                    status,
-                    issue=None,
-                    attributes=None,
-                    **kwargs
-                    ):
-        """Finish suite/case/step/nested step item.
-
-        :param item_id:    id of the test item
-        :param end_time:   time in UTC format
-        :param status:     status of the test
-        :param issue:      description of an issue
-        :param attributes: list of attributes
-        :param kwargs:     other parameters
-        :return:           json message
-        """
-        self._test_manager.finish_test_item(self.api_v2,
-                                            item_id,
-                                            end_time,
-                                            status,
-                                            issue=issue,
-                                            attributes=attributes[0],
-                                            **kwargs)
-
-    def save_log(self, log_time, **kwargs):
-        """Save logs for test items.
-
-        :param log_time:    Log time
-        """
-        pass
+    def terminate(self, *args, **kwargs):
+        """Call this to terminate the client."""
+        self._log_manager.stop()

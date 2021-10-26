@@ -7,15 +7,19 @@ class RPFile(object):
     def __init__(self,
                  name=None,
                  content=None,
-                 content_type=None):
+                 content_type=None,
+                 data=None,
+                 mime=None):
         """Initialize instance attributes.
 
         :param name:         File name
         :param content:      File content
         :param content_type: File content type (i.e. application/pdf)
+        :param data:         File content
+        :param mime:         File content type (i.e. application/pdf)
         """
-        self.content = content
-        self.content_type = content_type
+        self.content = content or data
+        self.content_type = content_type or mime
         self.name = name
 
     @property
