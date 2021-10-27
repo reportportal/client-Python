@@ -24,6 +24,7 @@ import uuid
 
 from reportportal_client.core.rp_file import RPFile
 from reportportal_client.core.rp_issues import Issue
+from reportportal_client.helpers import dict_to_payload
 from reportportal_client.static.abstract import (
     AbstractBaseClass,
     abstractmethod
@@ -163,6 +164,8 @@ class LaunchStartRequest(RPRequestBase):
     @property
     def payload(self):
         """Get HTTP payload for the request."""
+        if self.attributes and isinstance(self.attributes, dict):
+            self.attributes = dict_to_payload(self.attributes)
         return {
             'attributes': self.attributes,
             'description': self.description,
@@ -205,6 +208,8 @@ class LaunchFinishRequest(RPRequestBase):
     @property
     def payload(self):
         """Get HTTP payload for the request."""
+        if self.attributes and isinstance(self.attributes, dict):
+            self.attributes = dict_to_payload(self.attributes)
         return {
             'attributes': self.attributes,
             'description': self.description,
@@ -270,6 +275,10 @@ class ItemStartRequest(RPRequestBase):
     @property
     def payload(self):
         """Get HTTP payload for the request."""
+        if self.attributes and isinstance(self.attributes, dict):
+            self.attributes = dict_to_payload(self.attributes)
+        if self.parameters:
+            self.parameters = dict_to_payload(self.parameters)
         return {
             'attributes': self.attributes,
             'codeRef': self.code_ref,
@@ -296,27 +305,31 @@ class ItemFinishRequest(RPRequestBase):
                  status,
                  attributes=None,
                  description=None,
+                 is_skipped_an_issue=True,
                  issue=None,
                  retry=False):
         """Initialize instance attributes.
 
-        :param end_time:    Test item end time
-        :param launch_uuid: Parent launch UUID
-        :param status:      Test status. Allowable values: "passed",
-                            "failed", "stopped", "skipped", "interrupted",
-                            "cancelled"
-        :param attributes:  Test item attributes(tags). Pairs of key and value.
-                            Overrides attributes on start
-        :param description: Test item description. Overrides description
-                            from start request.
-        :param issue:       Issue of the current test item
-        :param retry:       Used to report retry of the test. Allowable values:
-                           "True" or "False"
+        :param end_time:            Test item end time
+        :param launch_uuid:         Parent launch UUID
+        :param status:              Test status. Allowable values: "passed",
+                                    "failed", "stopped", "skipped",
+                                    "interrupted", "cancelled".
+        :param attributes:          Test item attributes(tags). Pairs of key
+                                    and value. Overrides attributes on start
+        :param description:         Test item description. Overrides
+                                    description from start request.
+        :param is_skipped_an_issue: Option to mark skipped tests as not
+                                    'To Investigate' items in UI
+        :param issue:               Issue of the current test item
+        :param retry:               Used to report retry of the test.
+                                    Allowable values: "True" or "False"
         """
         super(ItemFinishRequest, self).__init__()
         self.attributes = attributes
         self.description = description
         self.end_time = end_time
+        self.is_skipped_an_issue = is_skipped_an_issue
         self.issue = issue  # type: Issue
         self.launch_uuid = launch_uuid
         self.status = status
@@ -325,11 +338,18 @@ class ItemFinishRequest(RPRequestBase):
     @property
     def payload(self):
         """Get HTTP payload for the request."""
+        if self.attributes and isinstance(self.attributes, dict):
+            self.attributes = dict_to_payload(self.attributes)
+        if self.issue is None and self.status.lower() == 'skipped' and not \
+                self.is_skipped_an_issue:
+            issue_payload = {'issue_type': 'NOT_ISSUE'}
+        else:
+            issue_payload = None
         return {
             'attributes': self.attributes,
             'description': self.description,
             'endTime': self.end_time,
-            'issue': self.issue.payload,
+            'issue': getattr(self.issue, 'payload', issue_payload),
             'launch_uuid': self.launch_uuid,
             'status': self.status,
             'retry': self.retry

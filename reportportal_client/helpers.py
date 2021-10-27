@@ -19,14 +19,13 @@ from platform import machine, processor, system
 import six
 from pkg_resources import DistributionNotFound, get_distribution
 
-from .errors import ResponseError, EntryCreatedError, OperationCompletionError
 from .static.defines import ATTRIBUTE_LENGTH_LIMIT
 
 logger = logging.getLogger(__name__)
 
 
 def generate_uuid():
-    """Generate Uuid."""
+    """Generate UUID."""
     return str(uuid.uuid4())
 
 
@@ -43,14 +42,18 @@ def convert_string(value):
 
 
 def dict_to_payload(dictionary):
-    """Convert dict to list of dicts.
+    """Convert incoming dictionary to the list of dictionaries.
 
-    :param dictionary:  initial dict
-    :return list:       list of dicts
+    This function transforms the given dictionary of tags/attributes into
+    the format required by the Report Portal API. Also, we add the system
+    key to every tag/attribute that indicates that the key should be hidden
+    from the user in UI.
+    :param dictionary:  Dictionary containing tags/attributes
+    :return list:       List of tags/attributes in the required format
     """
-    system = dictionary.pop('system', False)
+    hidden = dictionary.pop('system', False)
     return [
-        {'key': key, 'value': convert_string(value), 'system': system}
+        {'key': key, 'value': convert_string(value), 'system': hidden}
         for key, value in sorted(dictionary.items())
     ]
 
@@ -146,98 +149,10 @@ def uri_join(*uri_parts):
 
     Avoiding usage of urlparse.urljoin and os.path.join
     as it does not clearly join parts.
-
     Args:
         *uri_parts: tuple of values for join, can contain back and forward
                     slashes (will be stripped up).
-
     Returns:
         An uri string.
-
     """
     return '/'.join(str(s).strip('/').strip('\\') for s in uri_parts)
-
-
-def get_id(response):
-    """Get id from Response.
-
-    :param response: Response object
-    :return id: int value of id
-    """
-    try:
-        return get_data(response)["id"]
-    except KeyError:
-        raise EntryCreatedError(
-            "No 'id' in response: {0}".format(response.text))
-
-
-def get_msg(response):
-    """
-    Get message from Response.
-
-    :param response: Response object
-    :return: data: json data
-    """
-    try:
-        return get_data(response)
-    except KeyError:
-        raise OperationCompletionError(
-            "No 'message' in response: {0}".format(response.text))
-
-
-def get_data(response):
-    """
-    Get data from Response.
-
-    :param response: Response object
-    :return: json data
-    """
-    data = get_json(response)
-    error_messages = get_error_messages(data)
-    error_count = len(error_messages)
-
-    if error_count == 1:
-        raise ResponseError(error_messages[0])
-    elif error_count > 1:
-        raise ResponseError(
-            "\n  - ".join(["Multiple errors:"] + error_messages))
-    elif not response.ok:
-        response.raise_for_status()
-    elif not data:
-        raise ResponseError("Empty response")
-    else:
-        return data
-
-
-def get_json(response):
-    """
-    Get json from Response.
-
-    :param response: Response object
-    :return: data: json object
-    """
-    try:
-        if response.text:
-            return response.json()
-        else:
-            return {}
-    except ValueError as value_error:
-        raise ResponseError(
-            "Invalid response: {0}: {1}".format(value_error, response.text))
-
-
-def get_error_messages(data):
-    """
-    Get messages (ErrorCode) from Response.
-
-    :param data: dict of datas
-    :return list: Empty list or list of errors
-    """
-    error_messages = []
-    for ret in data.get("responses", [data]):
-        if "errorCode" in ret:
-            error_messages.append(
-                "{0}: {1}".format(ret["errorCode"], ret.get("message"))
-            )
-
-    return error_messages

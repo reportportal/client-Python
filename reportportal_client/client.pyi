@@ -1,11 +1,10 @@
 from requests import Session
 from typing import Any, Dict, List, Optional, Text, Tuple, Union
 from reportportal_client.core.log_manager import LogManager as LogManager
-from reportportal_client.core.test_manager import TestManager as TestManager
+from reportportal_client.core.rp_issues import Issue as Issue
 
 class RPClient:
     _log_manager: LogManager = ...
-    _test_manager: TestManager = ...
     api_v1: Text = ...
     api_v2: Text = ...
     base_url_v1: Text = ...
@@ -30,15 +29,19 @@ class RPClient:
     def finish_launch(self,
                       end_time: Text,
                       status: Text = ...,
-                      attributes: List = ...,
+                      attributes: Optional[Union[List, Dict]] = ...,
                       **kwargs: Any) -> Dict: ...
     def finish_test_item(self,
                     item_id: Text,
                     end_time: Text,
                     status: Text,
-                    issue: Text = ...,
+                    issue: Optional[Issue] = ...,
                     attributes: List = ...,
                     **kwargs: Any) -> None: ...
+    def get_item_id_by_uuid(self, uuid: Text) -> Text: ...
+    def get_launch_info(self) -> Dict: ...
+    def get_launch_ui_id(self) -> Optional[Dict]: ...
+    def get_launch_ui_url(self) -> Text: ...
     def get_project_settings(self) -> Dict: ...
     def log(self,
             time: Text,
@@ -50,7 +53,7 @@ class RPClient:
                      name: Text,
                      start_time: Text,
                      description: Text = ...,
-                     attributes: List = ...,
+                     attributes: Optional[Union[List, Dict]] = ...,
                      mode: Text = ...,
                      rerun: bool = ...,
                      rerun_of: Text = ...,
@@ -60,10 +63,11 @@ class RPClient:
                    start_time: Text,
                    item_type: Text,
                    description: Text = ...,
-                   attributes: List = ...,
-                   parameters: dict = ...,
+                   attributes: Optional[Union[List, Dict]] = ...,
+                   parameters: Dict = ...,
                    parent_item_id: Text = ...,
                    has_stats: bool = ...,
                    code_ref: Text = ...,
                    **kwargs: Any) -> Text: ...
     def terminate(self, *args: Tuple, **kwargs: Any) -> None: ...
+    def update_test_item(self, item_uuid: Text, attributes: Optional[Union[List, Dict]], description: Optional[Text]):
