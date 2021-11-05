@@ -137,8 +137,7 @@ class LaunchStartRequest(RPRequestBase):
                  description=None,
                  mode='default',
                  rerun=False,
-                 rerun_of=None,
-                 uuid=None):
+                 rerun_of=None):
         """Initialize instance attributes.
 
         :param name:        Name of the launch
@@ -149,7 +148,6 @@ class LaunchStartRequest(RPRequestBase):
         :param rerun:       Rerun mode. Allowable values 'True' of 'False'
         :param rerun_of:    Rerun mode. Specifies launch to be re-runned. Uses
                             with the 'rerun' attribute.
-        :param uuid:        Launch uuid (string identifier)
         """
         super(LaunchStartRequest, self).__init__()
         self.attributes = attributes
@@ -159,7 +157,6 @@ class LaunchStartRequest(RPRequestBase):
         self.rerun = rerun
         self.rerun_of = rerun_of
         self.start_time = start_time
-        self.uuid = uuid
 
     @property
     def payload(self):
@@ -173,8 +170,7 @@ class LaunchStartRequest(RPRequestBase):
             'name': self.name,
             'rerun': self.rerun,
             'rerunOf': self.rerun_of,
-            'startTime': self.start_time,
-            'uuid': self.uuid
+            'startTime': self.start_time
         }
 
 
@@ -235,6 +231,7 @@ class ItemStartRequest(RPRequestBase):
                  has_stats=True,
                  parameters=None,
                  retry=False,
+                 test_case_id=None,
                  uuid=None,
                  unique_id=None):
         """Initialize instance attributes.
@@ -255,6 +252,7 @@ class ItemStartRequest(RPRequestBase):
         :param parameters:  Set of parameters (for parametrized test items)
         :param retry:       Used to report retry of the test. Allowable values:
                             "True" or "False"
+        :param test_case_id:Test case ID from integrated TMS
         :param uuid:        Test item UUID (auto generated)
         :param unique_id:   Test item ID (auto generated)
         """
@@ -268,6 +266,7 @@ class ItemStartRequest(RPRequestBase):
         self.parameters = parameters
         self.retry = retry
         self.start_time = start_time
+        self.test_case_id = test_case_id
         self.type_ = type_
         self.uuid = uuid
         self.unique_id = unique_id
@@ -289,7 +288,8 @@ class ItemStartRequest(RPRequestBase):
             'parameters': self.parameters,
             'retry': self.retry,
             'startTime': self.start_time,
-            'type': self.type_,
+            'testCaseId': self.test_case_id,
+            'type': self.type_
         }
 
 
@@ -350,7 +350,7 @@ class ItemFinishRequest(RPRequestBase):
             'description': self.description,
             'endTime': self.end_time,
             'issue': getattr(self.issue, 'payload', issue_payload),
-            'launch_uuid': self.launch_uuid,
+            'launchUuid': self.launch_uuid,
             'status': self.status,
             'retry': self.retry
         }

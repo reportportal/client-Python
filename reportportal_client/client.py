@@ -107,6 +107,7 @@ class RPClient(object):
         response = HttpRequest(self.session.put, url=url, json=request_payload,
                                verify_ssl=self.verify_ssl).make()
         logger.debug('finish_launch - ID: %s', self.launch_id)
+        logger.debug('response message: %s', response.message)
         return response.message
 
     def finish_test_item(self,
@@ -144,12 +145,10 @@ class RPClient(object):
             issue=issue,
             retry=retry
         ).payload
-        from pprint import pprint
-        print(item_id)
-        pprint(request_payload)
         response = HttpRequest(self.session.put, url=url, json=request_payload,
                                verify_ssl=self.verify_ssl).make()
         logger.debug('finish_test_item - ID: %s', item_id)
+        logger.debug('response message: %s', response.message)
         return response.message
 
     def get_item_id_by_uuid(self, uuid):
@@ -166,8 +165,6 @@ class RPClient(object):
     def get_launch_info(self):
         """Get the current launch information.
 
-        Perform "max_retries" attempts to get current launch information
-        with 0.5 second sleep between them.
         :return dict: Launch information in dictionary
         """
         if self.launch_id is None:
@@ -196,7 +193,6 @@ class RPClient(object):
     def get_launch_ui_url(self):
         """Get UI URL of the current launch.
 
-        If UI ID can`t be found after max_retries, return URL of all launches.
         :return: launch URL or all launches URL.
         """
         ui_id = self.get_launch_ui_id() or ''
@@ -315,7 +311,6 @@ class RPClient(object):
             parameters=parameters,
             retry=retry
         ).payload
-        print(url)
         response = HttpRequest(self.session.post,
                                url=url,
                                json=request_payload,
