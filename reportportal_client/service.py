@@ -15,15 +15,14 @@ limitations under the License.
 """
 
 import json
-from time import sleep
-
-import requests
-import uuid
 import logging
-
+import requests
 import six
-from six.moves.collections_abc import Mapping
+import uuid
 from requests.adapters import HTTPAdapter
+from six.moves.collections_abc import Mapping
+from threading import current_thread
+from time import sleep
 
 from .errors import ResponseError, EntryCreatedError, OperationCompletionError
 from .helpers import verify_value_length
@@ -188,7 +187,7 @@ class ReportPortalService(object):
                            connections to save in the pool.
 
         """
-        self._batch_logs = []
+        self._batch_logs = {}
         self.endpoint = endpoint
         self.log_batch_size = log_batch_size
         self.project = project
@@ -205,32 +204,25 @@ class ReportPortalService(object):
                 max_retries=retries, pool_maxsize=max_pool_size))
         self.session.headers["Authorization"] = "Bearer {0}".format(self.token)
         self.launch_id = kwargs.get('launch_id')
+        self.launch_uuid = None
         self.launch_name = None
         self.launch_number = None
         self.verify_ssl = verify_ssl
 
         if self.launch_id:
-            self.update_launch_name_and_number()
+            self.update_launch_info()
 
-    def update_launch_name_and_number(self):
+    def update_launch_info(self):
         """
         This method updates the self.launch_name and self.launch_number attributes according to the self.launch_id
         """
-        url = uri_join(self.base_url_v1, "launch", self.launch_id)
-        logger.debug(f"Updating the RP Launch '{self.launch_id}' by issuing the GET request as following:\n"
-                     f"URL: {url}")
-        # Sometimes it takes a while for the RP launch to be fully created so we need to wait a bit and retry in case
-        # we get Response 404 from the ReportPortal server
-        for _ in range(5):
-            r = self.session.get(url=url)
-            if r.status_code == 200:
-                break
-            sleep(1)
-        else:
-            raise ResponseError(f"Could not get the information about the ReportPortal Launch '{self.launch_id}'")
-        launch_info = _get_data(r)
+        launch_info = self.get_launch_info(is_by_uuid=self.launch_uuid is not None)
         self.launch_name = launch_info['name']
         self.launch_number = launch_info['number']
+        if not self.launch_id:
+            self.launch_id = launch_info['id']
+        else:
+            self.launch_uuid = launch_info['uuid']
 
     def terminate(self, *args, **kwargs):
         """Call this to terminate the service."""
@@ -259,11 +251,21 @@ class ReportPortalService(object):
             "rerunOf": rerunOf
         }
         url = uri_join(self.base_url_v2, "launch")
-        r = self.session.post(url=url, json=data, verify=self.verify_ssl)
-        self.launch_id = _get_id(r)
-        self.update_launch_name_and_number()
-        logger.debug("start_launch - ID: %s", self.launch_id)
-        return self.launch_id
+        max_launch_creation_retries = 5
+        for _ in range(max_launch_creation_retries):
+            r = self.session.post(url=url, json=data, verify=self.verify_ssl)
+            self.launch_uuid = _get_id(r)
+            try:
+                self.update_launch_info()
+                break
+            except KeyError:
+                logger.error("Failed to create start a new launch - retrying launch creation")
+                sleep(0.5)
+        else:
+            raise ResponseError(f"Failed to properly create launch under the ReportPortal server - attempted "
+                                f"{max_launch_creation_retries} times and failed")
+        logger.debug("start_launch - UUID: %s", self.launch_uuid)
+        return self.launch_uuid
 
     def finish_launch(self, end_time, status=None, attributes=None, **kwargs):
         """Finish a launch with the given parameters.
@@ -282,27 +284,34 @@ class ReportPortalService(object):
             "status": status,
             "attributes": verify_value_length(attributes)
         }
-        url = uri_join(self.base_url_v2, "launch", self.launch_id, "finish")
+        url = uri_join(self.base_url_v2, "launch", self.launch_uuid, "finish")
         r = self.session.put(url=url, json=data, verify=self.verify_ssl)
-        logger.debug("finish_launch - ID: %s", self.launch_id)
+        logger.debug("finish_launch - ID: %s", self.launch_uuid)
         return _get_msg(r)
 
-    def get_launch_info(self, max_retries=5):
+    def get_launch_info(self, max_retries=5, is_by_uuid=True):
         """Get the current launch information.
 
         Perform "max_retries" attempts to get current launch information
         with 0.5 second sleep between them.
 
         :param int max_retries: Number of retries to get launch information.
+        :param is_by_uuid: A flag which indicates if the REST-API URL that we use to fetch the launch information is
+                           composed from the launch uuid or the launch id
         :return dict: launch information
         """
-        if self.launch_id is None:
+        if all(attr is None for attr in [self.launch_id, self.launch_uuid]):
             return {}
 
-        url = uri_join(self.base_url_v1, "launch/uuid", self.launch_id)
+        if is_by_uuid:
+            url = uri_join(self.base_url_v1, "launch/uuid", self.launch_uuid)
+            logger_msg = "get_launch_info - UUID: %s" % self.launch_uuid
+        else:
+            url = uri_join(self.base_url_v1, "launch", self.launch_id)
+            logger_msg = "get_launch_info - ID: %s" % self.launch_id
 
         for _ in range(max_retries):
-            logger.debug("get_launch_info - ID: %s", self.launch_id)
+            logger.debug(logger_msg)
             resp = self.session.get(url=url, verify=self.verify_ssl)
 
             if resp.status_code == 200:
@@ -338,7 +347,7 @@ class ReportPortalService(object):
         ui_id = self.get_launch_ui_id(max_retries=max_retries) or ""
         path = "ui/#{0}/launches/all/{1}".format(self.project, ui_id)
         url = uri_join(self.endpoint, path)
-        logger.debug("get_launch_ui_url - ID: %s", self.launch_id)
+        logger.debug("get_launch_ui_url - UUID: %s", self.launch_uuid)
         return url
 
     def start_test_item(self,
@@ -378,7 +387,7 @@ class ReportPortalService(object):
             "description": description,
             "attributes": verify_value_length(attributes),
             "startTime": start_time,
-            "launchUuid": self.launch_id,
+            "launchUuid": self.launch_uuid,
             "type": item_type,
             "parameters": parameters,
             "hasStats": has_stats,
@@ -443,7 +452,7 @@ class ReportPortalService(object):
             "endTime": end_time,
             "status": status,
             "issue": issue,
-            "launchUuid": self.launch_id,
+            "launchUuid": self.launch_uuid,
             "attributes": verify_value_length(attributes)
         }
         url = uri_join(self.base_url_v2, "item", item_id)
@@ -472,7 +481,7 @@ class ReportPortalService(object):
         logger.debug("settings")
         return _get_json(r)
 
-    def log(self, time, message, level=None, attachment=None, item_id=None):
+    def log(self, time, message, thread_id, level=None, attachment=None, item_id=None):
         """
         Create log for test.
 
@@ -481,11 +490,13 @@ class ReportPortalService(object):
         :param level:
         :param attachment: files
         :param item_id:  id of item
+        :param thread_id: The id of the thread which the log was written under
         :return: id of item from response
         """
         data = {
-            "launchUuid": self.launch_id,
+            "launchUuid": self.launch_uuid,
             "time": time,
+            'thread_id': thread_id,
             "message": message,
             "level": level,
         }
@@ -512,15 +523,19 @@ class ReportPortalService(object):
                  stored in self._batch_logs immediately
         """
         if log_data:
-            self._batch_logs.append(log_data)
+            self._batch_logs.setdefault(log_data.pop('thread_id'), []).append(log_data)
 
-        if len(self._batch_logs) < self.log_batch_size and not force:
+        current_thread_id = current_thread().ident
+
+        if len(self._batch_logs.get(current_thread_id, [])) < self.log_batch_size and not force:
             return
 
         url = uri_join(self.base_url_v2, "log")
         attachments = []
-        for log_item in self._batch_logs:
-            log_item["launchUuid"] = self.launch_id
+        total_logs_to_post = []
+        for log_item in self._batch_logs.get(current_thread_id, []):
+            total_logs_to_post.append(log_item)
+            log_item["launchUuid"] = self.launch_uuid
             attachment = log_item.pop("attachment", None)
             if attachment:
                 if not isinstance(attachment, Mapping):
@@ -534,10 +549,13 @@ class ReportPortalService(object):
                     attachment.get("mime", "application/octet-stream")
                 )))
 
+        if not total_logs_to_post:
+            return
+
         files = [(
             "json_request_part", (
                 None,
-                json.dumps(self._batch_logs),
+                json.dumps(total_logs_to_post),
                 "application/json"
             )
         )]
@@ -550,7 +568,7 @@ class ReportPortalService(object):
                     verify=self.verify_ssl
                 )
                 logger.debug("log_batch response: %s", r.text)
-                self._batch_logs = []
+                self._batch_logs.pop(current_thread_id, None)
                 return _get_data(r)
             except KeyError:
                 if i + 1 == POST_LOGBATCH_RETRY_COUNT:
