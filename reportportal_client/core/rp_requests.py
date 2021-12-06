@@ -24,6 +24,7 @@ import uuid
 
 from reportportal_client.core.rp_file import RPFile
 from reportportal_client.core.rp_issues import Issue
+from reportportal_client.helpers import dict_to_payload
 from reportportal_client.static.abstract import (
     AbstractBaseClass,
     abstractmethod
@@ -136,8 +137,7 @@ class LaunchStartRequest(RPRequestBase):
                  description=None,
                  mode='default',
                  rerun=False,
-                 rerun_of=None,
-                 uuid=None):
+                 rerun_of=None):
         """Initialize instance attributes.
 
         :param name:        Name of the launch
@@ -148,7 +148,6 @@ class LaunchStartRequest(RPRequestBase):
         :param rerun:       Rerun mode. Allowable values 'True' of 'False'
         :param rerun_of:    Rerun mode. Specifies launch to be re-runned. Uses
                             with the 'rerun' attribute.
-        :param uuid:        Launch uuid (string identifier)
         """
         super(LaunchStartRequest, self).__init__()
         self.attributes = attributes
@@ -158,11 +157,12 @@ class LaunchStartRequest(RPRequestBase):
         self.rerun = rerun
         self.rerun_of = rerun_of
         self.start_time = start_time
-        self.uuid = uuid
 
     @property
     def payload(self):
         """Get HTTP payload for the request."""
+        if self.attributes and isinstance(self.attributes, dict):
+            self.attributes = dict_to_payload(self.attributes)
         return {
             'attributes': self.attributes,
             'description': self.description,
@@ -170,8 +170,7 @@ class LaunchStartRequest(RPRequestBase):
             'name': self.name,
             'rerun': self.rerun,
             'rerunOf': self.rerun_of,
-            'startTime': self.start_time,
-            'uuid': self.uuid
+            'startTime': self.start_time
         }
 
 
@@ -205,6 +204,8 @@ class LaunchFinishRequest(RPRequestBase):
     @property
     def payload(self):
         """Get HTTP payload for the request."""
+        if self.attributes and isinstance(self.attributes, dict):
+            self.attributes = dict_to_payload(self.attributes)
         return {
             'attributes': self.attributes,
             'description': self.description,
@@ -230,6 +231,7 @@ class ItemStartRequest(RPRequestBase):
                  has_stats=True,
                  parameters=None,
                  retry=False,
+                 test_case_id=None,
                  uuid=None,
                  unique_id=None):
         """Initialize instance attributes.
@@ -250,6 +252,7 @@ class ItemStartRequest(RPRequestBase):
         :param parameters:  Set of parameters (for parametrized test items)
         :param retry:       Used to report retry of the test. Allowable values:
                             "True" or "False"
+        :param test_case_id:Test case ID from integrated TMS
         :param uuid:        Test item UUID (auto generated)
         :param unique_id:   Test item ID (auto generated)
         """
@@ -263,6 +266,7 @@ class ItemStartRequest(RPRequestBase):
         self.parameters = parameters
         self.retry = retry
         self.start_time = start_time
+        self.test_case_id = test_case_id
         self.type_ = type_
         self.uuid = uuid
         self.unique_id = unique_id
@@ -270,6 +274,10 @@ class ItemStartRequest(RPRequestBase):
     @property
     def payload(self):
         """Get HTTP payload for the request."""
+        if self.attributes and isinstance(self.attributes, dict):
+            self.attributes = dict_to_payload(self.attributes)
+        if self.parameters:
+            self.parameters = dict_to_payload(self.parameters)
         return {
             'attributes': self.attributes,
             'codeRef': self.code_ref,
@@ -280,7 +288,8 @@ class ItemStartRequest(RPRequestBase):
             'parameters': self.parameters,
             'retry': self.retry,
             'startTime': self.start_time,
-            'type': self.type_,
+            'testCaseId': self.test_case_id,
+            'type': self.type_
         }
 
 
@@ -296,27 +305,31 @@ class ItemFinishRequest(RPRequestBase):
                  status,
                  attributes=None,
                  description=None,
+                 is_skipped_an_issue=True,
                  issue=None,
                  retry=False):
         """Initialize instance attributes.
 
-        :param end_time:    Test item end time
-        :param launch_uuid: Parent launch UUID
-        :param status:      Test status. Allowable values: "passed",
-                            "failed", "stopped", "skipped", "interrupted",
-                            "cancelled"
-        :param attributes:  Test item attributes(tags). Pairs of key and value.
-                            Overrides attributes on start
-        :param description: Test item description. Overrides description
-                            from start request.
-        :param issue:       Issue of the current test item
-        :param retry:       Used to report retry of the test. Allowable values:
-                           "True" or "False"
+        :param end_time:            Test item end time
+        :param launch_uuid:         Parent launch UUID
+        :param status:              Test status. Allowable values: "passed",
+                                    "failed", "stopped", "skipped",
+                                    "interrupted", "cancelled".
+        :param attributes:          Test item attributes(tags). Pairs of key
+                                    and value. Overrides attributes on start
+        :param description:         Test item description. Overrides
+                                    description from start request.
+        :param is_skipped_an_issue: Option to mark skipped tests as not
+                                    'To Investigate' items in UI
+        :param issue:               Issue of the current test item
+        :param retry:               Used to report retry of the test.
+                                    Allowable values: "True" or "False"
         """
         super(ItemFinishRequest, self).__init__()
         self.attributes = attributes
         self.description = description
         self.end_time = end_time
+        self.is_skipped_an_issue = is_skipped_an_issue
         self.issue = issue  # type: Issue
         self.launch_uuid = launch_uuid
         self.status = status
@@ -325,12 +338,19 @@ class ItemFinishRequest(RPRequestBase):
     @property
     def payload(self):
         """Get HTTP payload for the request."""
+        if self.attributes and isinstance(self.attributes, dict):
+            self.attributes = dict_to_payload(self.attributes)
+        if self.issue is None and self.status.lower() == 'skipped' and not \
+                self.is_skipped_an_issue:
+            issue_payload = {'issue_type': 'NOT_ISSUE'}
+        else:
+            issue_payload = None
         return {
             'attributes': self.attributes,
             'description': self.description,
             'endTime': self.end_time,
-            'issue': self.issue.payload,
-            'launch_uuid': self.launch_uuid,
+            'issue': getattr(self.issue, 'payload', issue_payload),
+            'launchUuid': self.launch_uuid,
             'status': self.status,
             'retry': self.retry
         }

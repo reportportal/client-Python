@@ -15,18 +15,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import logging
-
 import requests
 from requests.adapters import HTTPAdapter
 
 from reportportal_client.core.log_manager import LogManager
-from reportportal_client.core.test_manager import TestManager
 from reportportal_client.core.rp_requests import (
     HttpRequest,
+    ItemStartRequest,
+    ItemFinishRequest,
     LaunchStartRequest,
     LaunchFinishRequest
 )
-from reportportal_client.helpers import uri_join
+from reportportal_client.helpers import uri_join, verify_value_length
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
@@ -83,8 +83,6 @@ class RPClient(object):
         self._log_manager = LogManager(
             self.endpoint, self.session, self.api_v2, self.launch_id,
             self.project, log_batch_size=log_batch_size)
-        self._test_manager = TestManager(
-            self.session, self.endpoint, project, self.launch_id)
 
     def finish_launch(self,
                       end_time,
@@ -101,14 +99,15 @@ class RPClient(object):
         """
         url = uri_join(self.base_url_v2, 'launch', self.launch_id, 'finish')
         request_payload = LaunchFinishRequest(
-            end_time=end_time,
+            end_time,
             status=status,
             attributes=attributes,
-            **kwargs
+            description=kwargs.get('description')
         ).payload
         response = HttpRequest(self.session.put, url=url, json=request_payload,
                                verify_ssl=self.verify_ssl).make()
         logger.debug('finish_launch - ID: %s', self.launch_id)
+        logger.debug('response message: %s', response.message)
         return response.message
 
     def finish_test_item(self,
@@ -117,33 +116,100 @@ class RPClient(object):
                          status,
                          issue=None,
                          attributes=None,
+                         description=None,
+                         retry=False,
                          **kwargs):
         """Finish suite/case/step/nested step item.
 
-        :param item_id:    id of the test item
-        :param end_time:   time in UTC format
-        :param status:     status of the test
-        :param issue:      description of an issue
-        :param attributes: list of attributes
-        :param kwargs:     other parameters
-        :return:           json message
+        :param item_id:     ID of the test item
+        :param end_time:    Test item end time
+        :param status:      Test status. Allowable values: "passed",
+                            "failed", "stopped", "skipped", "interrupted",
+                            "cancelled"
+        :param attributes:  Test item attributes(tags). Pairs of key and value.
+                            Overrides attributes on start
+        :param description: Test item description. Overrides description
+                            from start request.
+        :param issue:       Issue of the current test item
+        :param retry:       Used to report retry of the test. Allowable values:
+                           "True" or "False"
         """
-        self._test_manager.finish_test_item(self.api_v2,
-                                            item_id,
-                                            end_time,
-                                            status,
-                                            issue=issue,
-                                            attributes=attributes,
-                                            **kwargs)
+        url = uri_join(self.base_url_v2, 'item', item_id)
+        request_payload = ItemFinishRequest(
+            end_time,
+            self.launch_id,
+            status,
+            attributes=attributes,
+            description=description,
+            is_skipped_an_issue=self.is_skipped_an_issue,
+            issue=issue,
+            retry=retry
+        ).payload
+        response = HttpRequest(self.session.put, url=url, json=request_payload,
+                               verify_ssl=self.verify_ssl).make()
+        logger.debug('finish_test_item - ID: %s', item_id)
+        logger.debug('response message: %s', response.message)
+        return response.message
+
+    def get_item_id_by_uuid(self, uuid):
+        """Get test item ID by the given UUID.
+
+        :param uuid: UUID returned on the item start
+        :return:     Test item ID
+        """
+        url = uri_join(self.base_url_v1, 'item', 'uuid', uuid)
+        response = HttpRequest(self.session.get, url=url,
+                               verify_ssl=self.verify_ssl).make()
+        return response.id
+
+    def get_launch_info(self):
+        """Get the current launch information.
+
+        :return dict: Launch information in dictionary
+        """
+        if self.launch_id is None:
+            return {}
+        url = uri_join(self.base_url_v1, 'launch', 'uuid', self.launch_id)
+        logger.debug('get_launch_info - ID: %s', self.launch_id)
+        response = HttpRequest(self.session.get, url=url,
+                               verify_ssl=self.verify_ssl).make()
+        if response.is_success:
+            launch_info = response.json
+            logger.debug(
+                'get_launch_info - Launch info: %s', response.json)
+        else:
+            logger.warning('get_launch_info - Launch info: '
+                           'Failed to fetch launch ID from the API.')
+            launch_info = {}
+        return launch_info
+
+    def get_launch_ui_id(self):
+        """Get UI ID of the current launch.
+
+        :return: UI ID of the given launch. None if UI ID has not been found.
+        """
+        return self.get_launch_info().get('id')
+
+    def get_launch_ui_url(self):
+        """Get UI URL of the current launch.
+
+        :return: launch URL or all launches URL.
+        """
+        ui_id = self.get_launch_ui_id() or ''
+        path = 'ui/#{0}/launches/all/{1}'.format(self.project, ui_id)
+        url = uri_join(self.endpoint, path)
+        logger.debug('get_launch_ui_url - ID: %s', self.launch_id)
+        return url
 
     def get_project_settings(self):
-        """Get settings from project.
+        """Get project settings.
 
-        :return: json body
+        :return: HTTP response in dictionary
         """
         url = uri_join(self.base_url_v1, 'settings')
-        r = self.session.get(url=url, json={}, verify=self.verify_ssl)
-        return r.json()
+        response = HttpRequest(self.session.get, url=url, json={},
+                               verify_ssl=self.verify_ssl).make()
+        return response.json
 
     def log(self, time, message, level=None, attachment=None, item_id=None):
         """Send log message to the Report Portal.
@@ -168,8 +234,7 @@ class RPClient(object):
                      mode=None,
                      rerun=False,
                      rerun_of=None,
-                     **kwargs
-                     ):
+                     **kwargs):
         """Start a new launch with the given parameters.
 
         :param name:        Launch name
@@ -189,14 +254,14 @@ class RPClient(object):
             description=description,
             mode=mode,
             rerun=rerun,
-            rerun_of=rerun_of,
+            rerun_of=rerun_of or kwargs.get('rerunOf'),
             **kwargs
         ).payload
         response = HttpRequest(self.session.post,
                                url=url,
                                json=request_payload,
                                verify_ssl=self.verify_ssl).make()
-        self._test_manager.launch_id = self.launch_id = response.id
+        self._log_manager.launch_id = self.launch_id = response.id
         logger.debug('start_launch - ID: %s', self.launch_id)
         return self.launch_id
 
@@ -210,31 +275,68 @@ class RPClient(object):
                         parent_item_id=None,
                         has_stats=True,
                         code_ref=None,
+                        retry=False,
                         **kwargs):
         """Start case/step/nested step item.
 
-        :param name:            Name of test item
-        :param start_time:      Test item start time
-        :param item_type:       Type of test item
-        :param description:     Test item description
-        :param attributes:      Test item attributes
-        :param parameters:      Test item parameters
-        :param parent_item_id:  Parent test item UUID
-        :param has_stats:       Does test item has stats or not
-        :param code_ref:        Test item code reference
+        :param name:        Name of the test item
+        :param start_time:  Test item start time
+        :param item_type:   Type of the test item. Allowable values: "suite",
+                            "story", "test", "scenario", "step",
+                            "before_class", "before_groups", "before_method",
+                            "before_suite", "before_test", "after_class",
+                            "after_groups", "after_method", "after_suite",
+                            "after_test"
+        :param attributes:  Test item attributes
+        :param code_ref:    Physical location of the test item
+        :param description: Test item description
+        :param has_stats:   Set to False if test item is nested step
+        :param parameters:  Set of parameters (for parametrized test items)
+        :param retry:       Used to report retry of the test. Allowable values:
+                            "True" or "False"
         """
-        return self._test_manager.start_test_item(self.api_v2,
-                                                  name,
-                                                  start_time,
-                                                  item_type,
-                                                  description=description,
-                                                  attributes=attributes,
-                                                  parameters=parameters,
-                                                  parent_uuid=parent_item_id,
-                                                  has_stats=has_stats,
-                                                  code_ref=code_ref,
-                                                  **kwargs)
+        if parent_item_id:
+            url = uri_join(self.base_url_v2, 'item', parent_item_id)
+        else:
+            url = uri_join(self.base_url_v2, 'item')
+        request_payload = ItemStartRequest(
+            name,
+            start_time,
+            item_type,
+            self.launch_id,
+            attributes=verify_value_length(attributes),
+            code_ref=code_ref,
+            description=description,
+            has_stats=has_stats,
+            parameters=parameters,
+            retry=retry
+        ).payload
+        response = HttpRequest(self.session.post,
+                               url=url,
+                               json=request_payload,
+                               verify_ssl=self.verify_ssl).make()
+        logger.debug('start_test_item - ID: %s', response.id)
+        return response.id
 
     def terminate(self, *args, **kwargs):
         """Call this to terminate the client."""
         self._log_manager.stop()
+
+    def update_test_item(self, item_uuid, attributes=None, description=None):
+        """Update existing test item at the Report Portal.
+
+        :param str item_uuid:   Test item UUID returned on the item start
+        :param str description: Test item description
+        :param list attributes: Test item attributes
+                                [{'key': 'k_name', 'value': 'k_value'}, ...]
+        """
+        data = {
+            'description': description,
+            'attributes': verify_value_length(attributes),
+        }
+        item_id = self.get_item_id_by_uuid(item_uuid)
+        url = uri_join(self.base_url_v1, 'item', item_id, 'update')
+        response = HttpRequest(self.session.put, url=url, json=data,
+                               verify_ssl=self.verify_ssl).make()
+        logger.debug('update_test_item - Item: %s', item_id)
+        return response.message

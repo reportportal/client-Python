@@ -102,8 +102,8 @@ class RPResponse(object):
 
     @property
     def message(self):
-        """Get value of the 'msg' key."""
-        return self.json.get('msg', NOT_FOUND)
+        """Get value of the 'message' key."""
+        return self.json.get('message', NOT_FOUND)
 
     @property
     def messages(self):
