@@ -16,8 +16,6 @@ import logging
 from threading import Lock
 from time import sleep
 
-from six.moves import queue
-
 from reportportal_client.core.rp_requests import (
     HttpRequest,
     RPFile,
