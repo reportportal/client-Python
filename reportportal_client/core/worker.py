@@ -44,8 +44,7 @@ class APIWorker(object):
     """Worker that makes non-blocking HTTP requests to the Report Portal."""
 
     def __init__(self):
-        """Initialize instance attributes.
-        """
+        """Initialize instance attributes."""
         self._queue = queue.Queue()
         self._thread = None
         self.name = self.__class__.__name__
@@ -120,7 +119,6 @@ class APIWorker(object):
         This method process everything in worker's queue first, ignoring
         commands and terminates thread only after.
         """
-
         request = self._command_get()
         while request is not None:
             if not isinstance(request, ControlCommand):
@@ -135,7 +133,6 @@ class APIWorker(object):
         Note that if you don't call this before your application exits, there
         may be some records still left on the queue, which won't be processed.
         """
-
         if self._thread.is_alive() and self._thread is not currentThread():
             self._thread.join()
         self._thread = None
