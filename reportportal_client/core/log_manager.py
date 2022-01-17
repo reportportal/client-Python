@@ -51,8 +51,6 @@ class LogManager(object):
         self._logs_batch = []
         self._worker = None
         self.api_version = api_version
-        self.command_queue = queue.Queue()
-        self.data_queue = queue.PriorityQueue()
         self.launch_id = launch_id
         self.log_batch_size = log_batch_size
         self.project_name = project_name
@@ -102,7 +100,7 @@ class LogManager(object):
     def start(self):
         """Create a new instance of the Worker class and start it."""
         if not self._worker:
-            self._worker = APIWorker(self.command_queue, self.data_queue)
+            self._worker = APIWorker()
             self._worker.start()
 
     def stop(self):
