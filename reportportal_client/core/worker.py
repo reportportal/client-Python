@@ -57,7 +57,7 @@ class APIWorker(object):
     def _command_get(self):
         """Get control command from the control queue."""
         try:
-            cmd = self._cmd_queue.get_nowait()
+            cmd = self._cmd_queue.get(timeout=0.1)
             logger.debug('[%s] Received {%s} command', self.name, cmd)
             return cmd
         except queue.Empty:
@@ -108,7 +108,7 @@ class APIWorker(object):
     def _request_get(self):
         """Get response object from the data queue."""
         try:
-            request = self._data_queue.get_nowait()
+            request = self._data_queue.get(timeout=0.1)
             logger.debug('[%s] Received {%s} request', self.name, request)
             return request
         except queue.Empty:

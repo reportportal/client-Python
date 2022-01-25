@@ -49,6 +49,7 @@ class RPClient:
             level: Optional[Union[int, Text]] = ...,
             attachment: Optional[Dict] = ...,
             item_id: Optional[Text] = ...) -> None: ...
+    def start(self) -> None: ...
     def start_launch(self,
                      name: Text,
                      start_time: Text,
