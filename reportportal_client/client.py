@@ -15,6 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import logging
+
 import requests
 from requests.adapters import HTTPAdapter
 
@@ -276,24 +277,27 @@ class RPClient(object):
                         has_stats=True,
                         code_ref=None,
                         retry=False,
+                        test_case_id=None,
                         **kwargs):
         """Start case/step/nested step item.
 
-        :param name:        Name of the test item
-        :param start_time:  Test item start time
-        :param item_type:   Type of the test item. Allowable values: "suite",
-                            "story", "test", "scenario", "step",
-                            "before_class", "before_groups", "before_method",
-                            "before_suite", "before_test", "after_class",
-                            "after_groups", "after_method", "after_suite",
-                            "after_test"
-        :param attributes:  Test item attributes
-        :param code_ref:    Physical location of the test item
-        :param description: Test item description
-        :param has_stats:   Set to False if test item is nested step
-        :param parameters:  Set of parameters (for parametrized test items)
-        :param retry:       Used to report retry of the test. Allowable values:
-                            "True" or "False"
+        :param name:           Name of the test item
+        :param start_time:     Test item start time
+        :param item_type:      Type of the test item. Allowable values:
+                               "suite", "story", "test", "scenario", "step",
+                               "before_class", "before_groups",
+                               "before_method", "before_suite",
+                               "before_test", "after_class", "after_groups",
+                               "after_method", "after_suite", "after_test"
+        :param attributes:     Test item attributes
+        :param code_ref:       Physical location of the test item
+        :param description:    Test item description
+        :param has_stats:      Set to False if test item is nested step
+        :param parameters:     Set of parameters (for parametrized test items)
+        :param parent_item_id: An ID of a parent SUITE / STEP
+        :param retry:          Used to report retry of the test. Allowable
+                               values: "True" or "False"
+        :param test_case_id: A unique ID of the current step
         """
         if parent_item_id:
             url = uri_join(self.base_url_v2, 'item', parent_item_id)
@@ -309,7 +313,8 @@ class RPClient(object):
             description=description,
             has_stats=has_stats,
             parameters=parameters,
-            retry=retry
+            retry=retry,
+            test_case_id=test_case_id
         ).payload
         response = HttpRequest(self.session.post,
                                url=url,
