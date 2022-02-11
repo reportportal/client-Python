@@ -1,10 +1,10 @@
 """This module contains management functionality for processing logs.
 
-Copyright (c) 2018 http://reportportal.io .
+Copyright (c) 2018 https://reportportal.io .
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
-http://www.apache.org/licenses/LICENSE-2.0
+https://www.apache.org/licenses/LICENSE-2.0
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -15,6 +15,8 @@ limitations under the License.
 import logging
 from threading import Lock
 from time import sleep
+
+from six.moves import queue
 
 from reportportal_client.core.rp_requests import (
     HttpRequest,
@@ -49,6 +51,7 @@ class LogManager(object):
         self._logs_batch = []
         self._worker = None
         self.api_version = api_version
+        self.queue = queue.PriorityQueue()
         self.launch_id = launch_id
         self.log_batch_size = log_batch_size
         self.project_name = project_name
@@ -98,7 +101,7 @@ class LogManager(object):
     def start(self):
         """Create a new instance of the Worker class and start it."""
         if not self._worker:
-            self._worker = APIWorker()
+            self._worker = APIWorker(self.queue)
             self._worker.start()
 
     def stop(self):

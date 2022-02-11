@@ -41,18 +41,18 @@ class ControlCommand(Enum):
 
 
 class APIWorker(object):
-    """Worker that makes non-blocking HTTP requests to the Report Portal."""
+    """Worker that makes HTTP requests to the Report Portal."""
 
-    def __init__(self):
+    def __init__(self, task_queue):
         """Initialize instance attributes."""
-        self._queue = queue.Queue()
+        self._queue = task_queue
         self._thread = None
         self.name = self.__class__.__name__
 
     def _command_get(self):
         """Get command from the queue."""
         try:
-            cmd = self._queue.get(timeout=1)
+            cmd = self._queue.get(timeout=0.1)
             return cmd
         except queue.Empty:
             return None
