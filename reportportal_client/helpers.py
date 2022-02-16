@@ -1,10 +1,10 @@
 """This module contains common functions-helpers of the client and agents.
 
-Copyright (c) 2018 http://reportportal.io .
+Copyright (c) 2022 https://reportportal.io .
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
-http://www.apache.org/licenses/LICENSE-2.0
+https://www.apache.org/licenses/LICENSE-2.0
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -156,3 +156,50 @@ def uri_join(*uri_parts):
         An uri string.
     """
     return '/'.join(str(s).strip('/').strip('\\') for s in uri_parts)
+
+
+POSITIVE_STATUSES = ('PASSED', 'SKIPPED', 'STOPPED', 'INFO', 'WARN')
+
+
+def evaluate_status(current_status, child_status):
+    """Calculate an Item status according to its child and current status.
+
+    E.G.: SUITE-TEST or TEST-STEP.
+
+    Example 1:
+    - Current status: FAILED
+    - Child item status: SKIPPED
+    Result: FAILED
+
+    Example 2:
+    - Current status: PASSED
+    - Child item status: SKIPPED
+    Result: PASSED
+
+    Example 3:
+    - Current status: PASSED
+    - Child item status: FAILED
+    Result: FAILED
+
+    Example 4:
+    - Current status: SKIPPED
+    - Child item status: FAILED
+    Result: FAILED
+    """
+    if child_status is None:
+        return current_status
+    if current_status is None:
+        return child_status
+    if child_status in POSITIVE_STATUSES:
+        return current_status
+    if child_status == 'CANCELLED':
+        if current_status in POSITIVE_STATUSES:
+            return 'CANCELLED'
+        else:
+            return current_status
+    if child_status == 'INTERRUPTED':
+        if current_status in POSITIVE_STATUSES + tuple('CANCELLED'):
+            return 'INTERRUPTED'
+        else:
+            return current_status
+    return child_status

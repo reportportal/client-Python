@@ -1,12 +1,13 @@
 """This modules contains unit tests for the helpers module."""
-
+import pytest
 from six.moves import mock
 
 from reportportal_client.helpers import (
     gen_attributes,
     get_launch_sys_attrs,
     get_package_version,
-    verify_value_length
+    verify_value_length,
+    evaluate_status
 )
 
 
@@ -59,3 +60,16 @@ def test_verify_value_length():
     expected = [{'key': 'tn', 'value': 'v' * 128}, [1, 2],
                 {'value': 'tv2'}, {'value': 300}]
     assert verify_value_length(inputl) == expected
+
+
+@pytest.mark.parametrize(('current_status', 'child_status', 'expected_status'),
+                         [
+                             ('FAILED', 'SKIPPED', 'FAILED'),
+                             ('PASSED', 'SKIPPED', 'PASSED'),
+                             ('PASSED', 'FAILED', 'FAILED'),
+                             ('SKIPPED', 'FAILED', 'FAILED'),
+                             ('PASSED', 'INTERRUPTED', 'INTERRUPTED'),
+                             (None, 'SKIPPED', 'SKIPPED'),
+                         ])
+def test_satus_evaluation(current_status, child_status, expected_status):
+    assert evaluate_status(current_status, child_status) == expected_status
