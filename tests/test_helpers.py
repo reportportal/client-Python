@@ -72,4 +72,5 @@ def test_verify_value_length():
                              (None, 'SKIPPED', 'SKIPPED'),
                          ])
 def test_satus_evaluation(current_status, child_status, expected_status):
+    """Tests for verification of evaluate_status() function."""
     assert evaluate_status(current_status, child_status) == expected_status
