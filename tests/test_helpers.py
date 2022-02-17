@@ -1,13 +1,11 @@
 """This modules contains unit tests for the helpers module."""
-import pytest
 from six.moves import mock
 
 from reportportal_client.helpers import (
     gen_attributes,
     get_launch_sys_attrs,
     get_package_version,
-    verify_value_length,
-    evaluate_status
+    verify_value_length
 )
 
 
