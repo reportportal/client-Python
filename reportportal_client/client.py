@@ -114,7 +114,7 @@ class RPClient(object):
     def finish_test_item(self,
                          item_id,
                          end_time,
-                         status,
+                         status=None,
                          issue=None,
                          attributes=None,
                          description=None,
@@ -126,7 +126,7 @@ class RPClient(object):
         :param end_time:    Test item end time
         :param status:      Test status. Allowable values: "passed",
                             "failed", "stopped", "skipped", "interrupted",
-                            "cancelled"
+                            "cancelled" or None
         :param attributes:  Test item attributes(tags). Pairs of key and value.
                             Overrides attributes on start
         :param description: Test item description. Overrides description
