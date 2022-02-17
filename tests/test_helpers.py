@@ -60,17 +60,3 @@ def test_verify_value_length():
     expected = [{'key': 'tn', 'value': 'v' * 128}, [1, 2],
                 {'value': 'tv2'}, {'value': 300}]
     assert verify_value_length(inputl) == expected
-
-
-@pytest.mark.parametrize(('current_status', 'child_status', 'expected_status'),
-                         [
-                             ('FAILED', 'SKIPPED', 'FAILED'),
-                             ('PASSED', 'SKIPPED', 'PASSED'),
-                             ('PASSED', 'FAILED', 'FAILED'),
-                             ('SKIPPED', 'FAILED', 'FAILED'),
-                             ('PASSED', 'INTERRUPTED', 'INTERRUPTED'),
-                             (None, 'SKIPPED', 'SKIPPED'),
-                         ])
-def test_satus_evaluation(current_status, child_status, expected_status):
-    """Tests for verification of evaluate_status() function."""
-    assert evaluate_status(current_status, child_status) == expected_status
