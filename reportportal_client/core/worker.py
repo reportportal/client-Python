@@ -53,14 +53,14 @@ class APIWorker(object):
         """Get command from the queue."""
         try:
             cmd = self._queue.get(timeout=0.1)
-            return cmd
+            return cmd[1]
         except queue.Empty:
             return None
 
     def _command_process(self, cmd):
         """Process control command sent to the worker.
 
-        :param cmd: ControlCommand to be processed
+        :param cmd: a command to be processed
         """
         if not cmd:
             return  # No command received
@@ -144,16 +144,24 @@ class APIWorker(object):
         """
         return bool(self._thread)
 
+    def _put(self, priority, cmd):
+        """Put a command into the queue with specified priority.
+
+        :param priority: processing priority
+        :param cmd:      a command to be processed
+        """
+        self._queue.put((priority, cmd))
+
     def send_command(self, cmd):
         """Send control command to the worker queue."""
-        self._queue.put(cmd)
+        self._put(10, cmd)
 
     def send_request(self, request):
         """Send a request to the worker queue.
 
         :param request: RPRequest object
         """
-        self._queue.put(request)
+        self._put(1, request)
 
     def start(self):
         """Start the worker.
@@ -177,4 +185,4 @@ class APIWorker(object):
 
         Send the appropriate control command to the worker.
         """
-        self.send_command(ControlCommand.STOP_IMMEDIATE)
+        self._put(0, ControlCommand.STOP_IMMEDIATE)
