@@ -46,7 +46,7 @@ class ControlCommand(Enum):
         if self is ControlCommand.STOP_IMMEDIATE:
             return Priority.PRIORITY_IMMEDIATE
         else:
-            return Priority.PRIORITY_MEDIUM
+            return Priority.PRIORITY_LOW
 
     def __lt__(self, other):
         """Priority protocol for the PriorityQueue."""
