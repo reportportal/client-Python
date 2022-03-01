@@ -21,6 +21,8 @@ from threading import currentThread, Thread
 from aenum import auto, Enum, unique
 from six.moves import queue
 
+from static.defines import Priority
+
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
@@ -38,6 +40,17 @@ class ControlCommand(Enum):
     def is_stop_cmd(self):
         """Verify if the command is the stop one."""
         return self in (ControlCommand.STOP, ControlCommand.STOP_IMMEDIATE)
+
+    @property
+    def priority(self):
+        if self is ControlCommand.STOP_IMMEDIATE:
+            return Priority.PRIORITY_IMMEDIATE
+        else:
+            return Priority.PRIORITY_MEDIUM
+
+    def __lt__(self, other):
+        """Priority protocol for the PriorityQueue."""
+        return self.priority < other.priority
 
 
 class APIWorker(object):
@@ -152,16 +165,9 @@ class APIWorker(object):
         """
         self._queue.put((priority, cmd))
 
-    def send_command(self, cmd):
-        """Send control command to the worker queue."""
-        self._put(10, cmd)
-
-    def send_request(self, request):
-        """Send a request to the worker queue.
-
-        :param request: RPRequest object
-        """
-        self._put(1, request)
+    def send(self, entity):
+        """Send control command or a request to the worker queue."""
+        self._queue.put(entity)
 
     def start(self):
         """Start the worker.
@@ -178,11 +184,11 @@ class APIWorker(object):
 
         Send the appropriate control command to the worker.
         """
-        self.send_command(ControlCommand.STOP)
+        self.send(ControlCommand.STOP)
 
     def stop_immediate(self):
         """Stop the worker immediately.
 
         Send the appropriate control command to the worker.
         """
-        self._put(0, ControlCommand.STOP_IMMEDIATE)
+        self.send(ControlCommand.STOP_IMMEDIATE)

@@ -80,7 +80,7 @@ class LogManager(object):
             self.session.post, self._log_endpoint, files=batch.payload,
             verify_ssl=self.verify_ssl)
         batch.http_request = http_request
-        self._worker.send_request(batch)
+        self._worker.send(batch)
         self._logs_batch.clear()
 
     def log(self, time, message=None, level=None, attachment=None,
