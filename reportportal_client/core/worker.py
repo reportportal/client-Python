@@ -66,7 +66,7 @@ class APIWorker(object):
         """Get command from the queue."""
         try:
             cmd = self._queue.get(timeout=0.1)
-            return cmd[1]
+            return cmd
         except queue.Empty:
             return None
 
