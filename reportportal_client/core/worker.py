@@ -21,7 +21,7 @@ from threading import currentThread, Thread
 from aenum import auto, Enum, unique
 from six.moves import queue
 
-from static.defines import Priority
+from reportportal_client.static.defines import Priority
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
