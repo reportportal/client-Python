@@ -13,6 +13,7 @@ limitations under the License.
 """
 
 import logging
+import time
 from threading import Lock
 from time import sleep
 
@@ -26,8 +27,9 @@ from reportportal_client.core.rp_requests import (
 )
 from reportportal_client.core.worker import APIWorker
 
-
 logger = logging.getLogger(__name__)
+
+WAIT_TIMEOUT = 10  # Manager termination / wait timeout in seconds
 
 
 class LogManager(object):
@@ -101,8 +103,9 @@ class LogManager(object):
     def start(self):
         """Create a new instance of the Worker class and start it."""
         if not self._worker:
+            # the worker might be already created in case of deserialization
             self._worker = APIWorker(self.queue)
-            self._worker.start()
+        self._worker.start()
 
     def stop(self):
         """Send last batches to the worker followed by the stop command."""
@@ -113,8 +116,13 @@ class LogManager(object):
                 self._worker.stop()
                 logger.debug('Waiting for worker {0} to complete'
                              'processing batches.'.format(self._worker))
-                while self._worker.is_alive():
+                start_time = time.time()
+                while self._worker.is_alive() \
+                        and time.time() - start_time < WAIT_TIMEOUT:
                     sleep(0.1)
+                if time.time() - start_time >= WAIT_TIMEOUT:
+                    logger.warning(
+                        "Timed out waiting logger thread termination")
 
     def stop_force(self):
         """Send stop immediate command to the worker."""

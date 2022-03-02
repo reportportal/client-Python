@@ -14,6 +14,7 @@ from reportportal_client.core.worker import APIWorker as APIWorker
 from typing import Dict, List, Optional, Text
 
 logger: Logger
+WAIT_TIMEOUT: int
 
 class LogManager:
     _lock: Lock = ...

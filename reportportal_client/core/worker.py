@@ -19,12 +19,13 @@ import logging
 from threading import currentThread, Thread
 
 from aenum import auto, Enum, unique
-from six.moves import queue
-
 from reportportal_client.static.defines import Priority
+from six.moves import queue
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
+
+THREAD_TIMEOUT = 10  # Thread termination / wait timeout in seconds
 
 
 @unique
@@ -75,9 +76,6 @@ class APIWorker(object):
 
         :param cmd: a command to be processed
         """
-        if not cmd:
-            return  # No command received
-
         logger.debug('[%s] Processing {%s} command', self.name, cmd)
         if cmd == ControlCommand.REPORT_STATUS:
             logger.debug('[%s] Current status for tasks is: {%s} unfinished',
@@ -99,6 +97,8 @@ class APIWorker(object):
         """
         while True:
             cmd = self._command_get()
+            if not cmd:
+                continue  # No command received
 
             if isinstance(cmd, ControlCommand):
                 logger.debug('[%s] Received {%s} command', self.name, cmd)
@@ -113,16 +113,12 @@ class APIWorker(object):
 
     def _request_process(self, request):
         """Send request to RP and update response attribute of the request."""
-        if not request:
-            return  # No request received
-
         logger.debug('[%s] Processing {%s} request', self.name, request)
         try:
             request.response = request.http_request.make()
         except Exception as err:
-            logger.error('[%s] Unknown exception has occurred. Terminating the'
-                         'worker.')
-            logger.error(str(err))
+            logger.exception('[%s] Unknown exception has occurred. Terminating'
+                             ' the worker.', err)
             self.stop_immediate()
         self._queue.task_done()
 
@@ -147,7 +143,7 @@ class APIWorker(object):
         may be some records still left on the queue, which won't be processed.
         """
         if self._thread.is_alive() and self._thread is not currentThread():
-            self._thread.join()
+            self._thread.join(timeout=THREAD_TIMEOUT)
         self._thread = None
 
     def is_alive(self):
@@ -156,14 +152,6 @@ class APIWorker(object):
         :return: True is self._thread is not None, False otherwise
         """
         return bool(self._thread)
-
-    def _put(self, priority, cmd):
-        """Put a command into the queue with specified priority.
-
-        :param priority: processing priority
-        :param cmd:      a command to be processed
-        """
-        self._queue.put((priority, cmd))
 
     def send(self, entity):
         """Send control command or a request to the worker queue."""
