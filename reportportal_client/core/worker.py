@@ -16,6 +16,7 @@ limitations under the License.
 """
 
 import logging
+import threading
 from threading import currentThread, Thread
 
 from aenum import auto, Enum, unique
@@ -62,6 +63,7 @@ class APIWorker(object):
         """Initialize instance attributes."""
         self._queue = task_queue
         self._thread = None
+        self._stop_lock = threading.Condition()
         self.name = self.__class__.__name__
 
     def _command_get(self):
@@ -143,9 +145,12 @@ class APIWorker(object):
         Note that if you don't call this before your application exits, there
         may be some records still left on the queue, which won't be processed.
         """
+        self._stop_lock.acquire()
         if self._thread.is_alive() and self._thread is not currentThread():
             self._thread.join(timeout=THREAD_TIMEOUT)
         self._thread = None
+        self._stop_lock.notify_all()
+        self._stop_lock.release()
 
     def is_alive(self):
         """Check whether the current worker is alive or not.
@@ -168,16 +173,22 @@ class APIWorker(object):
         self._thread.setDaemon(True)
         self._thread.start()
 
+    def __perform_stop(self, stop_command):
+        if not self._stop_lock.acquire(blocking=False):
+            self.send(stop_command)
+            self._stop_lock.wait(THREAD_TIMEOUT)
+        self._stop_lock.release()
+
     def stop(self):
         """Stop the worker.
 
         Send the appropriate control command to the worker.
         """
-        self.send(ControlCommand.STOP)
+        self.__perform_stop(ControlCommand.STOP)
 
     def stop_immediate(self):
         """Stop the worker immediately.
 
         Send the appropriate control command to the worker.
         """
-        self.send(ControlCommand.STOP_IMMEDIATE)
+        self.__perform_stop(ControlCommand.STOP_IMMEDIATE)
