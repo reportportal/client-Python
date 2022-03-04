@@ -157,7 +157,7 @@ class APIWorker(object):
 
         :return: True is self._thread is not None, False otherwise
         """
-        return bool(self._thread)
+        return bool(self._thread) and self._thread.is_alive()
 
     def send(self, entity):
         """Send control command or a request to the worker queue."""
@@ -169,11 +169,17 @@ class APIWorker(object):
         This starts up a background thread to monitor the queue for
         requests to process.
         """
+        if self.is_alive():
+            # Already started
+            return
         self._thread = Thread(target=self._monitor)
         self._thread.setDaemon(True)
         self._thread.start()
 
     def __perform_stop(self, stop_command):
+        if not self.is_alive():
+            # Already stopped or already dead
+            return
         if not self._stop_lock.acquire(blocking=False):
             self.send(stop_command)
             self._stop_lock.wait(THREAD_TIMEOUT)
