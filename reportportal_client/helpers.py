@@ -11,6 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import inspect
 import logging
 import time
 import uuid
@@ -156,3 +157,25 @@ def uri_join(*uri_parts):
         An uri string.
     """
     return '/'.join(str(s).strip('/').strip('\\') for s in uri_parts)
+
+
+def get_function_params(func, args, kwargs):
+    """Extract argument names from the function and combine them with values.
+
+    :param func: the function to get arg names
+    :param args: function's arg values
+    :param kwargs: function's kwargs
+    :return: a set of tuples (name, value)
+    """
+    # Use deprecated method for python 2.7 compatibility, it's still here for
+    # Python 3.10.2
+    # noinspection PyDeprecation
+    arg_spec = inspect.getargspec(func)
+    result = set()
+    for i, arg_name in enumerate(arg_spec.args):
+        if arg_name in kwargs:
+            break
+        result.add((arg_name, str(args[i])))
+    for arg_name, arg_value in kwargs.items():
+        result.add((str(arg_name), str(arg_value)))
+    return result

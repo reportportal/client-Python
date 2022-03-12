@@ -3,7 +3,7 @@ from .errors import EntryCreatedError as EntryCreatedError, \
     ResponseError as ResponseError
 from logging import Logger
 
-from typing import Text
+from typing import Text, Tuple, Set, Callable, Any, Dict
 from requests import Response
 
 logger: Logger
@@ -23,3 +23,4 @@ def get_error_messages(data: dict) -> list: ...
 def verify_value_length(attributes: list[dict]) -> list[dict]: ...
 
 def timestamp() -> Text: ...
+def get_function_params(func: Callable, args: Tuple[Any, ...], kwargs: Dict[Text, Any]) -> Set[Tuple[Text, Text]]: ...
