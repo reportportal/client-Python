@@ -178,7 +178,7 @@ class APIWorker(object):
 
     def __perform_stop(self, stop_command):
         if not self.is_alive():
-            # Already stopped or already dead
+            # Already stopped or already dead or not even started
             return
         if not self._stop_lock.acquire(blocking=False):
             self.send(stop_command)
