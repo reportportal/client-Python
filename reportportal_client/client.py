@@ -29,7 +29,8 @@ from reportportal_client.core.rp_requests import (
     LaunchFinishRequest
 )
 from reportportal_client.helpers import uri_join, verify_value_length
-from .steps import StepContext
+from static.defines import NOT_FOUND
+from .steps import StepContext, NESTED_STEP_ITEMS
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
@@ -331,12 +332,20 @@ class RPClient(object):
             retry=retry,
             test_case_id=test_case_id
         ).payload
+
         response = HttpRequest(self.session.post,
                                url=url,
                                json=request_payload,
                                verify_ssl=self.verify_ssl).make()
-        logger.debug('start_test_item - ID: %s', response.id)
-        return response.id
+        item_id = response.id
+        if item_id is not NOT_FOUND:
+            logger.debug('start_test_item - ID: %s', item_id)
+            if str(item_type).upper() in NESTED_STEP_ITEMS:
+                self.step_context.parent_id = item_id
+        else:
+            logger.warning('start_test_item - invalid response: %s',
+                           str(response.json))
+        return item_id
 
     def terminate(self, *args, **kwargs):
         """Call this to terminate the client."""

@@ -11,8 +11,17 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License
 from functools import wraps
+
 from reportportal_client import client
 from reportportal_client.helpers import get_function_params, evaluate_status
+from reportportal_client.static.defines import ItemStartType
+
+NESTED_STEP_ITEMS = (ItemStartType.STEP, ItemStartType.SCENARIO,
+                     ItemStartType.BEFORE_CLASS, ItemStartType.BEFORE_GROUPS,
+                     ItemStartType.BEFORE_METHOD, ItemStartType.BEFORE_SUITE,
+                     ItemStartType.BEFORE_TEST, ItemStartType.AFTER_TEST,
+                     ItemStartType.AFTER_SUITE, ItemStartType.AFTER_CLASS,
+                     ItemStartType.AFTER_GROUPS, ItemStartType.AFTER_METHOD)
 
 
 class StepContext:
@@ -57,6 +66,7 @@ class Step:
             self.params = get_function_params(func, args, kwargs)
             with self:
                 return func(*args, **kwargs)
+
         return wrapper
 
 
