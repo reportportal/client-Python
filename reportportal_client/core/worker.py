@@ -46,7 +46,10 @@ class ControlCommand(Enum):
     @property
     def priority(self):
         """Get the priority of the command."""
-        return Priority.PRIORITY_LOW
+        if self is ControlCommand.STOP_IMMEDIATE:
+            return Priority.PRIORITY_IMMEDIATE
+        else:
+            return Priority.PRIORITY_LOW
 
     def __lt__(self, other):
         """Priority protocol for the PriorityQueue."""
