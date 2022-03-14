@@ -11,16 +11,33 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License
 from functools import wraps
-from threading import local
-from reportportal_client.helpers import get_function_params
-
-__INSTANCES = local()
+from reportportal_client.helpers import get_function_params, evaluate_status
 
 
 class StepContext:
-    def __init__(self, name, params):
+    def __init__(self):
+        self.parent_id = None
+        self.statuses = {}
+
+    def set_status(self, status):
+        if self.parent_id is not None:
+            if self.parent_id in self.statuses:
+                self.statuses[self.parent_id] = \
+                    evaluate_status(self.statuses[self.parent_id], status)
+            else:
+                self.statuses[self.parent_id] = status
+
+    def get_status(self):
+        if self.parent_id is not None:
+            return None
+        return self.statuses[self.parent_id]
+
+
+class Step:
+    def __init__(self, name, params, client):
         self.name = name
         self.params = params
+        self.client = client
 
     def __enter__(self):
         # Step start here
@@ -42,11 +59,12 @@ class StepContext:
         return wrapper
 
 
-def step(name_source, params=None):
+def step(func_or_name, name=None, params=None, client=None):
     if params is None:
         params = set()
-    if callable(name_source):
-        name = name_source.__name__
-        return StepContext(name, params)(name_source)
+    if callable(func_or_name):
+        if name is None:
+            name = func_or_name.__name__
+        return Step(name, params, client)(func_or_name)
     else:
-        return StepContext(name_source, params)
+        return Step(func_or_name, params, client)

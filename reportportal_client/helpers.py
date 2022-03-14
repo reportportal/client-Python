@@ -179,3 +179,50 @@ def get_function_params(func, args, kwargs):
     for arg_name, arg_value in kwargs.items():
         result.add((str(arg_name), str(arg_value)))
     return result
+
+
+__POSITIVE_STATUSES = ('PASSED', 'SKIPPED', 'STOPPED', 'INFO', 'WARN')
+
+
+def evaluate_status(current_status, child_status):
+    """Calculate an Item status according to its child and current status.
+
+    E.G.: SUITE-TEST or TEST-STEP.
+
+    Example 1:
+    - Current status: FAILED
+    - Child item status: SKIPPED
+    Result: FAILED
+
+    Example 2:
+    - Current status: PASSED
+    - Child item status: SKIPPED
+    Result: PASSED
+
+    Example 3:
+    - Current status: PASSED
+    - Child item status: FAILED
+    Result: FAILED
+
+    Example 4:
+    - Current status: SKIPPED
+    - Child item status: FAILED
+    Result: FAILED
+    """
+    if child_status is None:
+        return current_status
+    if current_status is None:
+        return child_status
+    if child_status in __POSITIVE_STATUSES:
+        return current_status
+    if child_status == 'CANCELLED':
+        if current_status in __POSITIVE_STATUSES:
+            return 'CANCELLED'
+        else:
+            return current_status
+    if child_status == 'INTERRUPTED':
+        if current_status in __POSITIVE_STATUSES + tuple('CANCELLED'):
+            return 'INTERRUPTED'
+        else:
+            return current_status
+    return child_status

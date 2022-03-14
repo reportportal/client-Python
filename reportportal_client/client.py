@@ -15,6 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import logging
+from threading import local
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -28,9 +29,21 @@ from reportportal_client.core.rp_requests import (
     LaunchFinishRequest
 )
 from reportportal_client.helpers import uri_join, verify_value_length
+from .steps import StepContext
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
+
+
+__INSTANCES = local()
+
+
+def current():
+    return __INSTANCES.current
+
+
+def _set_current(client):
+    __INSTANCES.current = client
 
 
 class RPClient(object):
@@ -74,6 +87,7 @@ class RPClient(object):
         self.token = token
         self.verify_ssl = verify_ssl
         self.session = requests.Session()
+        self.step_context = StepContext()
         if retries:
             self.session.mount('https://', HTTPAdapter(
                 max_retries=retries, pool_maxsize=max_pool_size))
@@ -84,6 +98,7 @@ class RPClient(object):
         self._log_manager = LogManager(
             self.endpoint, self.session, self.api_v2, self.launch_id,
             self.project, log_batch_size=log_batch_size)
+        _set_current(self)
 
     def finish_launch(self,
                       end_time,
