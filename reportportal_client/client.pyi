@@ -3,6 +3,10 @@ from typing import Any, Dict, List, Optional, Text, Tuple, Union
 from reportportal_client.core.log_manager import LogManager as LogManager
 from reportportal_client.core.rp_issues import Issue as Issue
 
+
+def current() -> RPClient: ...
+
+
 class RPClient:
     _log_manager: LogManager = ...
     api_v1: Text = ...
