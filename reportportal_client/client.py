@@ -1,12 +1,12 @@
 """This module contains Report Portal Client class.
 
-Copyright (c) 2018 http://reportportal.io .
+Copyright (c) 2022 https://reportportal.io .
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-http://www.apache.org/licenses/LICENSE-2.0
+https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -47,7 +47,15 @@ def _set_current(client):
 
 
 class RPClient(object):
-    """Report portal client."""
+    """Report portal client.
+
+    The class is supposed to use by Report Portal agents: both custom and
+    official to make calls to Report Portal. It handles HTTP request and
+    response bodies generation and serialization, connection retries and log
+    batching.
+    NOTICE: the class is not thread-safe, use new class instance for every new
+    thread to avoid request/response messing and other issues.
+    """
 
     def __init__(self,
                  endpoint,
