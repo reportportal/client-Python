@@ -254,9 +254,11 @@ class TestReportPortalService:
                                      'codeRef': None,
                                      'testCaseId': None},
                                url='http://endpoint/api/v2/project/item',
+                               method='POST',
+                               timeout=(10, 10),
                                verify=True)
 
-        rp_service.session.post.assert_called_with(**expected_result)
+        rp_service.session.request.assert_called_with(**expected_result)
         assert rp_start == 123
 
     start_item_optional = [
@@ -299,6 +301,8 @@ class TestReportPortalService:
                                      'codeRef': None,
                                      'testCaseId': None},
                                url='http://endpoint/api/v2/project/item',
+                               method='POST',
+                               timeout=(10, 10),
                                verify=True)
         expected_result['json'][expected_name] = expected_value
-        rp_service.session.post.assert_called_with(**expected_result)
+        rp_service.session.request.assert_called_with(**expected_result)
