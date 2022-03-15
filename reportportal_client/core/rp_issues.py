@@ -109,7 +109,7 @@ class ExternalIssue(object):
     def payload(self):
         """Form the correct dictionary for the BTS issue."""
         return {
-            'brsUrl': self.bts_url,
+            'btsUrl': self.bts_url,
             'btsProject': self.bts_project,
             'submitDate': self.submit_date,
             'ticketId': self.ticket_id,

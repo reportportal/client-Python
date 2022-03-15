@@ -1,12 +1,12 @@
 """This module contains worker that makes non-blocking HTTP requests.
 
-Copyright (c) 2018 http://reportportal.io .
+Copyright (c) 2022 https://reportportal.io .
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-http://www.apache.org/licenses/LICENSE-2.0
+https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,14 +15,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from aenum import auto, Enum, unique
 import logging
+import threading
 from threading import currentThread, Thread
 
+from aenum import auto, Enum, unique
+from reportportal_client.static.defines import Priority
 from six.moves import queue
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
+
+THREAD_TIMEOUT = 10  # Thread termination / wait timeout in seconds
 
 
 @unique
@@ -39,26 +43,32 @@ class ControlCommand(Enum):
         """Verify if the command is the stop one."""
         return self in (ControlCommand.STOP, ControlCommand.STOP_IMMEDIATE)
 
+    @property
+    def priority(self):
+        """Get the priority of the command."""
+        if self is ControlCommand.STOP_IMMEDIATE:
+            return Priority.PRIORITY_IMMEDIATE
+        return Priority.PRIORITY_LOW
+
+    def __lt__(self, other):
+        """Priority protocol for the PriorityQueue."""
+        return self.priority < other.priority
+
 
 class APIWorker(object):
-    """Worker that makes non-blocking HTTP requests to the Report Portal."""
+    """Worker that makes HTTP requests to the Report Portal."""
 
-    def __init__(self, cmd_queue, data_queue):
-        """Initialize instance attributes.
-
-        :param cmd_queue:  Queue for the control commands
-        :param data_queue: Queue for the RP requests to process
-        """
-        self._cmd_queue = cmd_queue
-        self._data_queue = data_queue
+    def __init__(self, task_queue):
+        """Initialize instance attributes."""
+        self._queue = task_queue
         self._thread = None
+        self._stop_lock = threading.Condition()
         self.name = self.__class__.__name__
 
     def _command_get(self):
-        """Get control command from the control queue."""
+        """Get command from the queue."""
         try:
-            cmd = self._cmd_queue.get_nowait()
-            logger.debug('[%s] Received {%s} command', self.name, cmd)
+            cmd = self._queue.get(timeout=0.1)
             return cmd
         except queue.Empty:
             return None
@@ -66,24 +76,18 @@ class APIWorker(object):
     def _command_process(self, cmd):
         """Process control command sent to the worker.
 
-        :param cmd: ControlCommand to be processed
+        :param cmd: a command to be processed
         """
-        if not cmd:
-            return  # No command received
-
         logger.debug('[%s] Processing {%s} command', self.name, cmd)
         if cmd == ControlCommand.REPORT_STATUS:
             logger.debug('[%s] Current status for tasks is: {%s} unfinished',
-                         self.name, self._data_queue.unfinished_tasks)
-
-        if cmd == ControlCommand.STOP:
-            request = self._request_get()
-            while request is not None:
-                self._request_process(request)
-                request = self._request_get()
+                         self.name, self._queue.unfinished_tasks)
 
         if cmd.is_stop_cmd():
-            self._stop()
+            if cmd == ControlCommand.STOP_IMMEDIATE:
+                self._stop_immediately()
+            else:
+                self._stop()
 
     def _monitor(self):
         """Monitor worker queues and process them.
@@ -95,68 +99,68 @@ class APIWorker(object):
         """
         while True:
             cmd = self._command_get()
-            self._command_process(cmd)
+            if not cmd:
+                continue  # No command received
 
-            if cmd and cmd.is_stop_cmd():
-                logger.debug('[%s] Exiting due to {%s} command',
-                             self.name, cmd)
-                break
-
-            request = self._request_get()
-            self._request_process(request)
-
-    def _request_get(self):
-        """Get response object from the data queue."""
-        try:
-            request = self._data_queue.get_nowait()
-            logger.debug('[%s] Received {%s} request', self.name, request)
-            return request
-        except queue.Empty:
-            return None
+            if isinstance(cmd, ControlCommand):
+                logger.debug('[%s] Received {%s} command', self.name, cmd)
+                self._command_process(cmd)
+                if cmd and cmd.is_stop_cmd():
+                    logger.debug('[%s] Exiting due to {%s} command',
+                                 self.name, cmd)
+                    break
+            else:
+                logger.debug('[%s] Received {%s} request', self.name, cmd)
+                self._request_process(cmd)
 
     def _request_process(self, request):
         """Send request to RP and update response attribute of the request."""
-        if not request:
-            return  # No request received
-
         logger.debug('[%s] Processing {%s} request', self.name, request)
         try:
             request.response = request.http_request.make()
         except Exception as err:
-            logger.error('[%s] Unknown exception has occurred. Terminating the'
-                         'worker.')
-            logger.error(str(err))
+            logger.exception('[%s] Unknown exception has occurred. Terminating'
+                             ' the worker.', err)
             self.stop_immediate()
-        self._data_queue.task_done()
+        self._queue.task_done()
 
     def _stop(self):
         """Routine that stops the worker thread(s).
+
+        This method process everything in worker's queue first, ignoring
+        commands and terminates thread only after.
+        """
+        request = self._command_get()
+        while request is not None:
+            if not isinstance(request, ControlCommand):
+                self._request_process(request)
+            request = self._command_get()
+        self._stop_immediately()
+
+    def _stop_immediately(self):
+        """Routine that stops the worker thread(s) immediately.
 
         This asks the thread to terminate, and then waits for it to do so.
         Note that if you don't call this before your application exits, there
         may be some records still left on the queue, which won't be processed.
         """
-        if self._thread.isAlive() and self._thread is not currentThread():
-            self._thread.join()
+        self._stop_lock.acquire()
+        if self._thread.is_alive() and self._thread is not currentThread():
+            self._thread.join(timeout=THREAD_TIMEOUT)
         self._thread = None
+        self._stop_lock.notify_all()
+        self._stop_lock.release()
 
     def is_alive(self):
         """Check whether the current worker is alive or not.
 
         :return: True is self._thread is not None, False otherwise
         """
-        return bool(self._thread)
+        return bool(self._thread) and self._thread.is_alive()
 
-    def send_command(self, cmd):
-        """Send control command to the worker queue."""
-        self._cmd_queue.put(cmd)
-
-    def send_request(self, request):
-        """Send a request to the worker queue.
-
-        :param request: RPRequest object
-        """
-        self._data_queue.put(request)
+    def send(self, entity):
+        """Send control command or a request to the worker queue."""
+        self._queue.put(entity)
 
     def start(self):
         """Start the worker.
@@ -164,20 +168,32 @@ class APIWorker(object):
         This starts up a background thread to monitor the queue for
         requests to process.
         """
+        if self.is_alive():
+            # Already started
+            return
         self._thread = Thread(target=self._monitor)
         self._thread.setDaemon(True)
         self._thread.start()
+
+    def __perform_stop(self, stop_command):
+        if not self.is_alive():
+            # Already stopped or already dead or not even started
+            return
+        if not self._stop_lock.acquire(blocking=False):
+            self.send(stop_command)
+            self._stop_lock.wait(THREAD_TIMEOUT)
+        self._stop_lock.release()
 
     def stop(self):
         """Stop the worker.
 
         Send the appropriate control command to the worker.
         """
-        self.send_command(ControlCommand.STOP)
+        self.__perform_stop(ControlCommand.STOP)
 
     def stop_immediate(self):
         """Stop the worker immediately.
 
         Send the appropriate control command to the worker.
         """
-        self.send_command(ControlCommand.STOP_IMMEDIATE)
+        self.__perform_stop(ControlCommand.STOP_IMMEDIATE)

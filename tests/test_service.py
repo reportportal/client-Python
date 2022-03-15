@@ -1,4 +1,4 @@
-"""This modules includes unit tests for the service.py module."""
+"""These modules include unit tests for the service.py module."""
 
 from datetime import datetime
 

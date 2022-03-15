@@ -340,8 +340,9 @@ class ItemFinishRequest(RPRequestBase):
         """Get HTTP payload for the request."""
         if self.attributes and isinstance(self.attributes, dict):
             self.attributes = dict_to_payload(self.attributes)
-        if self.issue is None and self.status.lower() == 'skipped' and not \
-                self.is_skipped_an_issue:
+        if self.issue is None and (
+                self.status is not None and self.status.lower() == 'skipped'
+        ) and not self.is_skipped_an_issue:
             issue_payload = {'issue_type': 'NOT_ISSUE'}
         else:
             issue_payload = None

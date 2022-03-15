@@ -1,10 +1,10 @@
 """This module contains management functionality for processing logs.
 
-Copyright (c) 2018 http://reportportal.io .
+Copyright (c) 2018 https://reportportal.io .
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
-http://www.apache.org/licenses/LICENSE-2.0
+https://www.apache.org/licenses/LICENSE-2.0
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -14,7 +14,6 @@ limitations under the License.
 
 import logging
 from threading import Lock
-from time import sleep
 
 from six.moves import queue
 
@@ -25,7 +24,6 @@ from reportportal_client.core.rp_requests import (
     RPRequestLog
 )
 from reportportal_client.core.worker import APIWorker
-
 
 logger = logging.getLogger(__name__)
 
@@ -51,8 +49,7 @@ class LogManager(object):
         self._logs_batch = []
         self._worker = None
         self.api_version = api_version
-        self.command_queue = queue.Queue()
-        self.data_queue = queue.PriorityQueue()
+        self.queue = queue.PriorityQueue()
         self.launch_id = launch_id
         self.log_batch_size = log_batch_size
         self.project_name = project_name
@@ -81,7 +78,7 @@ class LogManager(object):
             self.session.post, self._log_endpoint, files=batch.payload,
             verify_ssl=self.verify_ssl)
         batch.http_request = http_request
-        self._worker.send_request(batch)
+        self._worker.send(batch)
         self._logs_batch.clear()
 
     def log(self, time, message=None, level=None, attachment=None,
@@ -102,8 +99,9 @@ class LogManager(object):
     def start(self):
         """Create a new instance of the Worker class and start it."""
         if not self._worker:
-            self._worker = APIWorker(self.command_queue, self.data_queue)
-            self._worker.start()
+            # the worker might be already created in case of deserialization
+            self._worker = APIWorker(self.queue)
+        self._worker.start()
 
     def stop(self):
         """Send last batches to the worker followed by the stop command."""
@@ -111,11 +109,9 @@ class LogManager(object):
             with self._lock:
                 if self._logs_batch:
                     self._send_batch()
-                self._worker.stop()
                 logger.debug('Waiting for worker {0} to complete'
                              'processing batches.'.format(self._worker))
-                while self._worker.is_alive():
-                    sleep(0.1)
+                self._worker.stop()
 
     def stop_force(self):
         """Send stop immediate command to the worker."""
