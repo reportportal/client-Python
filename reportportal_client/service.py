@@ -167,6 +167,7 @@ class ReportPortalService(object):
                  verify_ssl=True,
                  retries=None,
                  max_pool_size=50,
+                 post_timeout=(10, 10),
                  **kwargs):
         """Init the service class.
 
@@ -181,6 +182,9 @@ class ReportPortalService(object):
             verify_ssl: option to not verify ssl certificates
             max_pool_size: option to set the maximum number of
                            connections to save in the pool.
+            post_timeout: a float in seconds for the connect and read
+                          timeout. Use a Tuple to specific connect and
+                          read separately.
         """
         self._batch_logs = []
         self.endpoint = endpoint
@@ -190,7 +194,7 @@ class ReportPortalService(object):
         self.is_skipped_an_issue = is_skipped_an_issue
         self.base_url_v1 = uri_join(self.endpoint, "api/v1", self.project)
         self.base_url_v2 = uri_join(self.endpoint, "api/v2", self.project)
-        self.post_timeout = (10, 10)
+        self.post_timeout = post_timeout
 
         self.session = requests.Session()
         if retries:
