@@ -30,11 +30,10 @@ from reportportal_client.core.rp_requests import (
 )
 from reportportal_client.helpers import uri_join, verify_value_length
 from static.defines import NOT_FOUND
-from .steps import StepContext, NESTED_STEP_ITEMS
+from .steps import StepReporter
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
-
 
 __INSTANCES = local()
 
@@ -89,7 +88,7 @@ class RPClient(object):
         self.token = token
         self.verify_ssl = verify_ssl
         self.session = requests.Session()
-        self.step_context = StepContext()
+        self.step_reporter = StepReporter(self)
         if retries:
             self.session.mount('https://', HTTPAdapter(
                 max_retries=retries, pool_maxsize=max_pool_size))
@@ -144,7 +143,7 @@ class RPClient(object):
                             "failed", "stopped", "skipped", "interrupted",
                             "cancelled" or None
         :param attributes:  Test item attributes(tags). Pairs of key and value.
-                            Overrides attributes on start
+                            Override attributes on start
         :param description: Test item description. Overrides description
                             from start request.
         :param issue:       Issue of the current test item
@@ -164,6 +163,7 @@ class RPClient(object):
         ).payload
         response = HttpRequest(self.session.put, url=url, json=request_payload,
                                verify_ssl=self.verify_ssl).make()
+        self.step_reporter.remove_parent(item_id)
         logger.debug('finish_test_item - ID: %s', item_id)
         logger.debug('response message: %s', response.message)
         return response.message
@@ -338,10 +338,9 @@ class RPClient(object):
                                json=request_payload,
                                verify_ssl=self.verify_ssl).make()
         item_id = response.id
+        self.step_reporter.set_parent(item_type, item_id)
         if item_id is not NOT_FOUND:
             logger.debug('start_test_item - ID: %s', item_id)
-            if str(item_type).upper() in NESTED_STEP_ITEMS:
-                self.step_context.parent_id = item_id
         else:
             logger.warning('start_test_item - invalid response: %s',
                            str(response.json))
