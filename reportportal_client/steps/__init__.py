@@ -16,8 +16,7 @@ from functools import wraps
 from reportportal_client import client
 from reportportal_client.helpers import get_function_params, evaluate_status, \
     timestamp
-from reportportal_client.static.defines import ItemStartType
-from static.defines import NOT_FOUND
+from reportportal_client.static.defines import ItemStartType, NOT_FOUND
 
 NESTED_STEP_ITEMS = (ItemStartType.STEP, ItemStartType.SCENARIO,
                      ItemStartType.BEFORE_CLASS, ItemStartType.BEFORE_GROUPS,

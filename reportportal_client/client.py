@@ -20,16 +20,16 @@ from threading import local
 import requests
 from requests.adapters import HTTPAdapter
 
-from reportportal_client.core.log_manager import LogManager
-from reportportal_client.core.rp_requests import (
+from .core.log_manager import LogManager
+from .core.rp_requests import (
     HttpRequest,
     ItemStartRequest,
     ItemFinishRequest,
     LaunchStartRequest,
     LaunchFinishRequest
 )
-from reportportal_client.helpers import uri_join, verify_value_length
-from static.defines import NOT_FOUND
+from .helpers import uri_join, verify_value_length
+from .static.defines import NOT_FOUND
 from .steps import StepReporter
 
 logger = logging.getLogger(__name__)
