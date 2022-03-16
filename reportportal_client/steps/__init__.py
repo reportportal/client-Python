@@ -13,17 +13,15 @@
 import logging
 from functools import wraps
 
-from reportportal_client import client
+from reportportal_client._local import current
 from reportportal_client.helpers import get_function_params, evaluate_status, \
     timestamp
 from reportportal_client.static.defines import ItemStartType, NOT_FOUND
 
-NESTED_STEP_ITEMS = (ItemStartType.STEP, ItemStartType.SCENARIO,
-                     ItemStartType.BEFORE_CLASS, ItemStartType.BEFORE_GROUPS,
-                     ItemStartType.BEFORE_METHOD, ItemStartType.BEFORE_SUITE,
-                     ItemStartType.BEFORE_TEST, ItemStartType.AFTER_TEST,
-                     ItemStartType.AFTER_SUITE, ItemStartType.AFTER_CLASS,
-                     ItemStartType.AFTER_GROUPS, ItemStartType.AFTER_METHOD)
+NESTED_STEP_ITEMS = ('step', 'scenario', 'before_class', 'before_groups',
+                     'before_method', 'before_suite', 'before_test',
+                     'after_test', 'after_suite', 'after_class',
+                     'after_groups', 'after_method')
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
@@ -37,7 +35,7 @@ class StepReporter:
 
     def set_parent(self, item_type, parent_id):
         if parent_id is not NOT_FOUND:
-            if str(item_type).upper() in NESTED_STEP_ITEMS:
+            if item_type.lower() in NESTED_STEP_ITEMS:
                 self.__levels.append(parent_id)
 
     def get_parent(self):
@@ -45,12 +43,8 @@ class StepReporter:
             return self.__levels[-1]
 
     def remove_parent(self, parent_id=None):
-        if parent_id is NOT_FOUND:
-            return
-        if parent_id is not None:
-            if self.__levels[-1] != parent_id:
-                return
-        return self.__levels.pop()
+        if len(self.__levels) > 0 and self.__levels[-1] == parent_id:
+            return self.__levels.pop()
 
     def start_nested_step(self,
                           name,
@@ -60,7 +54,7 @@ class StepReporter:
         parent_id = self.get_parent()
         if parent_id is None:
             return
-        self.client.start_test_item(name, start_time, ItemStartType.STEP,
+        self.client.start_test_item(name, start_time, 'step',
                                     has_stats=False,
                                     parameters=parameters,
                                     parent_item_id=parent_id)
@@ -80,7 +74,7 @@ class Step:
         self.name = name
         self.params = params
         self.status = status
-        self.client = rp_client if rp_client is not None else client.current()
+        self.client = rp_client if rp_client is not None else current()
 
     def __enter__(self):
         self.client.step_reporter \

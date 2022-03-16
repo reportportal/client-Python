@@ -16,8 +16,10 @@ limitations under the License.
 
 from .service import ReportPortalService
 from .steps import step
+from ._local import current
 
 __all__ = [
     'ReportPortalService',
-    'step'
+    'step',
+    'current'
 ]

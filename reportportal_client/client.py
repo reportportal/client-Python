@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import logging
-from threading import local
+
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -31,19 +31,10 @@ from .core.rp_requests import (
 from .helpers import uri_join, verify_value_length
 from .static.defines import NOT_FOUND
 from .steps import StepReporter
+from ._local import set_current
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
-
-__INSTANCES = local()
-
-
-def current():
-    return __INSTANCES.current
-
-
-def _set_current(client):
-    __INSTANCES.current = client
 
 
 class RPClient(object):
@@ -81,7 +72,7 @@ class RPClient(object):
         :param max_pool_size:        Option to set the maximum number of
                                      connections to save the pool.
         """
-        _set_current(self)
+        set_current(self)
         self._batch_logs = []
         self.api_v1, self.api_v2 = 'v1', 'v2'
         self.endpoint = endpoint
