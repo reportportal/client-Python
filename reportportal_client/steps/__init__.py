@@ -66,8 +66,7 @@ class StepReporter:
                            **kwargs):
         if not self.remove_parent(item_id):
             return
-        result = self.client.finish_test_item(item_id, end_time, status=status)
-        print(result)
+        return self.client.finish_test_item(item_id, end_time, status=status)
 
 
 class Step:
