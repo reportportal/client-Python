@@ -42,9 +42,8 @@ class StepReporter:
         if len(self.__levels) > 0:
             return self.__levels[-1]
 
-    def remove_parent(self, parent_id=None):
-        if len(self.__levels) > 0 \
-                and (parent_id is None or self.__levels[-1] == parent_id):
+    def remove_parent(self, parent_id):
+        if len(self.__levels) > 0 and self.__levels[-1] == parent_id:
             return self.__levels.pop()
 
     def start_nested_step(self,
@@ -55,20 +54,20 @@ class StepReporter:
         parent_id = self.get_parent()
         if parent_id is None:
             return
-        self.client.start_test_item(name, start_time, 'step',
-                                    has_stats=False,
-                                    parameters=parameters,
-                                    parent_item_id=parent_id)
+        return self.client.start_test_item(name, start_time, 'step',
+                                           has_stats=False,
+                                           parameters=parameters,
+                                           parent_item_id=parent_id)
 
     def finish_nested_step(self,
                            item_id,
                            end_time,
                            status=None,
                            **kwargs):
-        parent_id = self.remove_parent(item_id)
-        if parent_id is None:
+        if not self.remove_parent(item_id):
             return
-        self.client.finish_test_item(parent_id, end_time, status=status)
+        result = self.client.finish_test_item(item_id, end_time, status=status)
+        print(result)
 
 
 class Step:
@@ -85,7 +84,7 @@ class Step:
         logger.info("Parameters: " + str(self.params))
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        step_status = None
+        step_status = self.status
         if any((exc_type, exc_val, exc_tb)):
             step_status = 'FAILED'
         self.client.step_reporter \
@@ -104,7 +103,8 @@ class Step:
         return wrapper
 
 
-def step(func_or_name, name=None, params=None, status=None, rp_client=None):
+def step(func_or_name, name=None, params=None, status='PASSED',
+         rp_client=None):
     if callable(func_or_name):
         if name is None:
             name = func_or_name.__name__
