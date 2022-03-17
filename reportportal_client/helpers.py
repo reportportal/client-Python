@@ -178,7 +178,7 @@ def get_function_params(func, args, kwargs):
         result[arg_name] = str(args[i])
     for arg_name, arg_value in kwargs.items():
         result[arg_name] = str(arg_value)
-    return result
+    return result if len(result.items()) > 0 else None
 
 
 __POSITIVE_STATUSES = ('PASSED', 'SKIPPED', 'STOPPED', 'INFO', 'WARN')
