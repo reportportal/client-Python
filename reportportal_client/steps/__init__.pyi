@@ -35,6 +35,7 @@ class StepReporter:
                           **kwargs: Any) -> Text: ...
 
     def finish_nested_step(self,
+                           item_id: Text,
                            end_time: Text,
                            status: Text,
                            **kwargs: Any) -> None: ...

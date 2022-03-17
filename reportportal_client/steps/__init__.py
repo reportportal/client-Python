@@ -16,7 +16,7 @@ from functools import wraps
 from reportportal_client._local import current
 from reportportal_client.helpers import get_function_params, evaluate_status, \
     timestamp
-from reportportal_client.static.defines import ItemStartType, NOT_FOUND
+from reportportal_client.static.defines import NOT_FOUND
 
 NESTED_STEP_ITEMS = ('step', 'scenario', 'before_class', 'before_groups',
                      'before_method', 'before_suite', 'before_test',
@@ -43,7 +43,8 @@ class StepReporter:
             return self.__levels[-1]
 
     def remove_parent(self, parent_id=None):
-        if len(self.__levels) > 0 and self.__levels[-1] == parent_id:
+        if len(self.__levels) > 0 \
+                and (parent_id is None or self.__levels[-1] == parent_id):
             return self.__levels.pop()
 
     def start_nested_step(self,
@@ -60,10 +61,11 @@ class StepReporter:
                                     parent_item_id=parent_id)
 
     def finish_nested_step(self,
+                           item_id,
                            end_time,
                            status=None,
                            **kwargs):
-        parent_id = self.remove_parent()
+        parent_id = self.remove_parent(item_id)
         if parent_id is None:
             return
         self.client.finish_test_item(parent_id, end_time, status=status)
@@ -75,9 +77,10 @@ class Step:
         self.params = params
         self.status = status
         self.client = rp_client if rp_client is not None else current()
+        self.__item_id = None
 
     def __enter__(self):
-        self.client.step_reporter \
+        self.__item_id = self.client.step_reporter \
             .start_nested_step(self.name, timestamp(), parameters=self.params)
         logger.info("Parameters: " + str(self.params))
 
@@ -86,7 +89,7 @@ class Step:
         if any((exc_type, exc_val, exc_tb)):
             step_status = 'FAILED'
         self.client.step_reporter \
-            .finish_nested_step(timestamp(),
+            .finish_nested_step(self.__item_id, timestamp(),
                                 evaluate_status(self.status, step_status))
 
     def __call__(self, func):
