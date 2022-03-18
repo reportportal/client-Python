@@ -14,8 +14,7 @@ import logging
 from functools import wraps
 
 from reportportal_client._local import current
-from reportportal_client.helpers import get_function_params, evaluate_status, \
-    timestamp
+from reportportal_client.helpers import get_function_params, timestamp
 from reportportal_client.static.defines import NOT_FOUND
 
 NESTED_STEP_ITEMS = ('step', 'scenario', 'before_class', 'before_groups',
@@ -74,35 +73,45 @@ class Step:
         self.name = name
         self.params = params
         self.status = status
-        self.client = rp_client if rp_client else current()
+        self.client = rp_client
         self.__item_id = None
 
     def __enter__(self):
-        if not self.client:
+        # Cannot call _local.current() early since it will be initialized
+        # before client put something in there
+        rp_client = self.client if self.client else current()
+        if not rp_client:
             return
-        self.__item_id = self.client.step_reporter \
+        self.__item_id = rp_client.step_reporter \
             .start_nested_step(self.name, timestamp(), parameters=self.params)
-        logger.info("Parameters: " + str(self.params))
+        if self.params:
+            rp_client.log(timestamp(), "Parameters: " + str(self.params),
+                          level='INFO', item_id=self.__item_id)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        # Cannot call _local.current() early since it will be initialized
+        # before client put something in there
+        rp_client = self.client if self.client else current()
+        if not rp_client:
+            return
+        # Avoid failure in case if 'rp_client' was 'None' on function start
         if not self.__item_id:
             return
         step_status = self.status
         if any((exc_type, exc_val, exc_tb)):
             step_status = 'FAILED'
-        self.client.step_reporter \
-            .finish_nested_step(self.__item_id, timestamp(),
-                                evaluate_status(self.status, step_status))
+        rp_client.step_reporter \
+            .finish_nested_step(self.__item_id, timestamp(), step_status)
 
     def __call__(self, func):
         @wraps(func)
         def wrapper(*args, **kwargs):
             __tracebackhide__ = True
-            if self.params is None:
-                self.params = get_function_params(func, args, kwargs)
-            with self:
+            params = self.params
+            if params is None:
+                params = get_function_params(func, args, kwargs)
+            with Step(self.name, params, self.status, self.client):
                 return func(*args, **kwargs)
-
         return wrapper
 
 

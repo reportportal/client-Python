@@ -15,6 +15,7 @@ import inspect
 import logging
 import time
 import uuid
+import warnings
 from platform import machine, processor, system
 
 import six
@@ -168,61 +169,16 @@ def get_function_params(func, args, kwargs):
     :return: a set of tuples (name, value)
     """
     # Use deprecated method for python 2.7 compatibility, it's still here for
-    # Python 3.10.2
-    # noinspection PyDeprecation
-    arg_spec = inspect.getargspec(func)
+    # Python 3.10.2, so it's completely redundant to show the warning
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
+        # noinspection PyDeprecation
+        arg_spec = inspect.getargspec(func)
     result = dict()
     for i, arg_name in enumerate(arg_spec.args):
-        if arg_name in kwargs:
+        if i >= len(args):
             break
-        result[arg_name] = str(args[i])
+        result[arg_name] = args[i]
     for arg_name, arg_value in kwargs.items():
-        result[arg_name] = str(arg_value)
+        result[arg_name] = arg_value
     return result if len(result.items()) > 0 else None
-
-
-__POSITIVE_STATUSES = ('PASSED', 'SKIPPED', 'STOPPED', 'INFO', 'WARN')
-
-
-def evaluate_status(current_status, child_status):
-    """Calculate an Item status according to its child and current status.
-
-    E.G.: SUITE-TEST or TEST-STEP.
-
-    Example 1:
-    - Current status: FAILED
-    - Child item status: SKIPPED
-    Result: FAILED
-
-    Example 2:
-    - Current status: PASSED
-    - Child item status: SKIPPED
-    Result: PASSED
-
-    Example 3:
-    - Current status: PASSED
-    - Child item status: FAILED
-    Result: FAILED
-
-    Example 4:
-    - Current status: SKIPPED
-    - Child item status: FAILED
-    Result: FAILED
-    """
-    if child_status is None:
-        return current_status
-    if current_status is None:
-        return child_status
-    if child_status in __POSITIVE_STATUSES:
-        return current_status
-    if child_status == 'CANCELLED':
-        if current_status in __POSITIVE_STATUSES:
-            return 'CANCELLED'
-        else:
-            return current_status
-    if child_status == 'INTERRUPTED':
-        if current_status in __POSITIVE_STATUSES + tuple('CANCELLED'):
-            return 'INTERRUPTED'
-        else:
-            return current_status
-    return child_status
