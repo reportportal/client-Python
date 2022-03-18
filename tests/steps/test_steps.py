@@ -31,3 +31,23 @@ def test_nested_steps_reported_with_parent(rp_client):
         print("Hello nested steps")
     assert rp_client.session.post.call_count == 1
     assert rp_client.session.put.call_count == 1
+
+
+def test_nested_step_name(rp_client):
+    rp_client.step_reporter.set_parent('STEP', PARENT_STEP_ID)
+
+    with step(NESTED_STEP_NAME, rp_client=rp_client):
+        print("Hello nested steps")
+
+    assert rp_client.session.post.call_args[1]['json']['name'] == \
+           NESTED_STEP_NAME
+
+
+def test_nested_step_times(rp_client):
+    rp_client.step_reporter.set_parent('STEP', PARENT_STEP_ID)
+
+    with step(NESTED_STEP_NAME, rp_client=rp_client):
+        print("Hello nested steps")
+
+    assert rp_client.session.post.call_args[1]['json']['startTime']
+    assert rp_client.session.put.call_args[1]['json']['endTime']

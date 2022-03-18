@@ -74,15 +74,19 @@ class Step:
         self.name = name
         self.params = params
         self.status = status
-        self.client = rp_client if rp_client is not None else current()
+        self.client = rp_client if rp_client else current()
         self.__item_id = None
 
     def __enter__(self):
+        if not self.client:
+            return
         self.__item_id = self.client.step_reporter \
             .start_nested_step(self.name, timestamp(), parameters=self.params)
         logger.info("Parameters: " + str(self.params))
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        if not self.__item_id:
+            return
         step_status = self.status
         if any((exc_type, exc_val, exc_tb)):
             step_status = 'FAILED'
@@ -102,11 +106,8 @@ class Step:
         return wrapper
 
 
-def step(func_or_name, name=None, params=None, status='PASSED',
-         rp_client=None):
-    if callable(func_or_name):
-        if name is None:
-            name = func_or_name.__name__
-        return Step(name, params, status, rp_client)(func_or_name)
-    else:
-        return Step(func_or_name, params, status, rp_client)
+def step(name_source, params=None, status='PASSED', rp_client=None):
+    if callable(name_source):
+        name = name_source.__name__
+        return Step(name, params, status, rp_client)(name_source)
+    return Step(str(name_source), params, status, rp_client)

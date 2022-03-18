@@ -17,7 +17,8 @@ __INSTANCES = local()
 
 
 def current():
-    return __INSTANCES.current
+    if hasattr(__INSTANCES, 'current'):
+        return __INSTANCES.current
 
 
 def set_current(client):
