@@ -85,8 +85,13 @@ class Step:
         self.__item_id = rp_client.step_reporter \
             .start_nested_step(self.name, timestamp(), parameters=self.params)
         if self.params:
-            rp_client.log(timestamp(), "Parameters: " + str(self.params),
-                          level='INFO', item_id=self.__item_id)
+            param_list = [
+                str(key) + ": " + str(value)
+                for key, value in sorted(self.params.items())
+            ]
+            param_str = 'Parameters: ' + '; '.join(param_list)
+            rp_client.log(timestamp(), param_str, level='INFO',
+                          item_id=self.__item_id)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         # Cannot call _local.current() early since it will be initialized
@@ -112,6 +117,7 @@ class Step:
                 params = get_function_params(func, args, kwargs)
             with Step(self.name, params, self.status, self.client):
                 return func(*args, **kwargs)
+
         return wrapper
 
 

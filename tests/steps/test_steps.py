@@ -123,7 +123,7 @@ def test_verify_parameters_logging_default_value(rp_client):
     nested_step_params(1, 'two')
     assert len(rp_client._log_manager._logs_batch) == 1
     assert rp_client._log_manager._logs_batch[0].message \
-           == "Parameters: {'param1': 1, 'param2': 'two'}"
+           == "Parameters: param1: 1; param2: two"
 
 
 def test_verify_parameters_logging_no_default_value(rp_client):
@@ -131,7 +131,7 @@ def test_verify_parameters_logging_no_default_value(rp_client):
     nested_step_params(1, 'two', 'three')
     assert len(rp_client._log_manager._logs_batch) == 1
     assert rp_client._log_manager._logs_batch[0].message \
-           == "Parameters: {'param1': 1, 'param2': 'two', 'param3': 'three'}"
+           == "Parameters: param1: 1; param2: two; param3: three"
 
 
 def test_verify_parameters_logging_named_value(rp_client):
@@ -139,7 +139,7 @@ def test_verify_parameters_logging_named_value(rp_client):
     nested_step_params(1, 'two', param3='three')
     assert len(rp_client._log_manager._logs_batch) == 1
     assert rp_client._log_manager._logs_batch[0].message \
-           == "Parameters: {'param1': 1, 'param2': 'two', 'param3': 'three'}"
+           == "Parameters: param1: 1; param2: two; param3: three"
 
 
 def test_verify_parameters_inline_logging(rp_client):
@@ -148,4 +148,4 @@ def test_verify_parameters_inline_logging(rp_client):
         pass
     assert len(rp_client._log_manager._logs_batch) == 1
     assert rp_client._log_manager._logs_batch[0].message \
-           == "Parameters: {'param1': 1, 'param2': 'two'}"
+           == "Parameters: param1: 1; param2: two"
