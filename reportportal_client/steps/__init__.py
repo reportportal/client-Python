@@ -84,10 +84,10 @@ class StepReporter:
     def remove_parent(self, parent_id):
         """Remove the last item in the parent queue.
 
-         Remove the last item in the parent queue if it's equal to the method's
-         argument.
-         :param parent_id: item ID to remove
-         """
+        Remove the last item in the parent queue if it's equal to the method's
+        argument.
+        :param parent_id: item ID to remove
+        """
         if len(self.__levels) > 0 and self.__levels[-1] == parent_id:
             return self.__levels.pop()
 
@@ -180,8 +180,10 @@ class Step:
             .finish_nested_step(self.__item_id, timestamp(), step_status)
 
     def __call__(self, func):
-        """The method is called when the instance is "called" as a function."""
+        """Wrap and call a function reference.
 
+         :param func: function reference
+         """
         @wraps(func)
         def wrapper(*args, **kwargs):
             __tracebackhide__ = True
