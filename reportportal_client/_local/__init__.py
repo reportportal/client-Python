@@ -10,7 +10,7 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License
-"""Report Portal client context storing and retrieving module"""
+"""Report Portal client context storing and retrieving module."""
 from threading import local
 
 
@@ -18,8 +18,7 @@ __INSTANCES = local()
 
 
 def current():
-    """Return current Report Portal client which is used by the current thread.
-    """
+    """Return current Report Portal client."""
     if hasattr(__INSTANCES, 'current'):
         return __INSTANCES.current
 
