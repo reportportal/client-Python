@@ -349,6 +349,7 @@ class ReportPortalService(object):
             "hasStats": has_stats,
             "codeRef": code_ref,
             "testCaseId": test_case_id,
+            "retry": kwargs.get('retry', False)
         }
         if parent_item_id:
             url = uri_join(self.base_url_v2, "item", parent_item_id)

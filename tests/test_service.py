@@ -252,7 +252,8 @@ class TestReportPortalService:
                                      'type': 'STORY', 'parameters': None,
                                      'hasStats': True,
                                      'codeRef': None,
-                                     'testCaseId': None},
+                                     'testCaseId': None,
+                                     'retry': False},
                                url='http://endpoint/api/v2/project/item',
                                verify=True)
 
@@ -297,7 +298,8 @@ class TestReportPortalService:
                                      'type': 'STORY', 'parameters': None,
                                      'hasStats': True,
                                      'codeRef': None,
-                                     'testCaseId': None},
+                                     'testCaseId': None,
+                                     'retry': False},
                                url='http://endpoint/api/v2/project/item',
                                verify=True)
         expected_result['json'][expected_name] = expected_value
