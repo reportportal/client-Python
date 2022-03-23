@@ -180,7 +180,7 @@ class Step:
             .finish_nested_step(self.__item_id, timestamp(), step_status)
 
     def __call__(self, func):
-        """The method is called when the instance is “called” as a function."""
+        """The method is called when the instance is "called" as a function."""
 
         @wraps(func)
         def wrapper(*args, **kwargs):
