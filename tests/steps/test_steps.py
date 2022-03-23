@@ -10,8 +10,12 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License
+import random
+import time
+
 from reportportal_client import step
 from reportportal_client._local import set_current
+from six.moves import mock
 
 NESTED_STEP_NAME = 'test nested step'
 PARENT_STEP_ID = '123-123-1234-123'
@@ -149,3 +153,44 @@ def test_verify_parameters_inline_logging(rp_client):
     assert len(rp_client._log_manager._logs_batch) == 1
     assert rp_client._log_manager._logs_batch[0].message \
            == "Parameters: param1: 1; param2: two"
+
+
+def item_id_gen(*args, **kwargs):
+    item_id = 'post-{}-{}'.format(
+        str(round(time.time() * 1000)),
+        random.randint(0, 9999))
+    result = mock.Mock()
+    result.text = '{{"id": "{}"}}'.format(item_id)
+    result.json = lambda: {'id': item_id}
+    return result
+
+
+@step
+def parent_nested_step():
+    nested_step()
+
+
+def test_two_level_nested_step_decorator(rp_client):
+    rp_client.step_reporter.set_parent('STEP', PARENT_STEP_ID)
+    rp_client.session.post.side_effect = item_id_gen
+    parent_nested_step()
+
+    assert rp_client.session.post.call_count == 2
+    assert rp_client.session.put.call_count == 2
+    assert len(rp_client._log_manager._logs_batch) == 0
+
+    request_uri = rp_client.session.post.call_args_list[0][0][0]
+    first_parent_id = request_uri[request_uri.rindex('/') + 1:]
+    request_uri = rp_client.session.post.call_args_list[1][0][0]
+    second_parent_id = request_uri[request_uri.rindex('/') + 1:]
+
+    request_uri = rp_client.session.put.call_args_list[0][0][0]
+    first_id = request_uri[request_uri.rindex('/') + 1:]
+    request_uri = rp_client.session.put.call_args_list[1][0][0]
+    second_id = request_uri[request_uri.rindex('/') + 1:]
+
+    assert first_parent_id == PARENT_STEP_ID
+    assert second_parent_id.startswith('post-')
+    assert first_id.startswith('post-')
+    assert second_id.startswith('post-')
+    assert first_id != second_id
