@@ -166,7 +166,7 @@ def get_function_params(func, args, kwargs):
     :param func: the function to get arg names
     :param args: function's arg values
     :param kwargs: function's kwargs
-    :return: a set of tuples (name, value)
+    :return: a dictionary of values
     """
     # Use deprecated method for python 2.7 compatibility, it's still here for
     # Python 3.10.2, so it's completely redundant to show the warning

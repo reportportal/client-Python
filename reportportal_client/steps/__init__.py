@@ -10,7 +10,37 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License
-import logging
+"""Report portal Nested Step handling module.
+
+The module for handling and reporting Report Portal Nested Steps inside python
+test frameworks. Import 'step' function to use it as decorator or together with
+'with' keyword to divide your tests on smaller steps.
+
+Usage as decorator:
+.. highlight:: python
+.. code-block:: python
+
+    from reportportal_client import step
+
+    @step
+    def my_nested_step():
+        pass
+
+    def test_my_nested_step():
+        my_nested_step()
+
+
+Usage with 'with' keyword:
+.. highlight:: python
+.. code-block:: python
+
+    from reportportal_client import step
+
+    def test_my_nested_step():
+        with step('My nested step', status='INFO'):
+            pass
+
+"""
 from functools import wraps
 
 from reportportal_client._local import current
@@ -22,26 +52,42 @@ NESTED_STEP_ITEMS = ('step', 'scenario', 'before_class', 'before_groups',
                      'after_test', 'after_suite', 'after_class',
                      'after_groups', 'after_method')
 
-logger = logging.getLogger(__name__)
-logger.addHandler(logging.NullHandler())
-
 
 # noinspection PyUnresolvedReferences
 class StepReporter:
+    """Nested Steps context handling class."""
+
     def __init__(self, rp_client):
+        """Initialize required attributes.
+
+        :param rp_client: Report Portal client which will be used to report
+                          steps
+        """
         self.__levels = []
         self.client = rp_client
 
     def set_parent(self, item_type, parent_id):
+        """Put an id into parent items queue if it has correct type.
+
+        :param item_type: type of the parent item
+        :param parent_id: ID of the parent item
+        """
         if parent_id is not NOT_FOUND:
             if item_type.lower() in NESTED_STEP_ITEMS:
                 self.__levels.append(parent_id)
 
     def get_parent(self):
+        """Retrieve the last item in the parent queue."""
         if len(self.__levels) > 0:
             return self.__levels[-1]
 
     def remove_parent(self, parent_id):
+        """Remove the last item in the parent queue.
+
+         Remove the last item in the parent queue if it's equal to the method's
+         argument.
+         :param parent_id: item ID to remove
+         """
         if len(self.__levels) > 0 and self.__levels[-1] == parent_id:
             return self.__levels.pop()
 
@@ -50,6 +96,12 @@ class StepReporter:
                           start_time,
                           parameters=None,
                           **kwargs):
+        """Start Nested Step on Report Portal.
+
+        :param name:       Nested Step name
+        :param start_time: Nested Step start time
+        :param parameters: Nested Step parameters
+        """
         parent_id = self.get_parent()
         if parent_id is None:
             return
@@ -63,13 +115,30 @@ class StepReporter:
                            end_time,
                            status=None,
                            **kwargs):
+        """Finish a Nested Step on Report Portal.
+
+        :param item_id:  Nested Step item ID
+        :param end_time: Nested Step finish time
+        :param status:   Nested Step finish status
+        """
         if not self.remove_parent(item_id):
             return
         return self.client.finish_test_item(item_id, end_time, status=status)
 
 
 class Step:
+    """Step context handling class."""
+
     def __init__(self, name, params, status, rp_client):
+        """Initialize required attributes.
+
+        :param name:      Nested Step name
+        :param params:    Nested Step parameters
+        :param status:    Nested Step status which will be reported on
+                          successful step finish
+        :param rp_client: Report Portal client which will be used to report
+                          the step
+        """
         self.name = name
         self.params = params
         self.status = status
@@ -77,6 +146,7 @@ class Step:
         self.__item_id = None
 
     def __enter__(self):
+        """Enter the runtime context related to this object."""
         # Cannot call _local.current() early since it will be initialized
         # before client put something in there
         rp_client = self.client if self.client else current()
@@ -94,6 +164,7 @@ class Step:
                           item_id=self.__item_id)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        """Exit the runtime context related to this object."""
         # Cannot call _local.current() early since it will be initialized
         # before client put something in there
         rp_client = self.client if self.client else current()
@@ -109,6 +180,8 @@ class Step:
             .finish_nested_step(self.__item_id, timestamp(), step_status)
 
     def __call__(self, func):
+        """The method is called when the instance is “called” as a function."""
+
         @wraps(func)
         def wrapper(*args, **kwargs):
             __tracebackhide__ = True
@@ -122,6 +195,21 @@ class Step:
 
 
 def step(name_source, params=None, status='PASSED', rp_client=None):
+    """Nested step report function.
+
+    Create a Nested Step inside a test method on Report Portal.
+    :param name_source: a function or string which will be used as step's name
+    :param params:      nested step parameters which will be reported as the
+                        first step entry. If 'name_source' is a function
+                        reference and this parameter is not specified, they
+                        will be taken from the function.
+    :param status:      the status which will be reported after the step
+                        passed. Can be any of legal Report Portal statuses.
+                        E.G.: PASSED, WARN, INFO, etc. Default value is PASSED
+    :param rp_client:   overrides Report Portal client which will be used in
+                        step reporting
+    :return: a step context object
+    """
     if callable(name_source):
         name = name_source.__name__
         return Step(name, params, status, rp_client)(name_source)
