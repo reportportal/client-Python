@@ -182,8 +182,8 @@ class Step:
     def __call__(self, func):
         """Wrap and call a function reference.
 
-         :param func: function reference
-         """
+        :param func: function reference
+        """
         @wraps(func)
         def wrapper(*args, **kwargs):
             __tracebackhide__ = True
