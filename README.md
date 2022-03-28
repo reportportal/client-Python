@@ -25,10 +25,10 @@ pip install reportportal-client
 ```
 
 **IMPORTANT!**
-The latest client version **does** not support Report Portal versions below 
+The latest client version **does** not support Report Portal versions below
 5.0.0.
 
-Version 3 is the latest one which supports Report Portal versions below 5.0.0 
+Version 3 is the latest one which supports Report Portal versions below 5.0.0
 to install it:
 
 ```
@@ -38,8 +38,8 @@ pip install reportportal-client~=3.0
 
 ## Contribution
 
-All the fixes for the client that supports Report Portal versions below 5.0.0 
-should go into the v3 branch. The master branch will store the code base for 
+All the fixes for the client that supports Report Portal versions below 5.0.0
+should go into the v3 branch. The master branch will store the code base for
 the client for Report Portal versions 5 and above.
 
 
