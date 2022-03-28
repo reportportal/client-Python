@@ -25,9 +25,11 @@ pip install reportportal-client
 ```
 
 **IMPORTANT!**
-The lastest version **does** not support Report Portal versions below 5.0.0.
+The latest client version **does** not support Report Portal versions below 
+5.0.0.
 
-Specify the last one release of the client version 3 to install or update the client for other versions of Report Portal below 5.0.0:
+Version 3 is the latest one which supports Report Portal versions below 5.0.0 
+to install it:
 
 ```
 pip install reportportal-client~=3.0
@@ -36,8 +38,9 @@ pip install reportportal-client~=3.0
 
 ## Contribution
 
-All the fixes for the client that supports Report Portal versions below 5.0.0 should go into the v3 branch.
-The master branch will store the code base for the client for Report Portal versions 5 and above.
+All the fixes for the client that supports Report Portal versions below 5.0.0 
+should go into the v3 branch. The master branch will store the code base for 
+the client for Report Portal versions 5 and above.
 
 
 ## Usage
@@ -165,7 +168,7 @@ service.terminate()
 ```
 
 
-# Send attachement (screenshots)
+# Send attachment (screenshots)
 
 [python-client](https://github.com/reportportal/client-Python/blob/64550693ec9c198b439f8f6e8b23413812d9adf1/reportportal_client/service.py#L259) uses `requests` library for working with RP and the same semantics to work with attachments (data).
 
