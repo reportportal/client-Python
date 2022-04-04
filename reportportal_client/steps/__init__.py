@@ -45,7 +45,6 @@ from functools import wraps
 
 from reportportal_client._local import current
 from reportportal_client.helpers import get_function_params, timestamp
-from reportportal_client.static.defines import NOT_FOUND
 
 NESTED_STEP_ITEMS = ('step', 'scenario', 'before_class', 'before_groups',
                      'before_method', 'before_suite', 'before_test',
@@ -63,33 +62,7 @@ class StepReporter:
         :param rp_client: Report Portal client which will be used to report
                           steps
         """
-        self.__levels = []
         self.client = rp_client
-
-    def set_parent(self, item_type, parent_id):
-        """Put an id into parent items queue if it has correct type.
-
-        :param item_type: type of the parent item
-        :param parent_id: ID of the parent item
-        """
-        if parent_id is not NOT_FOUND:
-            if item_type.lower() in NESTED_STEP_ITEMS:
-                self.__levels.append(parent_id)
-
-    def get_parent(self):
-        """Retrieve the last item in the parent queue."""
-        if len(self.__levels) > 0:
-            return self.__levels[-1]
-
-    def remove_parent(self, parent_id):
-        """Remove the last item in the parent queue.
-
-        Remove the last item in the parent queue if it's equal to the method's
-        argument.
-        :param parent_id: item ID to remove
-        """
-        if len(self.__levels) > 0 and self.__levels[-1] == parent_id:
-            return self.__levels.pop()
 
     def start_nested_step(self,
                           name,
@@ -102,8 +75,8 @@ class StepReporter:
         :param start_time: Nested Step start time
         :param parameters: Nested Step parameters
         """
-        parent_id = self.get_parent()
-        if parent_id is None:
+        parent_id = self.client.current_item()
+        if not parent_id:
             return
         return self.client.start_test_item(name, start_time, 'step',
                                            has_stats=False,
@@ -121,8 +94,6 @@ class StepReporter:
         :param end_time: Nested Step finish time
         :param status:   Nested Step finish status
         """
-        if not self.remove_parent(item_id):
-            return
         return self.client.finish_test_item(item_id, end_time, status=status)
 
 

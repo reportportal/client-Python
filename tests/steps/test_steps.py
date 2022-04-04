@@ -31,7 +31,7 @@ def test_nested_steps_are_skipped_without_parent(rp_client):
 
 
 def test_nested_steps_reported_with_parent(rp_client):
-    rp_client.step_reporter.set_parent('STEP', PARENT_STEP_ID)
+    rp_client._item_stack.append(PARENT_STEP_ID)
 
     with step(NESTED_STEP_NAME):
         pass
@@ -41,7 +41,7 @@ def test_nested_steps_reported_with_parent(rp_client):
 
 
 def test_nested_steps_are_skipped_without_client(rp_client):
-    rp_client.step_reporter.set_parent('STEP', PARENT_STEP_ID)
+    rp_client._item_stack.append(PARENT_STEP_ID)
     set_current(None)
     with step(NESTED_STEP_NAME):
         pass
@@ -51,7 +51,7 @@ def test_nested_steps_are_skipped_without_client(rp_client):
 
 
 def test_nested_step_name(rp_client):
-    rp_client.step_reporter.set_parent('STEP', PARENT_STEP_ID)
+    rp_client._item_stack.append(PARENT_STEP_ID)
 
     with step(NESTED_STEP_NAME):
         pass
@@ -61,7 +61,7 @@ def test_nested_step_name(rp_client):
 
 
 def test_nested_step_times(rp_client):
-    rp_client.step_reporter.set_parent('STEP', PARENT_STEP_ID)
+    rp_client._item_stack.append(PARENT_STEP_ID)
 
     with step(NESTED_STEP_NAME):
         pass
@@ -76,7 +76,7 @@ def nested_step():
 
 
 def test_nested_step_decorator(rp_client):
-    rp_client.step_reporter.set_parent('STEP', PARENT_STEP_ID)
+    rp_client._item_stack.append(PARENT_STEP_ID)
     nested_step()
 
     assert rp_client.session.post.call_count == 1
@@ -85,7 +85,7 @@ def test_nested_step_decorator(rp_client):
 
 
 def test_nested_step_failed(rp_client):
-    rp_client.step_reporter.set_parent('STEP', PARENT_STEP_ID)
+    rp_client._item_stack.append(PARENT_STEP_ID)
     try:
         with step(NESTED_STEP_NAME):
             raise AssertionError
@@ -97,7 +97,7 @@ def test_nested_step_failed(rp_client):
 
 
 def test_nested_step_custom_status(rp_client):
-    rp_client.step_reporter.set_parent('STEP', PARENT_STEP_ID)
+    rp_client._item_stack.append(PARENT_STEP_ID)
     with step(NESTED_STEP_NAME, status='INFO'):
         pass
     assert rp_client.session.post.call_count == 1
@@ -106,7 +106,7 @@ def test_nested_step_custom_status(rp_client):
 
 
 def test_nested_step_custom_status_failed(rp_client):
-    rp_client.step_reporter.set_parent('STEP', PARENT_STEP_ID)
+    rp_client._item_stack.append(PARENT_STEP_ID)
     try:
         with step(NESTED_STEP_NAME, status='INFO'):
             raise AssertionError
@@ -123,7 +123,7 @@ def nested_step_params(param1, param2, param3=None):
 
 
 def test_verify_parameters_logging_default_value(rp_client):
-    rp_client.step_reporter.set_parent('STEP', PARENT_STEP_ID)
+    rp_client._item_stack.append(PARENT_STEP_ID)
     nested_step_params(1, 'two')
     assert len(rp_client._log_manager._logs_batch) == 1
     assert rp_client._log_manager._logs_batch[0].message \
@@ -131,7 +131,7 @@ def test_verify_parameters_logging_default_value(rp_client):
 
 
 def test_verify_parameters_logging_no_default_value(rp_client):
-    rp_client.step_reporter.set_parent('STEP', PARENT_STEP_ID)
+    rp_client._item_stack.append(PARENT_STEP_ID)
     nested_step_params(1, 'two', 'three')
     assert len(rp_client._log_manager._logs_batch) == 1
     assert rp_client._log_manager._logs_batch[0].message \
@@ -139,7 +139,7 @@ def test_verify_parameters_logging_no_default_value(rp_client):
 
 
 def test_verify_parameters_logging_named_value(rp_client):
-    rp_client.step_reporter.set_parent('STEP', PARENT_STEP_ID)
+    rp_client._item_stack.append(PARENT_STEP_ID)
     nested_step_params(1, 'two', param3='three')
     assert len(rp_client._log_manager._logs_batch) == 1
     assert rp_client._log_manager._logs_batch[0].message \
@@ -147,7 +147,7 @@ def test_verify_parameters_logging_named_value(rp_client):
 
 
 def test_verify_parameters_inline_logging(rp_client):
-    rp_client.step_reporter.set_parent('STEP', PARENT_STEP_ID)
+    rp_client._item_stack.append(PARENT_STEP_ID)
     with step(NESTED_STEP_NAME, params={'param1': 1, 'param2': 'two'}):
         pass
     assert len(rp_client._log_manager._logs_batch) == 1
@@ -171,7 +171,7 @@ def parent_nested_step():
 
 
 def test_two_level_nested_step_decorator(rp_client):
-    rp_client.step_reporter.set_parent('STEP', PARENT_STEP_ID)
+    rp_client._item_stack.append(PARENT_STEP_ID)
     rp_client.session.post.side_effect = item_id_gen
     parent_nested_step()
 

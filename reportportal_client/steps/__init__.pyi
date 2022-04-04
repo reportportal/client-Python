@@ -21,13 +21,6 @@ class StepReporter:
 
     def __init__(self, rp_client: RPClient) -> None: ...
 
-    def set_parent(self, item_type: Text, parent_id: Text) -> None: ...
-
-    def get_parent(self) -> Optional[Text]: ...
-
-    def remove_parent(self, parent_id: Optional[Text] = ...) \
-            -> Optional[Text]: ...
-
     def start_nested_step(self,
                           name: Text,
                           start_time: Text,

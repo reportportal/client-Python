@@ -16,10 +16,10 @@ limitations under the License.
 """
 import logging
 
-
 import requests
 from requests.adapters import HTTPAdapter
 
+from ._local import set_current
 from .core.log_manager import LogManager
 from .core.rp_requests import (
     HttpRequest,
@@ -31,7 +31,6 @@ from .core.rp_requests import (
 from .helpers import uri_join, verify_value_length
 from .static.defines import NOT_FOUND
 from .steps import StepReporter
-from ._local import set_current
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
@@ -88,6 +87,7 @@ class RPClient(object):
         self.verify_ssl = verify_ssl
         self.session = requests.Session()
         self.step_reporter = StepReporter(self)
+        self._item_stack = []
         if retries:
             self.session.mount('https://', HTTPAdapter(
                 max_retries=retries, pool_maxsize=max_pool_size))
@@ -149,6 +149,9 @@ class RPClient(object):
         :param retry:       Used to report retry of the test. Allowable values:
                            "True" or "False"
         """
+        if item_id is NOT_FOUND:
+            logger.warning("Uttempt to finish non-existent item")
+            return None
         url = uri_join(self.base_url_v2, 'item', item_id)
         request_payload = ItemFinishRequest(
             end_time,
@@ -162,7 +165,7 @@ class RPClient(object):
         ).payload
         response = HttpRequest(self.session.put, url=url, json=request_payload,
                                verify_ssl=self.verify_ssl).make()
-        self.step_reporter.remove_parent(item_id)
+        self._item_stack.pop()
         logger.debug('finish_test_item - ID: %s', item_id)
         logger.debug('response message: %s', response.message)
         return response.message
@@ -337,9 +340,9 @@ class RPClient(object):
                                json=request_payload,
                                verify_ssl=self.verify_ssl).make()
         item_id = response.id
-        self.step_reporter.set_parent(item_type, item_id)
         if item_id is not NOT_FOUND:
             logger.debug('start_test_item - ID: %s', item_id)
+            self._item_stack.append(item_id)
         else:
             logger.warning('start_test_item - invalid response: %s',
                            str(response.json))
@@ -367,3 +370,7 @@ class RPClient(object):
                                verify_ssl=self.verify_ssl).make()
         logger.debug('update_test_item - Item: %s', item_id)
         return response.message
+
+    def current_item(self):
+        """Retrieve the last item reported by the client."""
+        return self._item_stack[-1] if len(self._item_stack) > 0 else None
