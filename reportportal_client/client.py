@@ -1,12 +1,12 @@
 """This module contains Report Portal Client class.
 
-Copyright (c) 2018 http://reportportal.io .
+Copyright (c) 2022 https://reportportal.io .
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-http://www.apache.org/licenses/LICENSE-2.0
+https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,22 +19,33 @@ import logging
 import requests
 from requests.adapters import HTTPAdapter
 
-from reportportal_client.core.log_manager import LogManager
-from reportportal_client.core.rp_requests import (
+from ._local import set_current
+from .core.log_manager import LogManager
+from .core.rp_requests import (
     HttpRequest,
     ItemStartRequest,
     ItemFinishRequest,
     LaunchStartRequest,
     LaunchFinishRequest
 )
-from reportportal_client.helpers import uri_join, verify_value_length
+from .helpers import uri_join, verify_value_length
+from .static.defines import NOT_FOUND
+from .steps import StepReporter
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
 
 class RPClient(object):
-    """Report portal client."""
+    """Report portal client.
+
+    The class is supposed to use by Report Portal agents: both custom and
+    official to make calls to Report Portal. It handles HTTP request and
+    response bodies generation and serialization, connection retries and log
+    batching.
+    NOTICE: the class is not thread-safe, use new class instance for every new
+    thread to avoid request/response messing and other issues.
+    """
 
     def __init__(self,
                  endpoint,
@@ -60,6 +71,7 @@ class RPClient(object):
         :param max_pool_size:        Option to set the maximum number of
                                      connections to save the pool.
         """
+        set_current(self)
         self._batch_logs = []
         self.api_v1, self.api_v2 = 'v1', 'v2'
         self.endpoint = endpoint
@@ -74,6 +86,8 @@ class RPClient(object):
         self.token = token
         self.verify_ssl = verify_ssl
         self.session = requests.Session()
+        self.step_reporter = StepReporter(self)
+        self._item_stack = []
         if retries:
             self.session.mount('https://', HTTPAdapter(
                 max_retries=retries, pool_maxsize=max_pool_size))
@@ -128,13 +142,16 @@ class RPClient(object):
                             "failed", "stopped", "skipped", "interrupted",
                             "cancelled" or None
         :param attributes:  Test item attributes(tags). Pairs of key and value.
-                            Overrides attributes on start
+                            Override attributes on start
         :param description: Test item description. Overrides description
                             from start request.
         :param issue:       Issue of the current test item
         :param retry:       Used to report retry of the test. Allowable values:
                            "True" or "False"
         """
+        if item_id is NOT_FOUND:
+            logger.warning("Uttempt to finish non-existent item")
+            return None
         url = uri_join(self.base_url_v2, 'item', item_id)
         request_payload = ItemFinishRequest(
             end_time,
@@ -148,6 +165,7 @@ class RPClient(object):
         ).payload
         response = HttpRequest(self.session.put, url=url, json=request_payload,
                                verify_ssl=self.verify_ssl).make()
+        self._item_stack.pop()
         logger.debug('finish_test_item - ID: %s', item_id)
         logger.debug('response message: %s', response.message)
         return response.message
@@ -316,12 +334,19 @@ class RPClient(object):
             retry=retry,
             test_case_id=test_case_id
         ).payload
+
         response = HttpRequest(self.session.post,
                                url=url,
                                json=request_payload,
                                verify_ssl=self.verify_ssl).make()
-        logger.debug('start_test_item - ID: %s', response.id)
-        return response.id
+        item_id = response.id
+        if item_id is not NOT_FOUND:
+            logger.debug('start_test_item - ID: %s', item_id)
+            self._item_stack.append(item_id)
+        else:
+            logger.warning('start_test_item - invalid response: %s',
+                           str(response.json))
+        return item_id
 
     def terminate(self, *args, **kwargs):
         """Call this to terminate the client."""
@@ -345,3 +370,7 @@ class RPClient(object):
                                verify_ssl=self.verify_ssl).make()
         logger.debug('update_test_item - Item: %s', item_id)
         return response.message
+
+    def current_item(self):
+        """Retrieve the last item reported by the client."""
+        return self._item_stack[-1] if len(self._item_stack) > 0 else None
