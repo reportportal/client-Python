@@ -109,15 +109,17 @@ class TestReportPortalService:
         mock_resp = mock.Mock()
         mock_resp.status_code = 200
 
-        mock_get = mock.Mock(return_value=mock_resp)
-        monkeypatch.setattr(rp_service.session, 'get', mock_get)
+        mock_request = mock.Mock(return_value=mock_resp)
+        monkeypatch.setattr(rp_service.session, 'request', mock_request)
         monkeypatch.setattr(rp_service, 'launch_id', '1234-cafe')
 
         launch_id = rp_service.get_launch_info()
-        mock_get.assert_called_once_with(
+        mock_request.assert_called_once_with(
+            method='GET',
             url='{0}/launch/uuid/{1}'.format(rp_service.base_url_v1,
                                              rp_service.launch_id),
-            verify=rp_service.verify_ssl)
+            verify=rp_service.verify_ssl,
+            timeout=(10, 10))
         assert launch_id == {'id': 112}
 
     def test_get_launch_info_launch_id_none(self, rp_service, monkeypatch):
@@ -145,12 +147,12 @@ class TestReportPortalService:
                             object with mocked session.
         :param monkeypatch: Pytest fixture to safely set/delete an attribute
         """
-        mock_get = mock.Mock()
-        monkeypatch.setattr(rp_service.session, 'get', mock_get)
+        mock_request = mock.Mock()
+        monkeypatch.setattr(rp_service.session, 'request', mock_request)
         monkeypatch.setattr(rp_service, 'launch_id', '1234')
 
         launch_info = rp_service.get_launch_info()
-        expect(mock_get.call_count == 5)
+        expect(mock_request.call_count == 5)
         expect(launch_info == {})
         assert_expectations()
 
@@ -168,13 +170,13 @@ class TestReportPortalService:
         mock_resp1.status_code = 404
         mock_resp2 = mock.Mock()
         mock_resp2.status_code = 200
-        mock_get = mock.Mock()
-        mock_get.side_effect = [mock_resp1, mock_resp2]
-        monkeypatch.setattr(rp_service.session, 'get', mock_get)
+        mock_request = mock.Mock()
+        mock_request.side_effect = [mock_resp1, mock_resp2]
+        monkeypatch.setattr(rp_service.session, 'request', mock_request)
         monkeypatch.setattr(rp_service, 'launch_id', '1234')
 
         launch_info = rp_service.get_launch_info()
-        expect(mock_get.call_count == 2)
+        expect(mock_request.call_count == 2)
         expect(launch_info == {'id': 112})
         assert_expectations()
 
