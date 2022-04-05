@@ -1,5 +1,4 @@
 """This modules contains unit tests for the helpers module."""
-
 from six.moves import mock
 
 from reportportal_client.helpers import (

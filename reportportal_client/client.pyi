@@ -1,7 +1,14 @@
-from requests import Session
 from typing import Any, Dict, List, Optional, Text, Tuple, Union
+
+from requests import Session
+
 from reportportal_client.core.log_manager import LogManager as LogManager
 from reportportal_client.core.rp_issues import Issue as Issue
+from reportportal_client.steps import StepReporter
+
+
+def current() -> RPClient: ...
+
 
 class RPClient:
     _log_manager: LogManager = ...
@@ -17,6 +24,8 @@ class RPClient:
     token: Text = ...
     verify_ssl: bool = ...
     session: Session = ...
+    step_reporter: StepReporter = ...
+
     def __init__(self,
                  endpoint: Text,
                  project: Text, token: Text,
@@ -26,29 +35,38 @@ class RPClient:
                  retries: int = ...,
                  max_pool_size: int = ...,
                  launch_id: Text = ...) -> None: ...
+
     def finish_launch(self,
                       end_time: Text,
                       status: Text = ...,
                       attributes: Optional[Union[List, Dict]] = ...,
                       **kwargs: Any) -> Dict: ...
+
     def finish_test_item(self,
-                    item_id: Text,
-                    end_time: Text,
-                    status: Text,
-                    issue: Optional[Issue] = ...,
-                    attributes: List = ...,
-                    **kwargs: Any) -> None: ...
+                         item_id: Text,
+                         end_time: Text,
+                         status: Text,
+                         issue: Optional[Issue] = ...,
+                         attributes: List = ...,
+                         **kwargs: Any) -> Optional[Text]: ...
+
     def get_item_id_by_uuid(self, uuid: Text) -> Text: ...
+
     def get_launch_info(self) -> Dict: ...
+
     def get_launch_ui_id(self) -> Optional[Dict]: ...
+
     def get_launch_ui_url(self) -> Text: ...
+
     def get_project_settings(self) -> Dict: ...
+
     def log(self,
             time: Text,
             message: Text,
             level: Optional[Union[int, Text]] = ...,
             attachment: Optional[Dict] = ...,
             item_id: Optional[Text] = ...) -> None: ...
+
     def start_launch(self,
                      name: Text,
                      start_time: Text,
@@ -58,16 +76,23 @@ class RPClient:
                      rerun: bool = ...,
                      rerun_of: Text = ...,
                      **kwargs: Any) -> Text: ...
+
     def start_test_item(self,
-                   name: Text,
-                   start_time: Text,
-                   item_type: Text,
-                   description: Text = ...,
-                   attributes: Optional[Union[List, Dict]] = ...,
-                   parameters: Dict = ...,
-                   parent_item_id: Text = ...,
-                   has_stats: bool = ...,
-                   code_ref: Text = ...,
-                   **kwargs: Any) -> Text: ...
+                        name: Text,
+                        start_time: Text,
+                        item_type: Text,
+                        description: Text = ...,
+                        attributes: Optional[Union[List, Dict]] = ...,
+                        parameters: Dict = ...,
+                        parent_item_id: Text = ...,
+                        has_stats: bool = ...,
+                        code_ref: Text = ...,
+                        **kwargs: Any) -> Text: ...
+
     def terminate(self, *args: Tuple, **kwargs: Any) -> None: ...
-    def update_test_item(self, item_uuid: Text, attributes: Optional[Union[List, Dict]], description: Optional[Text]):
+
+    def update_test_item(self, item_uuid: Text,
+                         attributes: Optional[Union[List, Dict]],
+                         description: Optional[Text]) -> Text: ...
+
+    def current_item(self) -> Text: ...
