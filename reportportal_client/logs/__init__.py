@@ -18,8 +18,8 @@ import sys
 from six import PY2
 from six.moves.urllib.parse import urlparse
 
-from reportportal_client.helpers import timestamp
 from reportportal_client._local import current
+from reportportal_client.helpers import timestamp
 
 
 class RPLogger(logging.getLoggerClass()):
@@ -96,21 +96,22 @@ class RPLogHandler(logging.Handler):
     }
     _sorted_levelnos = sorted(_loglevel_map.keys(), reverse=True)
 
-    def __init__(self, level=logging.NOTSET,
-                 filter_client_logs=False,
-                 endpoint=None):
+    def __init__(self, level=logging.NOTSET, filter_client_logs=False,
+                 endpoint=None,
+                 ignored_record_names=tuple('reportportal_client')):
         """
         Initialize RPLogHandler instance.
 
-        :param level:              level of logging
-        :param filter_client_logs: if True throw away logs emitted by a
+        :param level:                level of logging
+        :param filter_client_logs:   if True throw away logs emitted by a
         ReportPortal client
-        :param endpoint:           link to send reports
+        :param endpoint:             link to send reports
+        :param ignored_record_names: a tuple of record names which will be
+        filtered out by the handler (with startswith method)
         """
         super(RPLogHandler, self).__init__(level)
         self.filter_client_logs = filter_client_logs
-        self.ignored_record_names = ('reportportal_client',
-                                     'pytest_reportportal')
+        self.ignored_record_names = ignored_record_names
         self.endpoint = endpoint
 
     def filter(self, record):
