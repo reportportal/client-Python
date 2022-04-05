@@ -179,10 +179,11 @@ class APIWorker(object):
         if not self.is_alive():
             # Already stopped or already dead or not even started
             return
-        if not self._stop_lock.acquire(blocking=False):
+        # Do not release main thread until worker process all requests, since
+        # main thread might forcibly quit python interpreter
+        with self._stop_lock:
             self.send(stop_command)
             self._stop_lock.wait(THREAD_TIMEOUT)
-        self._stop_lock.release()
 
     def stop(self):
         """Stop the worker.

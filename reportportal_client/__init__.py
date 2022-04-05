@@ -14,12 +14,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+from ._local import current
+from .logs import RPLogger, RPLogHandler
 from .service import ReportPortalService
 from .steps import step
-from ._local import current
 
 __all__ = [
+    'current',
+    "RPLogger",
+    "RPLogHandler",
     'ReportPortalService',
     'step',
-    'current'
 ]
