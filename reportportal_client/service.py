@@ -13,15 +13,14 @@ limitations under the License.
 """
 
 import json
+import logging
+import uuid
 from time import sleep
 
 import requests
-import uuid
-import logging
-
 import six
-from six.moves.collections_abc import Mapping
 from requests.adapters import HTTPAdapter
+from six.moves.collections_abc import Mapping
 
 from .errors import ResponseError, EntryCreatedError, OperationCompletionError
 from .helpers import verify_value_length
@@ -182,7 +181,7 @@ class ReportPortalService(object):
             verify_ssl: option to not verify ssl certificates
             max_pool_size: option to set the maximum number of
                            connections to save in the pool.
-            http_timeout: a float in seconds for the connect and read
+            http_timeout: a float in seconds for connect and read
                           timeout. Use a Tuple to specific connect and
                           read separately.
         """
@@ -262,7 +261,12 @@ class ReportPortalService(object):
             "attributes": verify_value_length(attributes)
         }
         url = uri_join(self.base_url_v2, "launch", self.launch_id, "finish")
-        r = self.session.put(url=url, json=data, verify=self.verify_ssl)
+        r = self.session.request(
+            method='PUT',
+            url=url,
+            json=data,
+            verify=self.verify_ssl
+        )
         logger.debug("finish_launch - ID: %s", self.launch_id)
         return _get_msg(r)
 
@@ -396,7 +400,13 @@ class ReportPortalService(object):
         }
         item_id = self.get_item_id_by_uuid(item_uuid)
         url = uri_join(self.base_url_v1, "item", item_id, "update")
-        r = self.session.put(url=url, json=data, verify=self.verify_ssl)
+        r = self.session.request(
+            method='PUT',
+            url=url,
+            json=data,
+            verify=self.verify_ssl,
+            timeout=self.http_timeout
+        )
         logger.debug("update_test_item - Item: %s", item_id)
         return _get_msg(r)
 
@@ -433,7 +443,12 @@ class ReportPortalService(object):
             "attributes": verify_value_length(attributes)
         }
         url = uri_join(self.base_url_v2, "item", item_id)
-        r = self.session.put(url=url, json=data, verify=self.verify_ssl)
+        r = self.session.request(
+            method='PUT',
+            url=url,
+            json=data,
+            verify=self.verify_ssl
+        )
         logger.debug("finish_test_item - ID: %s", item_id)
         return _get_msg(r)
 
@@ -444,11 +459,14 @@ class ReportPortalService(object):
         :return str:     Test item id
         """
         url = uri_join(self.base_url_v1, "item", "uuid", uuid)
-        return _get_json(self.session.request(
-            method='GET',
-            url=url,
-            verify=self.verify_ssl,
-            timeout=self.http_timeout))["id"]
+        return _get_json(
+            self.session.request(
+                method='GET',
+                url=url,
+                verify=self.verify_ssl,
+                timeout=self.http_timeout
+            )
+        )["id"]
 
     def get_project_settings(self):
         """
@@ -462,7 +480,8 @@ class ReportPortalService(object):
             url=url,
             json={},
             verify=self.verify_ssl,
-            timeout=self.http_timeout)
+            timeout=self.http_timeout
+        )
         logger.debug("settings")
         return _get_json(r)
 

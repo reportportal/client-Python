@@ -57,6 +57,7 @@ class RPClient(object):
                  retries=None,
                  max_pool_size=50,
                  launch_id=None,
+                 http_timeout=(10, 10),
                  **_):
         """Initialize required attributes.
 
@@ -70,6 +71,11 @@ class RPClient(object):
         :param verify_ssl:           Option to skip ssl verification
         :param max_pool_size:        Option to set the maximum number of
                                      connections to save the pool.
+        :param launch_id:            a launch id to use instead of starting own
+                                     one
+        :param http_timeout:         a float in seconds for connect and read
+                                     timeout. Use a Tuple to specific connect
+                                     and read separately.
         """
         set_current(self)
         self._batch_logs = []
@@ -85,6 +91,7 @@ class RPClient(object):
         self.log_batch_size = log_batch_size
         self.token = token
         self.verify_ssl = verify_ssl
+        self.http_timeout = http_timeout
         self.session = requests.Session()
         self.step_reporter = StepReporter(self)
         self._item_stack = []

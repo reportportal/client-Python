@@ -23,18 +23,22 @@ class RPClient:
     project: Text = ...
     token: Text = ...
     verify_ssl: bool = ...
+    http_timeout: Union[float, Tuple[float, float]] = ...
     session: Session = ...
     step_reporter: StepReporter = ...
 
-    def __init__(self,
-                 endpoint: Text,
-                 project: Text, token: Text,
-                 log_batch_size: int = ...,
-                 is_skipped_an_issue: bool = ...,
-                 verify_ssl: bool = ...,
-                 retries: int = ...,
-                 max_pool_size: int = ...,
-                 launch_id: Text = ...) -> None: ...
+    def __init__(
+            self,
+            endpoint: Text,
+            project: Text, token: Text,
+            log_batch_size: int = ...,
+            is_skipped_an_issue: bool = ...,
+            verify_ssl: bool = ...,
+            retries: int = ...,
+            max_pool_size: int = ...,
+            launch_id: Text = ...,
+            http_timeout: Union[float, Tuple[float, float]] = ...
+    ) -> None: ...
 
     def finish_launch(self,
                       end_time: Text,
