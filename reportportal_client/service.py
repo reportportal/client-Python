@@ -167,6 +167,7 @@ class ReportPortalService(object):
                  verify_ssl=True,
                  retries=None,
                  max_pool_size=50,
+                 http_timeout=(10, 10),
                  **kwargs):
         """Init the service class.
 
@@ -181,6 +182,9 @@ class ReportPortalService(object):
             verify_ssl: option to not verify ssl certificates
             max_pool_size: option to set the maximum number of
                            connections to save in the pool.
+            http_timeout: a float in seconds for the connect and read
+                          timeout. Use a Tuple to specific connect and
+                          read separately.
         """
         self._batch_logs = []
         self.endpoint = endpoint
@@ -190,6 +194,7 @@ class ReportPortalService(object):
         self.is_skipped_an_issue = is_skipped_an_issue
         self.base_url_v1 = uri_join(self.endpoint, "api/v1", self.project)
         self.base_url_v2 = uri_join(self.endpoint, "api/v2", self.project)
+        self.http_timeout = http_timeout
 
         self.session = requests.Session()
         if retries:
@@ -228,7 +233,13 @@ class ReportPortalService(object):
             "rerunOf": rerunOf
         }
         url = uri_join(self.base_url_v2, "launch")
-        r = self.session.post(url=url, json=data, verify=self.verify_ssl)
+        r = self.session.request(
+            method='POST',
+            url=url,
+            json=data,
+            verify=self.verify_ssl,
+            timeout=self.http_timeout
+        )
         self.launch_id = _get_id(r)
         logger.debug("start_launch - ID: %s", self.launch_id)
         return self.launch_id
@@ -270,7 +281,11 @@ class ReportPortalService(object):
 
         for _ in range(max_retries):
             logger.debug("get_launch_info - ID: %s", self.launch_id)
-            resp = self.session.get(url=url, verify=self.verify_ssl)
+            resp = self.session.request(
+                method='GET',
+                url=url,
+                verify=self.verify_ssl,
+                timeout=self.http_timeout)
 
             if resp.status_code == 200:
                 launch_info = _get_json(resp)
@@ -355,7 +370,13 @@ class ReportPortalService(object):
             url = uri_join(self.base_url_v2, "item", parent_item_id)
         else:
             url = uri_join(self.base_url_v2, "item")
-        r = self.session.post(url=url, json=data, verify=self.verify_ssl)
+        r = self.session.request(
+            method='POST',
+            url=url,
+            json=data,
+            verify=self.verify_ssl,
+            timeout=self.http_timeout
+        )
 
         item_id = _get_id(r)
         logger.debug("start_test_item - ID: %s", item_id)
@@ -423,8 +444,11 @@ class ReportPortalService(object):
         :return str:     Test item id
         """
         url = uri_join(self.base_url_v1, "item", "uuid", uuid)
-        return _get_json(self.session.get(
-            url=url, verify=self.verify_ssl))["id"]
+        return _get_json(self.session.request(
+            method='GET',
+            url=url,
+            verify=self.verify_ssl,
+            timeout=self.http_timeout))["id"]
 
     def get_project_settings(self):
         """
@@ -433,7 +457,12 @@ class ReportPortalService(object):
         :return: json body
         """
         url = uri_join(self.base_url_v1, "settings")
-        r = self.session.get(url=url, json={}, verify=self.verify_ssl)
+        r = self.session.request(
+            method='GET',
+            url=url,
+            json={},
+            verify=self.verify_ssl,
+            timeout=self.http_timeout)
         logger.debug("settings")
         return _get_json(r)
 
@@ -509,10 +538,12 @@ class ReportPortalService(object):
         files.extend(attachments)
         for i in range(POST_LOGBATCH_RETRY_COUNT):
             try:
-                r = self.session.post(
+                r = self.session.request(
+                    method='POST',
                     url=url,
                     files=files,
-                    verify=self.verify_ssl
+                    verify=self.verify_ssl,
+                    timeout=self.http_timeout
                 )
                 logger.debug("log_batch response: %s", r.text)
                 self._batch_logs = []
