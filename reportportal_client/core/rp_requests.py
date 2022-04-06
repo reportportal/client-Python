@@ -42,15 +42,18 @@ class HttpRequest:
     """This model stores attributes related to RP HTTP requests."""
 
     def __init__(self, session_method, url, data=None, json=None,
-                 files=None, verify_ssl=True):
+                 files=None, verify_ssl=True, http_timeout=(10, 10)):
         """Initialize instance attributes.
 
         :param session_method: Method of the requests.Session instance
         :param url:            Request URL
         :param data:           Dictionary, list of tuples, bytes, or file-like
                                object to send in the body of the request
-        :param json:           JSON to be send in the body of the request
-        :param verify:         Is certificate verification required
+        :param json:           JSON to be sent in the body of the request
+        :param verify_ssl:     Is SSL certificate verification required
+        :param http_timeout:   a float in seconds for connect and read
+                               timeout. Use a Tuple to specific connect and
+                               read separately.
         """
         self.data = data
         self.files = files
@@ -58,6 +61,7 @@ class HttpRequest:
         self.session_method = session_method
         self.url = url
         self.verify_ssl = verify_ssl
+        self.http_timeout = http_timeout
 
     def make(self):
         """Make HTTP request to the Report Portal API."""
@@ -65,7 +69,8 @@ class HttpRequest:
             try:
                 return RPResponse(self.session_method(
                     self.url, data=self.data, json=self.json,
-                    files=self.files, verify=self.verify_ssl)
+                    files=self.files, verify=self.verify_ssl,
+                    timeout=self.http_timeout)
                 )
             # https://github.com/reportportal/client-Python/issues/39
             except KeyError:
