@@ -461,10 +461,10 @@ class ReportPortalService(object):
         url = uri_join(self.base_url_v1, "item", "uuid", uuid)
         return _get_json(
             self.session.request(
-            method='GET',
-            url=url,
-            verify=self.verify_ssl,
-            timeout=self.http_timeout
+                method='GET',
+                url=url,
+                verify=self.verify_ssl,
+                timeout=self.http_timeout
             )
         )["id"]
 

@@ -91,7 +91,7 @@ class RPClient(object):
         self.log_batch_size = log_batch_size
         self.token = token
         self.verify_ssl = verify_ssl
-        self.http_timeout=http_timeout
+        self.http_timeout = http_timeout
         self.session = requests.Session()
         self.step_reporter = StepReporter(self)
         self._item_stack = []
