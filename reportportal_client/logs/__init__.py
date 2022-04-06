@@ -77,7 +77,7 @@ class RPLogger(logging.getLoggerClass()):
             record = self.makeRecord(self.name, level, fn, lno, msg, args,
                                      exc_info, func, extra, sinfo)
 
-        if not hasattr(record, 'attachment'):
+        if not getattr(record, 'attachment', None):
             record.attachment = attachment
         self.handle(record)
 
@@ -156,6 +156,6 @@ class RPLogHandler(logging.Handler):
                     timestamp(),
                     msg,
                     level=self._loglevel_map[level],
-                    attachment=record.__dict__.get('attachment', None),
+                    attachment=getattr(record, 'attachment'),
                     item_id=rp_client.current_item()
                 )
