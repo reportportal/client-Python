@@ -237,7 +237,7 @@ class ReportPortalService(object):
                                   timeout=self.http_timeout)
         except (ValueError, KeyError, IOError) as exc:
             logger.warning("Report Portal Start Launch request failed",
-                           exc_info=exc, stack_info=True)
+                           exc_info=exc)
             return
         self.launch_id = _get_id(r)
         logger.debug("start_launch - ID: %s", self.launch_id)
@@ -265,10 +265,8 @@ class ReportPortalService(object):
             r = self.session.put(url, json=data, verify=self.verify_ssl,
                                  timeout=self.http_timeout)
         except (ValueError, KeyError, IOError) as exc:
-            logger.warning(
-                "Report Portal Finish Launch request failed",
-                exc_info=exc, stack_info=True
-            )
+            logger.warning("Report Portal Finish Launch request failed",
+                           exc_info=exc)
             return
         logger.debug("finish_launch - ID: %s", self.launch_id)
         return _get_msg(r)
@@ -292,10 +290,8 @@ class ReportPortalService(object):
                 resp = self.session.get(url, verify=self.verify_ssl,
                                         timeout=self.http_timeout)
             except (ValueError, KeyError, IOError) as exc:
-                logger.warning(
-                    "Report Portal Launch Info request failed",
-                    exc_info=exc, stack_info=True
-                )
+                logger.warning("Report Portal Launch Info request failed",
+                               exc_info=exc)
                 continue
 
             if resp.status_code == 200:
@@ -385,10 +381,8 @@ class ReportPortalService(object):
             r = self.session.post(url, json=data, verify=self.verify_ssl,
                                   timeout=self.http_timeout)
         except (ValueError, KeyError, IOError) as exc:
-            logger.warning(
-                "Report Portal Start Item request failed",
-                exc_info=exc, stack_info=True
-            )
+            logger.warning("Report Portal Start Item request failed",
+                           exc_info=exc)
             return
 
         item_id = _get_id(r)
@@ -413,10 +407,8 @@ class ReportPortalService(object):
             r = self.session.put(url, json=data, verify=self.verify_ssl,
                                  timeout=self.http_timeout)
         except (ValueError, KeyError, IOError) as exc:
-            logger.warning(
-                "Report Portal Update Item request failed",
-                exc_info=exc, stack_info=True
-            )
+            logger.warning("Report Portal Update Item request failed",
+                           exc_info=exc)
             return
         logger.debug("update_test_item - Item: %s", item_id)
         return _get_msg(r)
@@ -457,10 +449,8 @@ class ReportPortalService(object):
         try:
             r = self.session.put(url, json=data, verify=self.verify_ssl)
         except (ValueError, KeyError, IOError) as exc:
-            logger.warning(
-                "Report Portal Finish Item request failed",
-                exc_info=exc, stack_info=True
-            )
+            logger.warning("Report Portal Finish Item request failed",
+                           exc_info=exc)
             return
         logger.debug("finish_test_item - ID: %s", item_id)
         return _get_msg(r)
@@ -476,10 +466,8 @@ class ReportPortalService(object):
             r = self.session.get(url, verify=self.verify_ssl,
                                  timeout=self.http_timeout)
         except (ValueError, KeyError, IOError) as exc:
-            logger.warning(
-                "Report Portal Item Details request failed",
-                exc_info=exc, stack_info=True
-            )
+            logger.warning("Report Portal Item Details request failed",
+                           exc_info=exc)
             return
         return _get_json(r)["id"]
 
@@ -494,10 +482,8 @@ class ReportPortalService(object):
             r = self.session.get(url, json={}, verify=self.verify_ssl,
                                  timeout=self.http_timeout)
         except (ValueError, KeyError, IOError) as exc:
-            logger.warning(
-                "Report Portal Project Settings request failed",
-                exc_info=exc, stack_info=True
-            )
+            logger.warning("Report Portal Project Settings request failed",
+                           exc_info=exc)
             return
         logger.debug("settings")
         return _get_json(r)
@@ -586,5 +572,5 @@ class ReportPortalService(object):
         logger.warning(
             "Report Portal Batch Log request failed after %d attempts",
             POST_LOGBATCH_RETRY_COUNT,
-            exc_info=exceptions[-1], stack_info=True
+            exc_info=exceptions[-1]
         )

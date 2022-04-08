@@ -87,8 +87,7 @@ class HttpRequest:
             "Report Portal %s request failed after %d attempts",
             self.name,
             SEND_RETRY_COUNT,
-            exc_info=exceptions[-1],
-            stack_info=True
+            exc_info=exceptions[-1]
         )
 
 
