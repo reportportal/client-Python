@@ -33,8 +33,7 @@ from reportportal_client.static.abstract import (
 from reportportal_client.static.defines import (
     DEFAULT_PRIORITY,
     LOW_PRIORITY,
-    RP_LOG_LEVELS,
-    SEND_RETRY_COUNT
+    RP_LOG_LEVELS
 )
 from .rp_responses import RPResponse
 
@@ -71,24 +70,19 @@ class HttpRequest:
 
     def make(self):
         """Make HTTP request to the Report Portal API."""
-        exceptions = []
-        for attempt in range(SEND_RETRY_COUNT):
-            try:
-                return RPResponse(self.session_method(
-                    self.url, data=self.data, json=self.json,
-                    files=self.files, verify=self.verify_ssl,
-                    timeout=self.http_timeout)
-                )
+        try:
+            return RPResponse(self.session_method(
+                self.url, data=self.data, json=self.json,
+                files=self.files, verify=self.verify_ssl,
+                timeout=self.http_timeout)
+            )
             # https://github.com/reportportal/client-Python/issues/39
-            except (KeyError, IOError, ValueError) as exc:
-                exceptions.append(exc)
-
-        logger.warning(
-            "Report Portal %s request failed after %d attempts",
-            self.name,
-            SEND_RETRY_COUNT,
-            exc_info=exceptions[-1]
-        )
+        except (KeyError, IOError, ValueError) as exc:
+            logger.warning(
+                "Report Portal %s request failed",
+                self.name,
+                exc_info=exc
+            )
 
 
 class RPRequestBase(object):
