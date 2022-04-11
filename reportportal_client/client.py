@@ -119,6 +119,9 @@ class RPClient(object):
                             CANCELLED
         :param attributes:  Launch attributes
         """
+        if self.launch_id is NOT_FOUND or not self.launch_id:
+            logger.warning("Attempt to finish non-existent launch")
+            return
         url = uri_join(self.base_url_v2, 'launch', self.launch_id, 'finish')
         request_payload = LaunchFinishRequest(
             end_time,
@@ -159,9 +162,9 @@ class RPClient(object):
         :param retry:       Used to report retry of the test. Allowable values:
                            "True" or "False"
         """
-        if item_id is NOT_FOUND:
-            logger.warning("Uttempt to finish non-existent item")
-            return None
+        if item_id is NOT_FOUND or not item_id:
+            logger.warning("Attempt to finish non-existent item")
+            return
         url = uri_join(self.base_url_v2, 'item', item_id)
         request_payload = ItemFinishRequest(
             end_time,
@@ -337,6 +340,10 @@ class RPClient(object):
                                values: "True" or "False"
         :param test_case_id: A unique ID of the current step
         """
+        if parent_item_id is NOT_FOUND:
+            logger.warning("Attempt to start item for non-existent parent "
+                           "item")
+            return
         if parent_item_id:
             url = uri_join(self.base_url_v2, 'item', parent_item_id)
         else:

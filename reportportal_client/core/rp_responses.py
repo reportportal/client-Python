@@ -18,9 +18,11 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import logging
 
 from reportportal_client.static.defines import NOT_FOUND
-from reportportal_client.static.errors import ResponseError
+
+logger = logging.getLogger(__name__)
 
 
 class RPMessage(object):
@@ -74,8 +76,10 @@ class RPResponse(object):
         try:
             return data.json()
         except ValueError as error:
-            raise ResponseError('Invalid response: {0}: {1}'
-                                .format(error, data.text))
+            logger.warning('Invalid response: {0}: {1}'
+                           .format(error, data.text),
+                           exc_info=error)
+            return {}
 
     @property
     def id(self):

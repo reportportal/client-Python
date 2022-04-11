@@ -24,6 +24,7 @@ from reportportal_client.core.rp_requests import (
     RPRequestLog
 )
 from reportportal_client.core.worker import APIWorker
+from reportportal_client.static.defines import NOT_FOUND
 
 logger = logging.getLogger(__name__)
 
@@ -91,6 +92,9 @@ class LogManager(object):
         :param attachment:  Attachments(images,files,etc.)
         :param item_id:     parent item UUID
         """
+        if item_id is NOT_FOUND:
+            logger.warning("Attempt to log to non-existent item")
+            return
         rp_file = RPFile(**attachment) if attachment else None
         rp_log = RPRequestLog(self.launch_id, time, rp_file, item_id,
                               level, message)
