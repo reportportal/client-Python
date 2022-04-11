@@ -20,6 +20,7 @@ limitations under the License.
 """
 
 import json
+import logging
 import uuid
 
 from reportportal_client.core.rp_file import RPFile
@@ -32,17 +33,19 @@ from reportportal_client.static.abstract import (
 from reportportal_client.static.defines import (
     DEFAULT_PRIORITY,
     LOW_PRIORITY,
-    RP_LOG_LEVELS,
-    SEND_RETRY_COUNT
+    RP_LOG_LEVELS
 )
 from .rp_responses import RPResponse
+
+logger = logging.getLogger(__name__)
 
 
 class HttpRequest:
     """This model stores attributes related to RP HTTP requests."""
 
     def __init__(self, session_method, url, data=None, json=None,
-                 files=None, verify_ssl=True, http_timeout=(10, 10)):
+                 files=None, verify_ssl=True, http_timeout=(10, 10),
+                 name=None):
         """Initialize instance attributes.
 
         :param session_method: Method of the requests.Session instance
@@ -54,6 +57,7 @@ class HttpRequest:
         :param http_timeout:   a float in seconds for connect and read
                                timeout. Use a Tuple to specific connect and
                                read separately.
+        :param name:           request name
         """
         self.data = data
         self.files = files
@@ -62,20 +66,23 @@ class HttpRequest:
         self.url = url
         self.verify_ssl = verify_ssl
         self.http_timeout = http_timeout
+        self.name = name
 
     def make(self):
         """Make HTTP request to the Report Portal API."""
-        for attempt in range(SEND_RETRY_COUNT):
-            try:
-                return RPResponse(self.session_method(
-                    self.url, data=self.data, json=self.json,
-                    files=self.files, verify=self.verify_ssl,
-                    timeout=self.http_timeout)
-                )
+        try:
+            return RPResponse(self.session_method(
+                self.url, data=self.data, json=self.json,
+                files=self.files, verify=self.verify_ssl,
+                timeout=self.http_timeout)
+            )
             # https://github.com/reportportal/client-Python/issues/39
-            except KeyError:
-                if attempt + 1 == SEND_RETRY_COUNT:
-                    raise
+        except (KeyError, IOError, ValueError) as exc:
+            logger.warning(
+                "Report Portal %s request failed",
+                self.name,
+                exc_info=exc
+            )
 
 
 class RPRequestBase(object):

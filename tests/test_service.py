@@ -2,10 +2,12 @@
 
 from datetime import datetime
 
-from delayed_assert import assert_expectations, expect
 import pytest
+from delayed_assert import assert_expectations, expect
+from requests import ReadTimeout
 from six.moves import mock
 
+from reportportal_client.helpers import timestamp
 from reportportal_client.service import (
     _convert_string,
     _dict_to_payload,
@@ -110,14 +112,13 @@ class TestReportPortalService:
         mock_resp.status_code = 200
 
         mock_request = mock.Mock(return_value=mock_resp)
-        monkeypatch.setattr(rp_service.session, 'request', mock_request)
+        monkeypatch.setattr(rp_service.session, 'get', mock_request)
         monkeypatch.setattr(rp_service, 'launch_id', '1234-cafe')
 
         launch_id = rp_service.get_launch_info()
         mock_request.assert_called_once_with(
-            method='GET',
-            url='{0}/launch/uuid/{1}'.format(rp_service.base_url_v1,
-                                             rp_service.launch_id),
+            '{0}/launch/uuid/{1}'.format(rp_service.base_url_v1,
+                                         rp_service.launch_id),
             verify=rp_service.verify_ssl,
             timeout=(10, 10))
         assert launch_id == {'id': 112}
@@ -148,7 +149,7 @@ class TestReportPortalService:
         :param monkeypatch: Pytest fixture to safely set/delete an attribute
         """
         mock_request = mock.Mock()
-        monkeypatch.setattr(rp_service.session, 'request', mock_request)
+        monkeypatch.setattr(rp_service.session, 'get', mock_request)
         monkeypatch.setattr(rp_service, 'launch_id', '1234')
 
         launch_info = rp_service.get_launch_info()
@@ -172,7 +173,7 @@ class TestReportPortalService:
         mock_resp2.status_code = 200
         mock_request = mock.Mock()
         mock_request.side_effect = [mock_resp1, mock_resp2]
-        monkeypatch.setattr(rp_service.session, 'request', mock_request)
+        monkeypatch.setattr(rp_service.session, 'get', mock_request)
         monkeypatch.setattr(rp_service, 'launch_id', '1234')
 
         launch_info = rp_service.get_launch_info()
@@ -246,22 +247,23 @@ class TestReportPortalService:
         rp_start = rp_service.start_test_item(name='name',
                                               start_time=1591032041348,
                                               item_type='STORY')
-        expected_result = dict(json={'name': 'name',
-                                     'description': None,
-                                     'attributes': None,
-                                     'startTime': 1591032041348,
-                                     'launchUuid': 111,
-                                     'type': 'STORY', 'parameters': None,
-                                     'hasStats': True,
-                                     'codeRef': None,
-                                     'testCaseId': None,
-                                     'retry': False},
-                               url='http://endpoint/api/v2/project/item',
-                               method='POST',
-                               timeout=(10, 10),
-                               verify=True)
+        expected_result = (['http://endpoint/api/v2/project/item'],
+                           dict(json={'name': 'name',
+                                      'description': None,
+                                      'attributes': None,
+                                      'startTime': 1591032041348,
+                                      'launchUuid': 111,
+                                      'type': 'STORY', 'parameters': None,
+                                      'hasStats': True,
+                                      'codeRef': None,
+                                      'testCaseId': None,
+                                      'retry': False},
+                                timeout=(10, 10),
+                                verify=True)
+                           )
 
-        rp_service.session.request.assert_called_with(**expected_result)
+        rp_service.session.post.assert_called_with(*expected_result[0],
+                                                   **expected_result[1])
         assert rp_start == 123
 
     start_item_optional = [
@@ -294,19 +296,51 @@ class TestReportPortalService:
         rp_service.start_test_item(name='name', start_time=1591032041348,
                                    item_type='STORY',
                                    **{field_name: field_value})
-        expected_result = dict(json={'name': 'name',
-                                     'description': None,
-                                     'attributes': None,
-                                     'startTime': 1591032041348,
-                                     'launchUuid': 111,
-                                     'type': 'STORY', 'parameters': None,
-                                     'hasStats': True,
-                                     'codeRef': None,
-                                     'testCaseId': None,
-                                     'retry': False},
-                               url='http://endpoint/api/v2/project/item',
-                               method='POST',
-                               timeout=(10, 10),
-                               verify=True)
-        expected_result['json'][expected_name] = expected_value
-        rp_service.session.request.assert_called_with(**expected_result)
+        expected_result = (['http://endpoint/api/v2/project/item'],
+                           dict(json={'name': 'name',
+                                      'description': None,
+                                      'attributes': None,
+                                      'startTime': 1591032041348,
+                                      'launchUuid': 111,
+                                      'type': 'STORY', 'parameters': None,
+                                      'hasStats': True,
+                                      'codeRef': None,
+                                      'testCaseId': None,
+                                      'retry': False},
+                                timeout=(10, 10),
+                                verify=True))
+        expected_result[1]['json'][expected_name] = expected_value
+        rp_service.session.post.assert_called_with(*expected_result[0],
+                                                   **expected_result[1])
+
+
+def connection_error(*args, **kwargs):
+    raise ReadTimeout()
+
+
+@pytest.mark.parametrize(
+    'requests_method, client_method, client_params, expected_result',
+    [
+        ('put', 'finish_launch', [timestamp()], None),
+        ('put', 'finish_test_item', ['test_item_id', timestamp(), 'PASSED'],
+         None),
+        ('get', 'get_item_id_by_uuid', ['test_item_uuid'], None),
+        ('get', 'get_launch_info', [], {}),
+        ('get', 'get_launch_ui_id', [], None),
+        ('get', 'get_launch_ui_url', [],
+         'http://endpoint/ui/#project/launches/all'),
+        ('get', 'get_project_settings', [], None),
+        ('post', 'start_launch', ['Test Launch', timestamp()], None),
+        ('post', 'start_test_item', ['Test Item', timestamp(), 'STEP'], None),
+        ('put', 'update_test_item', ['test_item_id'], None),
+        ('put', '_log_batch', [{'launchUuid': 'test_launch_uuid'}, True],
+         None),
+    ]
+)
+def test_connection_errors(rp_service, requests_method, client_method,
+                           client_params, expected_result):
+    rp_service.launch_id = 'test_launch_id'
+    getattr(rp_service.session, requests_method).side_effect = connection_error
+    result = getattr(rp_service, client_method)(*client_params)
+
+    assert result == expected_result

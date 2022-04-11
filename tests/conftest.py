@@ -4,6 +4,7 @@ from six.moves import mock
 
 from pytest import fixture
 
+from reportportal_client.client import RPClient
 from reportportal_client.service import ReportPortalService
 
 
@@ -30,3 +31,11 @@ def rp_service():
     service = ReportPortalService('http://endpoint', 'project', 'token')
     service.session = mock.Mock()
     return service
+
+
+@fixture
+def rp_client():
+    """Prepare instance of the RPClient for testing."""
+    client = RPClient('http://endpoint', 'project', 'token')
+    client.session = mock.Mock()
+    return client

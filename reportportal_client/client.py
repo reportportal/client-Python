@@ -17,7 +17,7 @@ limitations under the License.
 import logging
 
 import requests
-from requests.adapters import HTTPAdapter
+from requests.adapters import HTTPAdapter, Retry
 
 from ._local import set_current
 from .core.log_manager import LogManager
@@ -96,10 +96,15 @@ class RPClient(object):
         self.step_reporter = StepReporter(self)
         self._item_stack = []
         if retries:
+            retry_strategy = Retry(
+                total=retries,
+                backoff_factor=0.1,
+                status_forcelist=[429, 500, 502, 503, 504]
+            )
             self.session.mount('https://', HTTPAdapter(
-                max_retries=retries, pool_maxsize=max_pool_size))
+                max_retries=retry_strategy, pool_maxsize=max_pool_size))
             self.session.mount('http://', HTTPAdapter(
-                max_retries=retries, pool_maxsize=max_pool_size))
+                max_retries=retry_strategy, pool_maxsize=max_pool_size))
         self.session.headers['Authorization'] = 'bearer {0}'.format(self.token)
 
         self._log_manager = LogManager(
@@ -119,6 +124,9 @@ class RPClient(object):
                             CANCELLED
         :param attributes:  Launch attributes
         """
+        if self.launch_id is NOT_FOUND or not self.launch_id:
+            logger.warning("Attempt to finish non-existent launch")
+            return
         url = uri_join(self.base_url_v2, 'launch', self.launch_id, 'finish')
         request_payload = LaunchFinishRequest(
             end_time,
@@ -127,7 +135,10 @@ class RPClient(object):
             description=kwargs.get('description')
         ).payload
         response = HttpRequest(self.session.put, url=url, json=request_payload,
-                               verify_ssl=self.verify_ssl).make()
+                               verify_ssl=self.verify_ssl,
+                               name='Finish Launch').make()
+        if not response:
+            return
         logger.debug('finish_launch - ID: %s', self.launch_id)
         logger.debug('response message: %s', response.message)
         return response.message
@@ -156,9 +167,9 @@ class RPClient(object):
         :param retry:       Used to report retry of the test. Allowable values:
                            "True" or "False"
         """
-        if item_id is NOT_FOUND:
-            logger.warning("Uttempt to finish non-existent item")
-            return None
+        if item_id is NOT_FOUND or not item_id:
+            logger.warning("Attempt to finish non-existent item")
+            return
         url = uri_join(self.base_url_v2, 'item', item_id)
         request_payload = ItemFinishRequest(
             end_time,
@@ -172,7 +183,10 @@ class RPClient(object):
         ).payload
         response = HttpRequest(self.session.put, url=url, json=request_payload,
                                verify_ssl=self.verify_ssl).make()
-        self._item_stack.pop()
+        if not response:
+            return
+        # noinspection PyUnresolvedReferences
+        self._item_stack.pop() if len(self._item_stack) > 0 else None
         logger.debug('finish_test_item - ID: %s', item_id)
         logger.debug('response message: %s', response.message)
         return response.message
@@ -186,7 +200,7 @@ class RPClient(object):
         url = uri_join(self.base_url_v1, 'item', 'uuid', uuid)
         response = HttpRequest(self.session.get, url=url,
                                verify_ssl=self.verify_ssl).make()
-        return response.id
+        return response.id if response else None
 
     def get_launch_info(self):
         """Get the current launch information.
@@ -199,6 +213,8 @@ class RPClient(object):
         logger.debug('get_launch_info - ID: %s', self.launch_id)
         response = HttpRequest(self.session.get, url=url,
                                verify_ssl=self.verify_ssl).make()
+        if not response:
+            return
         if response.is_success:
             launch_info = response.json
             logger.debug(
@@ -214,14 +230,17 @@ class RPClient(object):
 
         :return: UI ID of the given launch. None if UI ID has not been found.
         """
-        return self.get_launch_info().get('id')
+        launch_info = self.get_launch_info()
+        return launch_info.get('id') if launch_info else None
 
     def get_launch_ui_url(self):
         """Get UI URL of the current launch.
 
         :return: launch URL or all launches URL.
         """
-        ui_id = self.get_launch_ui_id() or ''
+        ui_id = self.get_launch_ui_id()
+        if not ui_id:
+            return
         path = 'ui/#{0}/launches/all/{1}'.format(self.project, ui_id)
         url = uri_join(self.endpoint, path)
         logger.debug('get_launch_ui_url - ID: %s', self.launch_id)
@@ -235,7 +254,7 @@ class RPClient(object):
         url = uri_join(self.base_url_v1, 'settings')
         response = HttpRequest(self.session.get, url=url, json={},
                                verify_ssl=self.verify_ssl).make()
-        return response.json
+        return response.json if response else None
 
     def log(self, time, message, level=None, attachment=None, item_id=None):
         """Send log message to the Report Portal.
@@ -287,6 +306,8 @@ class RPClient(object):
                                url=url,
                                json=request_payload,
                                verify_ssl=self.verify_ssl).make()
+        if not response:
+            return
         self._log_manager.launch_id = self.launch_id = response.id
         logger.debug('start_launch - ID: %s', self.launch_id)
         return self.launch_id
@@ -324,6 +345,10 @@ class RPClient(object):
                                values: "True" or "False"
         :param test_case_id: A unique ID of the current step
         """
+        if parent_item_id is NOT_FOUND:
+            logger.warning("Attempt to start item for non-existent parent "
+                           "item")
+            return
         if parent_item_id:
             url = uri_join(self.base_url_v2, 'item', parent_item_id)
         else:
@@ -346,9 +371,12 @@ class RPClient(object):
                                url=url,
                                json=request_payload,
                                verify_ssl=self.verify_ssl).make()
+        if not response:
+            return
         item_id = response.id
         if item_id is not NOT_FOUND:
             logger.debug('start_test_item - ID: %s', item_id)
+            # noinspection PyUnresolvedReferences
             self._item_stack.append(item_id)
         else:
             logger.warning('start_test_item - invalid response: %s',
@@ -375,9 +403,12 @@ class RPClient(object):
         url = uri_join(self.base_url_v1, 'item', item_id, 'update')
         response = HttpRequest(self.session.put, url=url, json=data,
                                verify_ssl=self.verify_ssl).make()
+        if not response:
+            return
         logger.debug('update_test_item - Item: %s', item_id)
         return response.message
 
     def current_item(self):
         """Retrieve the last item reported by the client."""
+        # noinspection PyUnresolvedReferences
         return self._item_stack[-1] if len(self._item_stack) > 0 else None
