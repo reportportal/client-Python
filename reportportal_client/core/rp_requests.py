@@ -21,7 +21,6 @@ limitations under the License.
 
 import json
 import logging
-import uuid
 
 from reportportal_client.core.rp_file import RPFile
 from reportportal_client.core.rp_issues import Issue
