@@ -13,7 +13,7 @@
 
 import pytest
 
-from core.rp_file import RPFile
+from reportportal_client.core.rp_file import RPFile
 
 
 @pytest.mark.parametrize(
@@ -30,4 +30,3 @@ def test_rp_file_name_should_not_be_empty(name):
     payload = file.payload
     assert payload['name']
     assert len(payload['name']) > 10
-
