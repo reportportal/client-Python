@@ -21,7 +21,6 @@ limitations under the License.
 
 import json
 import logging
-import uuid
 
 from reportportal_client.core.rp_file import RPFile
 from reportportal_client.core.rp_issues import Issue
@@ -440,7 +439,7 @@ class RPLogBatch(RPRequestBase):
 
     def __get_file(self, rp_file):
         """Form a tuple for the single file."""
-        return ('file', (rp_file.name or uuid.uuid4(),
+        return ('file', (rp_file.name,
                          rp_file.content,
                          rp_file.content_type or self.default_content))
 

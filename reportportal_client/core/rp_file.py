@@ -1,5 +1,7 @@
 """This module contains classes representing RP file object."""
 
+import uuid
+
 
 class RPFile(object):
     """Class representation for a file that will be attached to the log."""
@@ -20,7 +22,7 @@ class RPFile(object):
         """
         self.content = content or data
         self.content_type = content_type or mime
-        self.name = name
+        self.name = name if name and name.strip() else str(uuid.uuid4())
 
     @property
     def payload(self):

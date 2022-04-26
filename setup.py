@@ -2,7 +2,7 @@
 
 from setuptools import setup, find_packages
 
-__version__ = '5.2.0'
+__version__ = '5.2.1'
 
 with open('requirements.txt') as f:
     requirements = f.read().splitlines()
@@ -20,10 +20,11 @@ setup(
     keywords=['testing', 'reporting', 'reportportal'],
     classifiers=[
         'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
-        'Programming Language :: Python :: 3.8'
+        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10'
     ],
     install_requires=requirements
 )
