@@ -121,7 +121,6 @@ class APIWorker(object):
         except Exception as err:
             logger.exception('[%s] Unknown exception has occurred. Terminating'
                              ' the worker.', err)
-            self.stop_immediate()
         self._queue.task_done()
 
     def _stop(self):
