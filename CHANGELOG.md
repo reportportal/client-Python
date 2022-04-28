@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.2.2]
 ### Fixed
 - Issue [#182](https://github.com/reportportal/client-Python/issues/182): logger crash on attachments, by @HardNorth
 
