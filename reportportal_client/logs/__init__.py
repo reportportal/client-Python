@@ -138,7 +138,6 @@ class RPLogHandler(logging.Handler):
         Emit function.
 
         :param record: a log Record of requests
-        :return: log ID
         """
         msg = ''
 
@@ -152,10 +151,12 @@ class RPLogHandler(logging.Handler):
         for level in self._sorted_levelnos:
             if level <= record.levelno:
                 rp_client = current()
-                return rp_client.log(
-                    timestamp(),
-                    msg,
-                    level=self._loglevel_map[level],
-                    attachment=getattr(record, 'attachment'),
-                    item_id=rp_client.current_item()
-                )
+                if rp_client:
+                    rp_client.log(
+                        timestamp(),
+                        msg,
+                        level=self._loglevel_map[level],
+                        attachment=getattr(record, 'attachment'),
+                        item_id=rp_client.current_item()
+                    )
+                return

@@ -194,3 +194,12 @@ def test_two_level_nested_step_decorator(rp_client):
     assert first_id.startswith('post-')
     assert second_id.startswith('post-')
     assert first_id != second_id
+
+
+def test_verify_manual_client_bypass_step(rp_client):
+    set_current(None)
+    rp_client._item_stack.append(PARENT_STEP_ID)
+    with step(NESTED_STEP_NAME, rp_client=rp_client):
+        pass
+    assert rp_client.session.post.call_count == 1
+    assert rp_client.session.put.call_count == 1

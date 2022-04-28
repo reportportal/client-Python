@@ -62,6 +62,12 @@ jobs:
         python setup.py sdist bdist_wheel
         twine upload dist/*
 
+    - name: Checkout develop branch
+      uses: actions/checkout@v2
+      with:
+        ref: 'develop'
+        fetch-depth: 0
+
     - name: Update CHANGELOG.md
       id: changelogUpdate
       run: |
@@ -74,7 +80,6 @@ jobs:
         mv ${{ env.CHANGE_LOG_FILE }}${{ env.TMP_SUFFIX }} ${{ env.CHANGE_LOG_FILE }}
         git add ${{ env.CHANGE_LOG_FILE }}
         git commit -m "Changelog update"
-        git push
 
     - name: Read changelog Entry
       id: readChangelogEntry
@@ -95,12 +100,6 @@ jobs:
         draft: false
         prerelease: false
 
-    - name: Checkout develop branch
-      uses: actions/checkout@v2
-      with:
-        ref: 'develop'
-        fetch-depth: 0
-
     - name: Merge release branch into develop
       id: mergeIntoDevelop
       run: |
@@ -111,11 +110,11 @@ jobs:
     - name: Update version file
       id: versionFileUpdate
       run: |
-        export CURRENT_VERSION_VALUE=`echo '${{ env.CURRENT_VERSION }}' | sed -E 's/(.*)/${{ env.VERSION_REPLACE_PATTERN }}/'`
-        export NEXT_VERSION_VALUE=`echo '${{ env.NEXT_VERSION }}' | sed -E 's/(.*)/${{ env.VERSION_REPLACE_PATTERN }}/'`
+        export CURRENT_VERSION_VALUE=`echo '${{ env.CURRENT_VERSION }}' | sed -E "s/(.*)/${{ env.VERSION_REPLACE_PATTERN }}/"`
+        export NEXT_VERSION_VALUE=`echo '${{ env.NEXT_VERSION }}' | sed -E "s/(.*)/${{ env.VERSION_REPLACE_PATTERN }}/"`
         sed "s/${CURRENT_VERSION_VALUE}/${NEXT_VERSION_VALUE}/g" ${{ env.VERSION_FILE }} > ${{ env.VERSION_FILE }}${{ env.TMP_SUFFIX }}
         rm ${{ env.VERSION_FILE }}
         mv ${{ env.VERSION_FILE }}${{ env.TMP_SUFFIX }} ${{ env.VERSION_FILE }}
         git add ${{ env.VERSION_FILE }}
         git commit -m "Version update"
-        git push origin develop
+        git push

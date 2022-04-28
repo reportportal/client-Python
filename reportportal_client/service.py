@@ -497,7 +497,6 @@ class ReportPortalService(object):
         :param level:
         :param attachment: files
         :param item_id:  id of item
-        :return: id of item from response
         """
         data = {
             "launchUuid": self.launch_id,
@@ -509,7 +508,7 @@ class ReportPortalService(object):
             data["itemUuid"] = item_id
         if attachment:
             data["attachment"] = attachment
-        return self._log_batch(data)
+        self._log_batch(data)
 
     def _log_batch(self, log_data, force=False):
         """

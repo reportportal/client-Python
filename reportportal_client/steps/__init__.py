@@ -120,7 +120,7 @@ class Step:
         """Enter the runtime context related to this object."""
         # Cannot call _local.current() early since it will be initialized
         # before client put something in there
-        rp_client = self.client if self.client else current()
+        rp_client = self.client or current()
         if not rp_client:
             return
         self.__item_id = rp_client.step_reporter \
@@ -138,7 +138,7 @@ class Step:
         """Exit the runtime context related to this object."""
         # Cannot call _local.current() early since it will be initialized
         # before client put something in there
-        rp_client = self.client if self.client else current()
+        rp_client = self.client or current()
         if not rp_client:
             return
         # Avoid failure in case if 'rp_client' was 'None' on function start

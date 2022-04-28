@@ -95,3 +95,15 @@ def test_emit_custom_level(mocked_handle):
     assert mock_client.log.call_count == 1
     call_kwargs = mock_client.log.call_args[1]
     assert call_kwargs['level'] == 'WARN'
+
+
+@mock.patch('reportportal_client.logs.logging.Logger.handle')
+def test_emit_null_client_no_error(mocked_handle):
+    test_message = 'test message'
+    RPLogger('test_logger').log(30, test_message)
+    record = mocked_handle.call_args[0][0]
+
+    set_current(None)
+
+    log_handler = RPLogHandler()
+    log_handler.emit(record)
