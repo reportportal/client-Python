@@ -156,7 +156,7 @@ class RPLogHandler(logging.Handler):
                         timestamp(),
                         msg,
                         level=self._loglevel_map[level],
-                        attachment=getattr(record, 'attachment'),
+                        attachment=record.__dict__.get('attachment', None),
                         item_id=rp_client.current_item()
                     )
                 return
