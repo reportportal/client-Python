@@ -58,24 +58,28 @@ class RPClient(object):
                  max_pool_size=50,
                  launch_id=None,
                  http_timeout=(10, 10),
+                 log_batch_payload_size=67108864,
                  **_):
         """Initialize required attributes.
 
-        :param endpoint:             Endpoint of the report portal service
-        :param project:              Project name to report to
-        :param token:                Authorization token
-        :param log_batch_size:       Option to set the maximum number of
-                                     logs that can be processed in one batch
-        :param is_skipped_an_issue:  Option to mark skipped tests as not
-                                     'To Investigate' items on the server side
-        :param verify_ssl:           Option to skip ssl verification
-        :param max_pool_size:        Option to set the maximum number of
-                                     connections to save the pool.
-        :param launch_id:            a launch id to use instead of starting own
-                                     one
-        :param http_timeout:         a float in seconds for connect and read
-                                     timeout. Use a Tuple to specific connect
-                                     and read separately.
+        :param endpoint:               Endpoint of the report portal service
+        :param project:                Project name to report to
+        :param token:                  Authorization token
+        :param log_batch_size:         Option to set the maximum number of
+                                       logs that can be processed in one batch
+        :param is_skipped_an_issue:    Option to mark skipped tests as not
+                                       'To Investigate' items on the server
+                                       side
+        :param verify_ssl:             Option to skip ssl verification
+        :param max_pool_size:          Option to set the maximum number of
+                                       connections to save the pool.
+        :param launch_id:              a launch id to use instead of starting
+                                       own one
+        :param http_timeout:           a float in seconds for connect and read
+                                       timeout. Use a Tuple to specific connect
+                                       and read separately.
+        :param log_batch_payload_size: maximum size in bytes of logs that can
+                                       be processed in one batch
         """
         set_current(self)
         self._batch_logs = []
@@ -89,6 +93,7 @@ class RPClient(object):
         self.is_skipped_an_issue = is_skipped_an_issue
         self.launch_id = launch_id
         self.log_batch_size = log_batch_size
+        self.log_batch_payload_size = log_batch_payload_size
         self.token = token
         self.verify_ssl = verify_ssl
         self.http_timeout = http_timeout
@@ -109,7 +114,8 @@ class RPClient(object):
 
         self._log_manager = LogManager(
             self.endpoint, self.session, self.api_v2, self.launch_id,
-            self.project, log_batch_size=log_batch_size)
+            self.project, log_batch_size=log_batch_size,
+            log_batch_payload_size=log_batch_payload_size)
 
     def finish_launch(self,
                       end_time,

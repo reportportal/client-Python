@@ -33,18 +33,22 @@ class LogManager(object):
     """Manager of the log items."""
 
     def __init__(self, rp_url, session, api_version, launch_id, project_name,
-                 log_batch_size=20, verify_ssl=True):
+                 log_batch_size=20, verify_ssl=True,
+                 log_batch_payload_size=67108864):
         """Initialize instance attributes.
 
-        :param rp_url:         Report portal URL
-        :param session:        HTTP Session object
-        :param api_version:    RP API version
-        :param launch_id:      Parent launch UUID
-        :param project_name:   RP project name
-        :param log_batch_size: The amount of log objects that need to be
-                               gathered before processing
-        :param verify_ssl:     Indicates that it is necessary to verify SSL
-                               certificates within HTTP request
+        :param rp_url:                 Report portal URL
+        :param session:                HTTP Session object
+        :param api_version:            RP API version
+        :param launch_id:              Parent launch UUID
+        :param project_name:           RP project name
+        :param log_batch_size:         The amount of log objects that need to
+                                       be gathered before processing
+        :param verify_ssl:             Indicates that it is necessary to
+                                       verify SSL
+                                       certificates within HTTP request
+        :param log_batch_payload_size: maximum size in bytes of logs that can
+                                       be processed in one batch
         """
         self._lock = Lock()
         self._logs_batch = []
@@ -53,6 +57,7 @@ class LogManager(object):
         self.queue = queue.PriorityQueue()
         self.launch_id = launch_id
         self.log_batch_size = log_batch_size
+        self.log_batch_payload_size = log_batch_payload_size
         self.project_name = project_name
         self.rp_url = rp_url
         self.session = session
