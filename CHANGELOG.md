@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- Ability to pass client instance in `RPLogHandler` constructor, by @HardNorth
 
 ## [5.2.2]
 ### Fixed

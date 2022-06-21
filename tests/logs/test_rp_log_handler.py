@@ -107,3 +107,21 @@ def test_emit_null_client_no_error(mocked_handle):
 
     log_handler = RPLogHandler()
     log_handler.emit(record)
+
+
+@mock.patch('reportportal_client.logs.logging.Logger.handle')
+def test_emit_custom_client(mocked_handle):
+    test_message = 'test message'
+    RPLogger('test_logger').log(30, test_message)
+    record = mocked_handle.call_args[0][0]
+
+    thread_client = mock.Mock()
+    direct_client = mock.Mock()
+
+    set_current(thread_client)
+
+    log_handler = RPLogHandler(rp_client=direct_client)
+    log_handler.emit(record)
+
+    assert thread_client.log.call_count == 0
+    assert direct_client.log.call_count == 1
