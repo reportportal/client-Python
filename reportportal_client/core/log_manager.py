@@ -18,7 +18,7 @@ from threading import Lock
 
 from six.moves import queue
 
-import helpers
+from reportportal_client import helpers
 from reportportal_client.core.rp_requests import (
     HttpRequest,
     RPFile,
