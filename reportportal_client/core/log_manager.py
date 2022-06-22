@@ -28,13 +28,15 @@ from reportportal_client.static.defines import NOT_FOUND
 
 logger = logging.getLogger(__name__)
 
+MAX_LOG_BATCH_PAYLOAD_SIZE = 65000000
+
 
 class LogManager(object):
     """Manager of the log items."""
 
     def __init__(self, rp_url, session, api_version, launch_id, project_name,
                  log_batch_size=20, verify_ssl=True,
-                 log_batch_payload_size=67108864):
+                 log_batch_payload_size=MAX_LOG_BATCH_PAYLOAD_SIZE):
         """Initialize instance attributes.
 
         :param rp_url:                 Report portal URL

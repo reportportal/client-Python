@@ -1,19 +1,19 @@
 from logging import Logger
-from requests import Session
 from threading import Lock
+from typing import Dict, List, Optional, Text
 
+from requests import Session
 from six.moves import queue
 
 from reportportal_client.core.rp_requests import (
-    HttpRequest as HttpRequest,
-    RPFile as RPFile,
-    RPLogBatch as RPLogBatch,
     RPRequestLog as RPRequestLog
 )
 from reportportal_client.core.worker import APIWorker as APIWorker
-from typing import Dict, List, Optional, Text
 
 logger: Logger
+
+MAX_LOG_BATCH_PAYLOAD_SIZE: int
+
 
 class LogManager:
     _lock: Lock = ...
@@ -29,6 +29,7 @@ class LogManager:
     session: Session = ...
     verify_ssl: bool = ...
     log_batch_payload_size: int = ...
+
     def __init__(self,
                  rp_url: Text,
                  session: Session,
@@ -40,13 +41,18 @@ class LogManager:
                  log_batch_payload_size: int = ...) -> None: ...
 
     def _log_process(self, log_req: RPRequestLog) -> None: ...
+
     def _send_batch(self) -> None: ...
+
     def log(self,
             time: Text,
             message: Optional[Text] = ...,
             level: Optional[Text] = ...,
             attachment: Optional[Dict] = ...,
             item_id: Optional[Text] = ...) -> None: ...
+
     def start(self) -> None: ...
+
     def stop(self) -> None: ...
+
     def stop_force(self) -> None: ...

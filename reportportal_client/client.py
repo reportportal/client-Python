@@ -20,7 +20,7 @@ import requests
 from requests.adapters import HTTPAdapter, Retry
 
 from ._local import set_current
-from .core.log_manager import LogManager
+from .core.log_manager import LogManager, MAX_LOG_BATCH_PAYLOAD_SIZE
 from .core.rp_requests import (
     HttpRequest,
     ItemStartRequest,
@@ -58,7 +58,7 @@ class RPClient(object):
                  max_pool_size=50,
                  launch_id=None,
                  http_timeout=(10, 10),
-                 log_batch_payload_size=67108864,
+                 log_batch_payload_size=MAX_LOG_BATCH_PAYLOAD_SIZE,
                  **_):
         """Initialize required attributes.
 
