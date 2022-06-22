@@ -39,6 +39,7 @@ order to add an issue to the test result:
 #  See the License for the specific language governing permissions and
 #  limitations under the License
 
+
 class Issue(object):
     """This class represents an issue that can be attached to test result."""
 
