@@ -18,6 +18,7 @@ from threading import Lock
 
 from six.moves import queue
 
+import helpers
 from reportportal_client.core.rp_requests import (
     HttpRequest,
     RPFile,
@@ -36,31 +37,32 @@ class LogManager(object):
     """Manager of the log items."""
 
     def __init__(self, rp_url, session, api_version, launch_id, project_name,
-                 log_batch_size=20, verify_ssl=True,
-                 log_batch_payload_size=MAX_LOG_BATCH_PAYLOAD_SIZE):
+                 max_entry_number=20, verify_ssl=True,
+                 max_payload_size=MAX_LOG_BATCH_PAYLOAD_SIZE):
         """Initialize instance attributes.
 
-        :param rp_url:                 Report portal URL
-        :param session:                HTTP Session object
-        :param api_version:            RP API version
-        :param launch_id:              Parent launch UUID
-        :param project_name:           RP project name
-        :param log_batch_size:         The amount of log objects that need to
-                                       be gathered before processing
-        :param verify_ssl:             Indicates that it is necessary to
-                                       verify SSL
-                                       certificates within HTTP request
-        :param log_batch_payload_size: maximum size in bytes of logs that can
-                                       be processed in one batch
+        :param rp_url:           Report portal URL
+        :param session:          HTTP Session object
+        :param api_version:      RP API version
+        :param launch_id:        Parent launch UUID
+        :param project_name:     RP project name
+        :param max_entry_number: The amount of log objects that need to be
+                                 gathered before processing
+        :param verify_ssl:       Indicates that it is necessary to verify SSL
+                                 certificates within HTTP request
+        :param max_payload_size: maximum size in bytes of logs that can be
+                                 processed in one batch
         """
-        self._lock = Lock()
-        self._logs_batch = []
+        self._stop_lock = Lock()
+        self._size_lock = Lock()
+        self._batch = []
+        self._payload_size = helpers.TYPICAL_MULTIPART_FOOTER_LENGTH
         self._worker = None
         self.api_version = api_version
         self.queue = queue.PriorityQueue()
         self.launch_id = launch_id
-        self.log_batch_size = log_batch_size
-        self.log_batch_payload_size = log_batch_payload_size
+        self.max_entry_number = max_entry_number
+        self.max_payload_size = max_payload_size
         self.project_name = project_name
         self.rp_url = rp_url
         self.session = session
@@ -76,19 +78,26 @@ class LogManager(object):
 
         :param log_req: RPRequestLog object
         """
-        self._logs_batch.append(log_req)
-        if len(self._logs_batch) >= self.log_batch_size:
-            self._send_batch()
+        with self._size_lock:
+            rq_size = log_req.multipart_size
+            if self._payload_size + rq_size >= self.max_payload_size:
+                if len(self._batch) > 0:
+                    self._send_batch()
+
+            self._batch.append(log_req)
+            if len(self._batch) >= self.max_entry_number:
+                self._send_batch()
 
     def _send_batch(self):
         """Send existing batch logs to the worker."""
-        batch = RPLogBatch(self._logs_batch)
+        batch = RPLogBatch(self._batch)
         http_request = HttpRequest(
             self.session.post, self._log_endpoint, files=batch.payload,
             verify_ssl=self.verify_ssl)
         batch.http_request = http_request
         self._worker.send(batch)
-        self._logs_batch.clear()
+        self._batch.clear()
+        self.max_payload_size = helpers.TYPICAL_MULTIPART_FOOTER_LENGTH
 
     def log(self, time, message=None, level=None, attachment=None,
             item_id=None):
@@ -118,8 +127,8 @@ class LogManager(object):
     def stop(self):
         """Send last batches to the worker followed by the stop command."""
         if self._worker:
-            with self._lock:
-                if self._logs_batch:
+            with self._stop_lock:
+                if self._batch:
                     self._send_batch()
                 logger.debug('Waiting for worker {0} to complete'
                              'processing batches.'.format(self._worker))

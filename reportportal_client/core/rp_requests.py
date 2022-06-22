@@ -21,6 +21,7 @@ https://github.com/reportportal/documentation/blob/master/src/md/src/DevGuides/r
 import json
 import logging
 
+import helpers
 from reportportal_client.core.rp_file import RPFile
 from reportportal_client.core.rp_issues import Issue
 from reportportal_client.helpers import dict_to_payload
@@ -418,6 +419,13 @@ class RPRequestLog(RPRequestBase):
         }
         payload.update(self.__file())
         return payload
+
+    @property
+    def multipart_size(self):
+        """Calculate request size how it would transfer in Multipart HTTP"""
+        size = helpers.calculate_json_part_size(self.payload)
+        size += helpers.calculate_file_part_size(self.file)
+        return size
 
 
 class RPLogBatch(RPRequestBase):
