@@ -21,7 +21,7 @@ https://github.com/reportportal/documentation/blob/master/src/md/src/DevGuides/r
 import json
 import logging
 
-import helpers
+from reportportal_client import helpers
 from reportportal_client.core.rp_file import RPFile
 from reportportal_client.core.rp_issues import Issue
 from reportportal_client.helpers import dict_to_payload
