@@ -51,7 +51,7 @@ class LogManager:
                  api_version: Text,
                  launch_id: Text,
                  project_name: Text,
-                 log_batch_size: int = ...,
+                 max_entry_number: int = ...,
                  verify_ssl: bool = ...,
                  max_payload_size: int = ...) -> None: ...
 

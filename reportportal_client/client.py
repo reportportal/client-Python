@@ -114,7 +114,7 @@ class RPClient(object):
 
         self._log_manager = LogManager(
             self.endpoint, self.session, self.api_v2, self.launch_id,
-            self.project, log_batch_size=log_batch_size,
+            self.project, max_entry_number=log_batch_size,
             max_payload_size=log_batch_payload_size)
 
     def finish_launch(self,
