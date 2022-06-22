@@ -215,6 +215,11 @@ TYPICAL_JSON_ARRAY_ELEMENT_LENGTH = len(TYPICAL_JSON_ARRAY_ELEMENT)
 
 
 def calculate_json_part_size(json_dict):
+    """Predict a JSON part size of Multipart request.
+
+    :param json_dict: a dictionary representing the JSON
+    :return:          Multipart request part size
+    """
     size = len(json.dumps(json_dict))
     size += TYPICAL_JSON_PART_HEADER_LENGTH
     size += TYPICAL_JSON_ARRAY_LENGTH
@@ -223,6 +228,11 @@ def calculate_json_part_size(json_dict):
 
 
 def calculate_file_part_size(file):
+    """Predict a file part size of Multipart request.
+
+    :param file: RPFile class instance
+    :return:     Multipart request part size
+    """
     if file is None:
         return 0
     size = len(TYPICAL_FILE_PART_HEADER.format(file.name, file.content_type))

@@ -422,7 +422,7 @@ class RPRequestLog(RPRequestBase):
 
     @property
     def multipart_size(self):
-        """Calculate request size how it would transfer in Multipart HTTP"""
+        """Calculate request size how it would transfer in Multipart HTTP."""
         size = helpers.calculate_json_part_size(self.payload)
         size += helpers.calculate_file_part_size(self.file)
         return size
