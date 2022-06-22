@@ -17,7 +17,7 @@ limitations under the License.
 
 import logging
 import threading
-from threading import currentThread, Thread
+from threading import current_thread, Thread
 
 from aenum import auto, Enum, unique
 from reportportal_client.static.defines import Priority
@@ -144,7 +144,7 @@ class APIWorker(object):
         may be some records still left on the queue, which won't be processed.
         """
         self._stop_lock.acquire()
-        if self._thread.is_alive() and self._thread is not currentThread():
+        if self._thread.is_alive() and self._thread is not current_thread():
             self._thread.join(timeout=THREAD_TIMEOUT)
         self._thread = None
         self._stop_lock.notify_all()
@@ -171,7 +171,7 @@ class APIWorker(object):
             # Already started
             return
         self._thread = Thread(target=self._monitor)
-        self._thread.setDaemon(True)
+        self._thread.daemon = True
         self._thread.start()
 
     def __perform_stop(self, stop_command):
