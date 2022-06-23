@@ -12,6 +12,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import inspect
+import json
 import logging
 import time
 import uuid
@@ -182,3 +183,58 @@ def get_function_params(func, args, kwargs):
     for arg_name, arg_value in kwargs.items():
         result[arg_name] = arg_value
     return result if len(result.items()) > 0 else None
+
+
+TYPICAL_MULTIPART_BOUNDARY = '--972dbca3abacfd01fb4aea0571532b52'
+
+TYPICAL_JSON_PART_HEADER = TYPICAL_MULTIPART_BOUNDARY + '''\r
+Content-Disposition: form-data; name="json_request_part"\r
+Content-Type: application/json\r
+\r
+'''
+
+TYPICAL_FILE_PART_HEADER = TYPICAL_MULTIPART_BOUNDARY + '''\r
+Content-Disposition: form-data; name="file"; filename="{0}"\r
+Content-Type: {1}\r
+\r
+'''
+
+TYPICAL_JSON_PART_HEADER_LENGTH = len(TYPICAL_JSON_PART_HEADER)
+
+TYPICAL_MULTIPART_FOOTER = '\r\n' + TYPICAL_MULTIPART_BOUNDARY + '--'
+
+TYPICAL_MULTIPART_FOOTER_LENGTH = len(TYPICAL_MULTIPART_FOOTER)
+
+TYPICAL_JSON_ARRAY = "[]"
+
+TYPICAL_JSON_ARRAY_LENGTH = len(TYPICAL_JSON_ARRAY)
+
+TYPICAL_JSON_ARRAY_ELEMENT = ","
+
+TYPICAL_JSON_ARRAY_ELEMENT_LENGTH = len(TYPICAL_JSON_ARRAY_ELEMENT)
+
+
+def calculate_json_part_size(json_dict):
+    """Predict a JSON part size of Multipart request.
+
+    :param json_dict: a dictionary representing the JSON
+    :return:          Multipart request part size
+    """
+    size = len(json.dumps(json_dict))
+    size += TYPICAL_JSON_PART_HEADER_LENGTH
+    size += TYPICAL_JSON_ARRAY_LENGTH
+    size += TYPICAL_JSON_ARRAY_ELEMENT_LENGTH
+    return size
+
+
+def calculate_file_part_size(file):
+    """Predict a file part size of Multipart request.
+
+    :param file: RPFile class instance
+    :return:     Multipart request part size
+    """
+    if file is None:
+        return 0
+    size = len(TYPICAL_FILE_PART_HEADER.format(file.name, file.content_type))
+    size += len(file.content)
+    return size

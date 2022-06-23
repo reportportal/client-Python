@@ -1,22 +1,24 @@
-"""This module contains management functionality for processing logs.
+"""This module contains management functionality for processing logs."""
 
-Copyright (c) 2018 https://reportportal.io .
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-https://www.apache.org/licenses/LICENSE-2.0
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-"""
+#  Copyright (c) 2022 EPAM Systems
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#  https://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License
 
 import logging
 from threading import Lock
 
 from six.moves import queue
 
+from reportportal_client import helpers
 from reportportal_client.core.rp_requests import (
     HttpRequest,
     RPFile,
@@ -28,31 +30,38 @@ from reportportal_client.static.defines import NOT_FOUND
 
 logger = logging.getLogger(__name__)
 
+MAX_LOG_BATCH_PAYLOAD_SIZE = 65000000
+
 
 class LogManager(object):
     """Manager of the log items."""
 
     def __init__(self, rp_url, session, api_version, launch_id, project_name,
-                 log_batch_size=20, verify_ssl=True):
+                 max_entry_number=20, verify_ssl=True,
+                 max_payload_size=MAX_LOG_BATCH_PAYLOAD_SIZE):
         """Initialize instance attributes.
 
-        :param rp_url:         Report portal URL
-        :param session:        HTTP Session object
-        :param api_version:    RP API version
-        :param launch_id:      Parent launch UUID
-        :param project_name:   RP project name
-        :param log_batch_size: The amount of log objects that need to be
-                               gathered before processing
-        :param verify_ssl:     Indicates that it is necessary to verify SSL
-                               certificates within HTTP request
+        :param rp_url:           Report portal URL
+        :param session:          HTTP Session object
+        :param api_version:      RP API version
+        :param launch_id:        Parent launch UUID
+        :param project_name:     RP project name
+        :param max_entry_number: The amount of log objects that need to be
+                                 gathered before processing
+        :param verify_ssl:       Indicates that it is necessary to verify SSL
+                                 certificates within HTTP request
+        :param max_payload_size: maximum size in bytes of logs that can be
+                                 processed in one batch
         """
         self._lock = Lock()
-        self._logs_batch = []
+        self._batch = []
+        self._payload_size = helpers.TYPICAL_MULTIPART_FOOTER_LENGTH
         self._worker = None
         self.api_version = api_version
         self.queue = queue.PriorityQueue()
         self.launch_id = launch_id
-        self.log_batch_size = log_batch_size
+        self.max_entry_number = max_entry_number
+        self.max_payload_size = max_payload_size
         self.project_name = project_name
         self.rp_url = rp_url
         self.session = session
@@ -63,24 +72,31 @@ class LogManager(object):
             .format(rp_url=rp_url, version=self.api_version,
                     project_name=self.project_name))
 
-    def _log_process(self, log_req):
-        """Process the given log request.
-
-        :param log_req: RPRequestLog object
-        """
-        self._logs_batch.append(log_req)
-        if len(self._logs_batch) >= self.log_batch_size:
-            self._send_batch()
-
     def _send_batch(self):
         """Send existing batch logs to the worker."""
-        batch = RPLogBatch(self._logs_batch)
+        batch = RPLogBatch(self._batch)
         http_request = HttpRequest(
             self.session.post, self._log_endpoint, files=batch.payload,
             verify_ssl=self.verify_ssl)
         batch.http_request = http_request
         self._worker.send(batch)
-        self._logs_batch.clear()
+        self._batch = []
+        self._payload_size = helpers.TYPICAL_MULTIPART_FOOTER_LENGTH
+
+    def _log_process(self, log_req):
+        """Process the given log request.
+
+        :param log_req: RPRequestLog object
+        """
+        with self._lock:
+            rq_size = log_req.multipart_size
+            if self._payload_size + rq_size >= self.max_payload_size:
+                if len(self._batch) > 0:
+                    self._send_batch()
+            self._batch.append(log_req)
+            self._payload_size += rq_size
+            if len(self._batch) >= self.max_entry_number:
+                self._send_batch()
 
     def log(self, time, message=None, level=None, attachment=None,
             item_id=None):
@@ -111,7 +127,7 @@ class LogManager(object):
         """Send last batches to the worker followed by the stop command."""
         if self._worker:
             with self._lock:
-                if self._logs_batch:
+                if self._batch:
                     self._send_batch()
                 logger.debug('Waiting for worker {0} to complete'
                              'processing batches.'.format(self._worker))

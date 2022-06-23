@@ -1,23 +1,21 @@
-"""This module contains worker that makes non-blocking HTTP requests.
+"""This module contains worker that makes non-blocking HTTP requests."""
 
-Copyright (c) 2022 https://reportportal.io .
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-https://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-"""
+#  Copyright (c) 2022 EPAM Systems
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#  https://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License
 
 import logging
 import threading
-from threading import currentThread, Thread
+from threading import current_thread, Thread
 
 from aenum import auto, Enum, unique
 from reportportal_client.static.defines import Priority
@@ -144,7 +142,7 @@ class APIWorker(object):
         may be some records still left on the queue, which won't be processed.
         """
         self._stop_lock.acquire()
-        if self._thread.is_alive() and self._thread is not currentThread():
+        if self._thread.is_alive() and self._thread is not current_thread():
             self._thread.join(timeout=THREAD_TIMEOUT)
         self._thread = None
         self._stop_lock.notify_all()
@@ -171,7 +169,7 @@ class APIWorker(object):
             # Already started
             return
         self._thread = Thread(target=self._monitor)
-        self._thread.setDaemon(True)
+        self._thread.daemon = True
         self._thread.start()
 
     def __perform_stop(self, stop_command):

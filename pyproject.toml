@@ -4,5 +4,6 @@ requires = [
   "setuptools>=40.0",
   "setuptools-scm",
   "wheel",
+  "importlib-metadata"
 ]
 build-backend = "setuptools.build_meta"

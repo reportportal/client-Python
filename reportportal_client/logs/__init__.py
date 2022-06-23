@@ -98,14 +98,16 @@ class RPLogHandler(logging.Handler):
 
     def __init__(self, level=logging.NOTSET, filter_client_logs=False,
                  endpoint=None,
-                 ignored_record_names=tuple('reportportal_client')):
+                 ignored_record_names=tuple('reportportal_client'),
+                 rp_client=None):
         """
         Initialize RPLogHandler instance.
 
         :param level:                level of logging
         :param filter_client_logs:   if True throw away logs emitted by a
         ReportPortal client
-        :param endpoint:             link to send reports
+        :param endpoint:             Report Portal endpoint URL, used to filter
+        out urllib3 logs, mutes Report Portal HTTP logs if set
         :param ignored_record_names: a tuple of record names which will be
         filtered out by the handler (with startswith method)
         """
@@ -113,6 +115,7 @@ class RPLogHandler(logging.Handler):
         self.filter_client_logs = filter_client_logs
         self.ignored_record_names = ignored_record_names
         self.endpoint = endpoint
+        self.rp_client = rp_client
 
     def filter(self, record):
         """Filter specific records to avoid sending those to RP.
@@ -150,13 +153,16 @@ class RPLogHandler(logging.Handler):
 
         for level in self._sorted_levelnos:
             if level <= record.levelno:
-                rp_client = current()
+                if self.rp_client:
+                    rp_client = self.rp_client
+                else:
+                    rp_client = current()
                 if rp_client:
                     rp_client.log(
                         timestamp(),
                         msg,
                         level=self._loglevel_map[level],
-                        attachment=getattr(record, 'attachment'),
+                        attachment=record.__dict__.get('attachment', None),
                         item_id=rp_client.current_item()
                     )
                 return
