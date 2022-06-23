@@ -53,8 +53,7 @@ class LogManager(object):
         :param max_payload_size: maximum size in bytes of logs that can be
                                  processed in one batch
         """
-        self._stop_lock = Lock()
-        self._size_lock = Lock()
+        self._lock = Lock()
         self._batch = []
         self._payload_size = helpers.TYPICAL_MULTIPART_FOOTER_LENGTH
         self._worker = None
@@ -89,7 +88,7 @@ class LogManager(object):
 
         :param log_req: RPRequestLog object
         """
-        with self._size_lock:
+        with self._lock:
             rq_size = log_req.multipart_size
             if self._payload_size + rq_size >= self.max_payload_size:
                 if len(self._batch) > 0:
@@ -127,7 +126,7 @@ class LogManager(object):
     def stop(self):
         """Send last batches to the worker followed by the stop command."""
         if self._worker:
-            with self._stop_lock:
+            with self._lock:
                 if self._batch:
                     self._send_batch()
                 logger.debug('Waiting for worker {0} to complete'
