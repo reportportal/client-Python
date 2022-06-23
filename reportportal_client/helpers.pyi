@@ -9,6 +9,7 @@ from requests import Response
 
 logger: Logger
 
+TYPICAL_FILE_PART_HEADER: Text
 TYPICAL_MULTIPART_FOOTER_LENGTH: int
 
 def generate_uuid() -> Text: ...

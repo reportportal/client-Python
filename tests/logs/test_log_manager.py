@@ -11,23 +11,24 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License
 
+import os
 
 from six.moves import mock
 
 from reportportal_client import helpers
-from reportportal_client.core.log_manager import LogManager
+from reportportal_client.core.log_manager import LogManager, \
+    MAX_LOG_BATCH_PAYLOAD_SIZE
 
 RP_URL = 'http://docker.local:8080'
 API_VERSION = 'api/v2'
 TEST_LAUNCH_ID = 'test_launch_id'
 TEST_ITEM_ID = 'test_item_id'
 PROJECT_NAME = 'test_project'
-KILOBYTE = 2 ** 10
-MEGABYTE = KILOBYTE ** KILOBYTE
-ABOVE_LIMIT_SIZE = MEGABYTE * 65
 TEST_MASSAGE = 'test_message'
 TEST_LEVEL = 'DEBUG'
 TEST_BATCH_SIZE = 5
+TEST_ATTACHMENT_NAME = 'test_file.bin'
+TEST_ATTACHMENT_TYPE = 'application/zip'
 
 
 # noinspection PyUnresolvedReferences
@@ -89,3 +90,87 @@ def test_log_batch_send_by_stop():
     assert 'post' in session._mock_children
     assert len(log_manager._batch) == 0
     assert log_manager._payload_size == helpers.TYPICAL_MULTIPART_FOOTER_LENGTH
+
+
+# noinspection PyUnresolvedReferences
+def test_log_batch_not_send_by_size():
+    session = mock.Mock()
+    log_manager = LogManager(RP_URL, session, API_VERSION, TEST_LAUNCH_ID,
+                             PROJECT_NAME, max_entry_number=TEST_BATCH_SIZE,
+                             verify_ssl=False)
+    log_manager._worker = mock.Mock()
+
+    headers_size = helpers.TYPICAL_MULTIPART_FOOTER_LENGTH - len(
+        helpers.TYPICAL_FILE_PART_HEADER.format(TEST_ATTACHMENT_NAME,
+                                                TEST_ATTACHMENT_TYPE))
+    attachment_size = MAX_LOG_BATCH_PAYLOAD_SIZE - headers_size - 1024
+    random_byte_array = bytearray(os.urandom(attachment_size))
+    attachment = {'name': TEST_ATTACHMENT_NAME, 'content': random_byte_array,
+                  'content_type': TEST_ATTACHMENT_TYPE}
+
+    log_manager.log(helpers.timestamp(), TEST_MASSAGE, TEST_LEVEL,
+                    item_id=TEST_ITEM_ID, attachment=attachment)
+    log_manager.log(helpers.timestamp(), TEST_MASSAGE, TEST_LEVEL,
+                    item_id=TEST_ITEM_ID)
+
+    assert log_manager._worker.send.call_count == 0
+    assert 'post' not in session._mock_children
+    assert len(log_manager._batch) == 2
+    assert log_manager._payload_size > MAX_LOG_BATCH_PAYLOAD_SIZE - 1024
+    assert log_manager._payload_size < MAX_LOG_BATCH_PAYLOAD_SIZE
+
+
+# noinspection PyUnresolvedReferences
+def test_log_batch_send_by_size():
+    session = mock.Mock()
+    log_manager = LogManager(RP_URL, session, API_VERSION, TEST_LAUNCH_ID,
+                             PROJECT_NAME, max_entry_number=TEST_BATCH_SIZE,
+                             verify_ssl=False)
+    log_manager._worker = mock.Mock()
+
+    random_byte_array = bytearray(os.urandom(MAX_LOG_BATCH_PAYLOAD_SIZE))
+    attachment = {'name': TEST_ATTACHMENT_NAME, 'content': random_byte_array,
+                  'content_type': TEST_ATTACHMENT_TYPE}
+
+    log_manager.log(helpers.timestamp(), TEST_MASSAGE, TEST_LEVEL,
+                    item_id=TEST_ITEM_ID, attachment=attachment)
+    log_manager.log(helpers.timestamp(), TEST_MASSAGE, TEST_LEVEL,
+                    item_id=TEST_ITEM_ID)
+
+    assert log_manager._worker.send.call_count == 1
+    batch = log_manager._worker.send.call_args[0][0]
+    assert len(batch.log_reqs) == 1
+    assert batch.http_request is not None
+    assert 'post' in session._mock_children
+    assert len(log_manager._batch) == 1
+    assert log_manager._payload_size < \
+           helpers.TYPICAL_MULTIPART_FOOTER_LENGTH + 1024
+
+
+# noinspection PyUnresolvedReferences
+def test_log_batch_triggers_previous_request_to_send():
+    session = mock.Mock()
+    log_manager = LogManager(RP_URL, session, API_VERSION, TEST_LAUNCH_ID,
+                             PROJECT_NAME, max_entry_number=TEST_BATCH_SIZE,
+                             verify_ssl=False)
+    log_manager._worker = mock.Mock()
+
+    random_byte_array = bytearray(os.urandom(MAX_LOG_BATCH_PAYLOAD_SIZE))
+    attachment = {'name': TEST_ATTACHMENT_NAME, 'content': random_byte_array,
+                  'content_type': TEST_ATTACHMENT_TYPE}
+
+    log_manager.log(helpers.timestamp(), TEST_MASSAGE, TEST_LEVEL,
+                    item_id=TEST_ITEM_ID)
+    payload_size = log_manager._payload_size
+    assert payload_size < helpers.TYPICAL_MULTIPART_FOOTER_LENGTH + 1024
+
+    log_manager.log(helpers.timestamp(), TEST_MASSAGE, TEST_LEVEL,
+                    item_id=TEST_ITEM_ID, attachment=attachment)
+
+    assert log_manager._worker.send.call_count == 1
+    batch = log_manager._worker.send.call_args[0][0]
+    assert len(batch.log_reqs) == 1
+    assert batch.http_request is not None
+    assert 'post' in session._mock_children
+    assert len(log_manager._batch) == 1
+    assert log_manager._payload_size > MAX_LOG_BATCH_PAYLOAD_SIZE
