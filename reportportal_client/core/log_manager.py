@@ -83,8 +83,8 @@ class LogManager(object):
             if self._payload_size + rq_size >= self.max_payload_size:
                 if len(self._batch) > 0:
                     self._send_batch()
-
             self._batch.append(log_req)
+            self.max_payload_size += rq_size
             if len(self._batch) >= self.max_entry_number:
                 self._send_batch()
 
