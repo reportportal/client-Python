@@ -3,6 +3,9 @@
 ## [Unreleased]
 ### Added
 - Ability to pass client instance in `RPLogHandler` constructor, by @HardNorth
+- Issue [#179](https://github.com/reportportal/client-Python/issues/179): batch logging request payload size tracking, by @HardNorth
+### Fixed
+- Issue [#184](https://github.com/reportportal/client-Python/issues/184): early logger initialization exception, by @dagansandler
 
 ## [5.2.2]
 ### Fixed
