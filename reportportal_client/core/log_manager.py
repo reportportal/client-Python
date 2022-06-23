@@ -73,6 +73,17 @@ class LogManager(object):
             .format(rp_url=rp_url, version=self.api_version,
                     project_name=self.project_name))
 
+    def _send_batch(self):
+        """Send existing batch logs to the worker."""
+        batch = RPLogBatch(self._batch)
+        http_request = HttpRequest(
+            self.session.post, self._log_endpoint, files=batch.payload,
+            verify_ssl=self.verify_ssl)
+        batch.http_request = http_request
+        self._worker.send(batch)
+        self._batch.clear()
+        self.max_payload_size = helpers.TYPICAL_MULTIPART_FOOTER_LENGTH
+
     def _log_process(self, log_req):
         """Process the given log request.
 
@@ -87,17 +98,6 @@ class LogManager(object):
             self.max_payload_size += rq_size
             if len(self._batch) >= self.max_entry_number:
                 self._send_batch()
-
-    def _send_batch(self):
-        """Send existing batch logs to the worker."""
-        batch = RPLogBatch(self._batch)
-        http_request = HttpRequest(
-            self.session.post, self._log_endpoint, files=batch.payload,
-            verify_ssl=self.verify_ssl)
-        batch.http_request = http_request
-        self._worker.send(batch)
-        self._batch.clear()
-        self.max_payload_size = helpers.TYPICAL_MULTIPART_FOOTER_LENGTH
 
     def log(self, time, message=None, level=None, attachment=None,
             item_id=None):
