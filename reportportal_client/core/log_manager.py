@@ -75,7 +75,6 @@ class LogManager(object):
 
     def _send_batch(self):
         """Send existing batch logs to the worker."""
-        # copy list to not modify batch by `self._batch.clear()`
         batch = RPLogBatch(self._batch)
         http_request = HttpRequest(
             self.session.post, self._log_endpoint, files=batch.payload,
