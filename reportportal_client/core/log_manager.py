@@ -88,8 +88,8 @@ class LogManager(object):
 
         :param log_req: RPRequestLog object
         """
+        rq_size = log_req.multipart_size
         with self._lock:
-            rq_size = log_req.multipart_size
             if self._payload_size + rq_size >= self.max_payload_size:
                 if len(self._batch) > 0:
                     self._send_batch()
