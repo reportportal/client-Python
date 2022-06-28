@@ -174,7 +174,7 @@ def get_function_params(func, args, kwargs):
     with warnings.catch_warnings():
         warnings.filterwarnings('ignore', category=DeprecationWarning)
         # noinspection PyDeprecation
-        arg_spec = inspect.getargspec(func)
+        arg_spec = inspect.getfullargspec(func)
     result = dict()
     for i, arg_name in enumerate(arg_spec.args):
         if i >= len(args):
