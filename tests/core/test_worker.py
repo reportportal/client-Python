@@ -14,9 +14,9 @@
 #  limitations under the License
 
 import time
+
 from six.moves import queue, mock
 
-from requests.exceptions import ConnectionError
 from reportportal_client.core.rp_requests import (
     HttpRequest,
     RPLogBatch,
