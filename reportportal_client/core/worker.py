@@ -87,6 +87,16 @@ class APIWorker(object):
             else:
                 self._stop()
 
+    def _request_process(self, request):
+        """Send request to RP and update response attribute of the request."""
+        logger.debug('[%s] Processing {%s} request', self.name, request)
+        try:
+            request.response = request.http_request.make()
+        except Exception as err:
+            logger.exception('[%s] Unknown exception has occurred. '
+                             'Skipping it.', err)
+        self._queue.task_done()
+
     def _monitor(self):
         """Monitor worker queues and process them.
 
@@ -110,16 +120,6 @@ class APIWorker(object):
             else:
                 logger.debug('[%s] Received {%s} request', self.name, cmd)
                 self._request_process(cmd)
-
-    def _request_process(self, request):
-        """Send request to RP and update response attribute of the request."""
-        logger.debug('[%s] Processing {%s} request', self.name, request)
-        try:
-            request.response = request.http_request.make()
-        except Exception as err:
-            logger.exception('[%s] Unknown exception has occurred. Terminating'
-                             ' the worker.', err)
-        self._queue.task_done()
 
     def _stop(self):
         """Routine that stops the worker thread(s).
