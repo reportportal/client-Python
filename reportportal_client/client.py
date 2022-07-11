@@ -20,7 +20,7 @@ import requests
 from requests.adapters import HTTPAdapter, Retry
 
 from ._local import set_current
-from .core.log_manager import LogManager, MAX_LOG_BATCH_PAYLOAD_SIZE
+from .logs.log_manager import LogManager, MAX_LOG_BATCH_PAYLOAD_SIZE
 from .core.rp_requests import (
     HttpRequest,
     ItemStartRequest,

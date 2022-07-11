@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Changed
+- `LogManager` class moved from `core` package to `logs` package
 
 ## [5.2.3]
 ### Added
