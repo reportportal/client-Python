@@ -11,10 +11,25 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License
 
-"""This package contains core reportportal-client modules."""
+"""
+.. deprecated:: 5.2.4
+    Use `logs.log_manager` instead.
+"""
 
-from reportportal_client.logs import log_manager
+import warnings
+
+from reportportal_client.logs.log_manager import LogManager, \
+    MAX_LOG_BATCH_PAYLOAD_SIZE
+
+warnings.warn(
+    message="`core.log_manager` is deprecated since 5.2.4 and will be subject "
+            "for removing in the next major version. Use logs.log_manager` "
+            "instead",
+    category=DeprecationWarning,
+    stacklevel=2
+)
 
 __all__ = [
-    'log_manager'
+    'LogManager',
+    'MAX_LOG_BATCH_PAYLOAD_SIZE'
 ]

@@ -21,8 +21,8 @@ from .steps import step
 
 __all__ = [
     'current',
-    "RPLogger",
-    "RPLogHandler",
+    'RPLogger',
+    'RPLogHandler',
     'ReportPortalService',
     'step',
 ]
