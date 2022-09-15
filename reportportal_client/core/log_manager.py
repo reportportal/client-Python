@@ -11,7 +11,8 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License
 
-"""
+"""Deprecated module stub to avoid execution crashes.
+
 .. deprecated:: 5.2.4
     Use `logs.log_manager` instead.
 """
