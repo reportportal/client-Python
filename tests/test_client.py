@@ -14,6 +14,7 @@
 import pytest
 from requests import Response
 from requests.exceptions import ReadTimeout
+from six.moves import mock
 
 from reportportal_client.helpers import timestamp
 from reportportal_client.static.defines import NOT_FOUND
@@ -56,3 +57,35 @@ def test_connection_errors(rp_client, requests_method, client_method,
     getattr(rp_client.session, requests_method).side_effect = response_error
     result = getattr(rp_client, client_method)(*client_params)
     assert result == expected_result
+
+
+LAUNCH_ID = 333
+EXPECTED_DEFAULT_URL = 'http://endpoint/ui/#project/launches/all/' + str(
+    LAUNCH_ID)
+EXPECTED_DEBUG_URL = 'http://endpoint/ui/#project/userdebug/all/' + str(
+    LAUNCH_ID)
+
+
+@pytest.mark.parametrize(
+    'launch_mode, project_name, expected_url',
+    [
+        ('DEFAULT', "project", EXPECTED_DEFAULT_URL),
+        ('DEBUG', "project", EXPECTED_DEBUG_URL),
+        ('DEFAULT', "PROJECT", EXPECTED_DEFAULT_URL),
+        ('debug', "PROJECT", EXPECTED_DEBUG_URL)
+    ]
+)
+def test_launch_url_get(rp_client, launch_mode, project_name, expected_url):
+    rp_client.launch_id = 'test_launch_id'
+    rp_client.project = project_name
+
+    response = mock.Mock()
+    response.is_success = True
+    response.json.side_effect = lambda: {'mode': launch_mode, 'id': LAUNCH_ID}
+
+    def get_call(*args, **kwargs):
+        return response
+
+    rp_client.session.get.side_effect = get_call
+
+    assert rp_client.get_launch_ui_url() == expected_url

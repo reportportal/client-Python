@@ -2,7 +2,9 @@
 
 ## [Unreleased]
 ### Changed
-- `LogManager` class moved from `core` package to `logs` package
+- `LogManager` class moved from `core` package to `logs` package, by @HardNorth
+### Fixed
+- Issue [#192](https://github.com/reportportal/client-Python/issues/192): launch URL generation, by @HardNorth
 
 ## [5.2.3]
 ### Added

@@ -20,7 +20,6 @@ import requests
 from requests.adapters import HTTPAdapter, Retry
 
 from ._local import set_current
-from .logs.log_manager import LogManager, MAX_LOG_BATCH_PAYLOAD_SIZE
 from .core.rp_requests import (
     HttpRequest,
     ItemStartRequest,
@@ -29,6 +28,7 @@ from .core.rp_requests import (
     LaunchFinishRequest
 )
 from .helpers import uri_join, verify_value_length
+from .logs.log_manager import LogManager, MAX_LOG_BATCH_PAYLOAD_SIZE
 from .static.defines import NOT_FOUND
 from .steps import StepReporter
 
@@ -59,6 +59,7 @@ class RPClient(object):
                  launch_id=None,
                  http_timeout=(10, 10),
                  log_batch_payload_size=MAX_LOG_BATCH_PAYLOAD_SIZE,
+                 mode='DEFAULT',
                  **_):
         """Initialize required attributes.
 
@@ -100,6 +101,7 @@ class RPClient(object):
         self.session = requests.Session()
         self.step_reporter = StepReporter(self)
         self._item_stack = []
+        self.mode = mode
         if retries:
             retry_strategy = Retry(
                 total=retries,
@@ -244,10 +246,19 @@ class RPClient(object):
 
         :return: launch URL or all launches URL.
         """
-        ui_id = self.get_launch_ui_id()
+        launch_info = self.get_launch_info()
+        ui_id = launch_info.get('id') if launch_info else None
         if not ui_id:
             return
-        path = 'ui/#{0}/launches/all/{1}'.format(self.project, ui_id)
+        mode = launch_info.get('mode') if launch_info else None
+        if not mode:
+            mode = self.mode
+
+        launch_type = "launches" if mode.upper() == 'DEFAULT' else 'userdebug'
+
+        path = 'ui/#{project_name}/{launch_type}/all/{launch_id}'.format(
+            project_name=self.project.lower(), launch_type=launch_type,
+            launch_id=ui_id)
         url = uri_join(self.endpoint, path)
         logger.debug('get_launch_ui_url - ID: %s', self.launch_id)
         return url
@@ -282,7 +293,6 @@ class RPClient(object):
                      start_time,
                      description=None,
                      attributes=None,
-                     mode=None,
                      rerun=False,
                      rerun_of=None,
                      **kwargs):
@@ -292,12 +302,21 @@ class RPClient(object):
         :param start_time:  Launch start time
         :param description: Launch description
         :param attributes:  Launch attributes
-        :param mode:        Launch mode
         :param rerun:       Enables launch rerun mode
         :param rerun_of:    Rerun mode. Specifies launch to be re-runned.
                             Should be used with the 'rerun' option.
         """
         url = uri_join(self.base_url_v2, 'launch')
+
+        # We are moving 'mode' param to the constructor, next code for the
+        # transition period only.
+        my_kwargs = dict(kwargs)
+        mode = my_kwargs.get('mode')
+        if not mode:
+            mode = self.mode
+        else:
+            del my_kwargs['mode']
+
         request_payload = LaunchStartRequest(
             name=name,
             start_time=start_time,
@@ -306,7 +325,7 @@ class RPClient(object):
             mode=mode,
             rerun=rerun,
             rerun_of=rerun_of or kwargs.get('rerunOf'),
-            **kwargs
+            **my_kwargs
         ).payload
         response = HttpRequest(self.session.post,
                                url=url,
