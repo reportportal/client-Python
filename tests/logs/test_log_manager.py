@@ -16,7 +16,7 @@ import os
 from six.moves import mock
 
 from reportportal_client import helpers
-from reportportal_client.core.log_manager import LogManager, \
+from reportportal_client.logs.log_manager import LogManager, \
     MAX_LOG_BATCH_PAYLOAD_SIZE
 
 RP_URL = 'http://docker.local:8080'

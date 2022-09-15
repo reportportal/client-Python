@@ -1,6 +1,12 @@
 # Changelog
 
 ## [Unreleased]
+### Changed
+- `LogManager` class moved from `core` package to `logs` package, by @HardNorth
+### Fixed
+- Issue [#192](https://github.com/reportportal/client-Python/issues/192): launch URL generation, by @HardNorth
+
+## [5.2.3]
 ### Added
 - Ability to pass client instance in `RPLogHandler` constructor, by @HardNorth
 - Issue [#179](https://github.com/reportportal/client-Python/issues/179): batch logging request payload size tracking, by @HardNorth

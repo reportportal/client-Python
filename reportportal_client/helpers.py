@@ -172,7 +172,7 @@ def get_function_params(func, args, kwargs):
     # Use deprecated method for python 2.7 compatibility, it's still here for
     # Python 3.10.2, so it's completely redundant to show the warning
     with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", category=DeprecationWarning)
+        warnings.filterwarnings('ignore', category=DeprecationWarning)
         # noinspection PyDeprecation
         arg_spec = inspect.getargspec(func)
     result = dict()
@@ -205,11 +205,11 @@ TYPICAL_MULTIPART_FOOTER = '\r\n' + TYPICAL_MULTIPART_BOUNDARY + '--'
 
 TYPICAL_MULTIPART_FOOTER_LENGTH = len(TYPICAL_MULTIPART_FOOTER)
 
-TYPICAL_JSON_ARRAY = "[]"
+TYPICAL_JSON_ARRAY = '[]'
 
 TYPICAL_JSON_ARRAY_LENGTH = len(TYPICAL_JSON_ARRAY)
 
-TYPICAL_JSON_ARRAY_ELEMENT = ","
+TYPICAL_JSON_ARRAY_ELEMENT = ','
 
 TYPICAL_JSON_ARRAY_ELEMENT_LENGTH = len(TYPICAL_JSON_ARRAY_ELEMENT)
 

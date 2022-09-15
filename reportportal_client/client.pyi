@@ -2,7 +2,7 @@ from typing import Any, Dict, List, Optional, Text, Tuple, Union
 
 from requests import Session
 
-from reportportal_client.core.log_manager import LogManager as LogManager
+from reportportal_client.logs.log_manager import LogManager as LogManager
 from reportportal_client.core.rp_issues import Issue as Issue
 from reportportal_client.steps import StepReporter
 
@@ -27,6 +27,7 @@ class RPClient:
     http_timeout: Union[float, Tuple[float, float]] = ...
     session: Session = ...
     step_reporter: StepReporter = ...
+    mode: str = ...
 
     def __init__(
             self,

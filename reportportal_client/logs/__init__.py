@@ -107,7 +107,8 @@ class RPLogHandler(logging.Handler):
         :param filter_client_logs:   if True throw away logs emitted by a
         ReportPortal client
         :param endpoint:             Report Portal endpoint URL, used to filter
-        out urllib3 logs, mutes Report Portal HTTP logs if set
+        out urllib3 logs, mutes Report Portal HTTP logs if set, optional
+        parameter
         :param ignored_record_names: a tuple of record names which will be
         filtered out by the handler (with startswith method)
         """
