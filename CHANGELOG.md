@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Fixed
+- Issue [#194](https://github.com/reportportal/client-Python/issues/194): logging URL generation, by @HardNorth
 
 ## [5.2.4]
 ### Changed

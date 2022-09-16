@@ -69,7 +69,7 @@ class LogManager(object):
 
         self._log_endpoint = (
             '{rp_url}/api/{version}/{project_name}/log'
-            .format(rp_url=rp_url, version=self.api_version,
+            .format(rp_url=rp_url.rstrip('/'), version=self.api_version,
                     project_name=self.project_name))
 
     def _send_batch(self):
