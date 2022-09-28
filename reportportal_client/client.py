@@ -310,11 +310,13 @@ class RPClient(object):
         # We are moving 'mode' param to the constructor, next code for the
         # transition period only.
         my_kwargs = dict(kwargs)
-        mode = my_kwargs.get('mode')
-        if not mode:
-            mode = self.mode
-        else:
+        if 'mode' in my_kwargs.keys():
+            mode = my_kwargs['mode']
             del my_kwargs['mode']
+            if not mode:
+                mode = self.mode
+        else:
+            mode = self.mode
 
         request_payload = LaunchStartRequest(
             name=name,

@@ -1,6 +1,11 @@
 # Changelog
 
 ## [Unreleased]
+### Fixed
+- Issue [#194](https://github.com/reportportal/client-Python/issues/194): logging URL generation, by @HardNorth
+- Issue [#195](https://github.com/reportportal/client-Python/issues/195): `None` mode exception
+
+## [5.2.4]
 ### Changed
 - `LogManager` class moved from `core` package to `logs` package, by @HardNorth
 ### Fixed
