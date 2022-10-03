@@ -1,20 +1,26 @@
-"""
-Copyright (c) 2018 http://reportportal.io .
+"""Report portal client service module.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-http://www.apache.org/licenses/LICENSE-2.0
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+.. deprecated:: 5.2.4
+  Use `client.RPClient` instead.
 """
+
+#  Copyright (c) 2022 EPAM Systems
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#  https://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License
 
 import json
 import logging
 import uuid
+import warnings
 from time import sleep
 
 import requests
@@ -28,6 +34,14 @@ from .helpers import verify_value_length
 POST_LOGBATCH_RETRY_COUNT = 10
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
+
+warnings.warn(
+    message="`service.py` module is deprecated since 5.2.4 and will be subject"
+            " for removing in the next major version. Use `client.py` "
+            "instead",
+    category=DeprecationWarning,
+    stacklevel=2
+)
 
 
 def _convert_string(value):
@@ -155,7 +169,11 @@ def uri_join(*uri_parts):
 
 
 class ReportPortalService(object):
-    """Service class with report portal event callbacks."""
+    """Service class with report portal event callbacks.
+
+    .. deprecated:: 5.2.4
+      Use `client.RPClient` instead.
+    """
 
     def __init__(self,
                  endpoint,
