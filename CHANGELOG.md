@@ -5,7 +5,7 @@
 ## [5.2.5]
 ### Fixed
 - Issue [#194](https://github.com/reportportal/client-Python/issues/194): logging URL generation, by @HardNorth
-- Issue [#195](https://github.com/reportportal/client-Python/issues/195): `None` mode exception
+- Issue [#195](https://github.com/reportportal/client-Python/issues/195): `None` mode exception, by @HardNorth
 
 ## [5.2.4]
 ### Changed
