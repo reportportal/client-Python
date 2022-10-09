@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+## [5.2.5]
+### Fixed
+- Issue [#194](https://github.com/reportportal/client-Python/issues/194): logging URL generation, by @HardNorth
+- Issue [#195](https://github.com/reportportal/client-Python/issues/195): `None` mode exception, by @HardNorth
+
+## [5.2.4]
+### Changed
+- `LogManager` class moved from `core` package to `logs` package, by @HardNorth
+### Fixed
+- Issue [#192](https://github.com/reportportal/client-Python/issues/192): launch URL generation, by @HardNorth
+
 ## [5.2.3]
 ### Added
 - Ability to pass client instance in `RPLogHandler` constructor, by @HardNorth

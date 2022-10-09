@@ -16,11 +16,11 @@ import os
 from six.moves import mock
 
 from reportportal_client import helpers
-from reportportal_client.core.log_manager import LogManager, \
+from reportportal_client.logs.log_manager import LogManager, \
     MAX_LOG_BATCH_PAYLOAD_SIZE
 
 RP_URL = 'http://docker.local:8080'
-API_VERSION = 'api/v2'
+API_VERSION = 'v2'
 TEST_LAUNCH_ID = 'test_launch_id'
 TEST_ITEM_ID = 'test_item_id'
 PROJECT_NAME = 'test_project'
@@ -50,6 +50,26 @@ def test_log_batch_send_by_length():
     assert 'post' in session._mock_children
     assert len(log_manager._batch) == 0
     assert log_manager._payload_size == helpers.TYPICAL_MULTIPART_FOOTER_LENGTH
+
+
+# noinspection PyUnresolvedReferences
+def test_log_batch_send_url_format():
+    session = mock.Mock()
+    log_manager = LogManager(RP_URL + '/', session, API_VERSION,
+                             TEST_LAUNCH_ID,
+                             PROJECT_NAME, max_entry_number=TEST_BATCH_SIZE,
+                             verify_ssl=False)
+    log_manager._worker = mock.Mock()
+
+    for _ in range(TEST_BATCH_SIZE):
+        log_manager.log(helpers.timestamp(), TEST_MASSAGE, TEST_LEVEL,
+                        item_id=TEST_ITEM_ID)
+
+    assert log_manager._worker.send.call_count == 1
+    batch = log_manager._worker.send.call_args[0][0]
+    assert batch.http_request is not None
+    assert batch.http_request.url == \
+           RP_URL + '/api/' + API_VERSION + '/' + PROJECT_NAME + '/log'
 
 
 # noinspection PyUnresolvedReferences
