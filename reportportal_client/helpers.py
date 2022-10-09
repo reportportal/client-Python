@@ -17,7 +17,7 @@ import logging
 import time
 import uuid
 import warnings
-from platform import machine, processor, system
+from platform import machine, processor, system, python_version
 
 import six
 from pkg_resources import DistributionNotFound, get_distribution
@@ -174,7 +174,10 @@ def get_function_params(func, args, kwargs):
     with warnings.catch_warnings():
         warnings.filterwarnings('ignore', category=DeprecationWarning)
         # noinspection PyDeprecation
-        arg_spec = inspect.getfullargspec(func)
+        if python_version >= '3':
+            arg_spec = inspect.getfullargspec(func)
+        else:
+            arg_spec = inspect.getargspec(func)
     result = dict()
     for i, arg_name in enumerate(arg_spec.args):
         if i >= len(args):
