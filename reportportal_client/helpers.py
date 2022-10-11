@@ -17,7 +17,8 @@ import logging
 import time
 import uuid
 import warnings
-from platform import machine, processor, system, python_version
+from platform import machine, processor, system
+from aenum import PY3
 
 import six
 from pkg_resources import DistributionNotFound, get_distribution
@@ -25,7 +26,6 @@ from pkg_resources import DistributionNotFound, get_distribution
 from .static.defines import ATTRIBUTE_LENGTH_LIMIT
 
 logger = logging.getLogger(__name__)
-
 
 def generate_uuid():
     """Generate UUID."""
@@ -174,7 +174,7 @@ def get_function_params(func, args, kwargs):
     with warnings.catch_warnings():
         warnings.filterwarnings('ignore', category=DeprecationWarning)
         # noinspection PyDeprecation
-        if python_version >= '3':
+        if PY3:
             arg_spec = inspect.getfullargspec(func)
         else:
             arg_spec = inspect.getargspec(func)
