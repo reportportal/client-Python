@@ -27,6 +27,7 @@ from .static.defines import ATTRIBUTE_LENGTH_LIMIT
 
 logger = logging.getLogger(__name__)
 
+
 def generate_uuid():
     """Generate UUID."""
     return str(uuid.uuid4())
