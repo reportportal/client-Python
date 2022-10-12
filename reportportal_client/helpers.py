@@ -16,7 +16,6 @@ import json
 import logging
 import time
 import uuid
-import warnings
 from platform import machine, processor, system
 
 import six
@@ -169,12 +168,11 @@ def get_function_params(func, args, kwargs):
     :param kwargs: function's kwargs
     :return: a dictionary of values
     """
-    # Use deprecated method for python 2.7 compatibility, it's still here for
-    # Python 3.10.2, so it's completely redundant to show the warning
-    with warnings.catch_warnings():
-        warnings.filterwarnings('ignore', category=DeprecationWarning)
-        # noinspection PyDeprecation
+    if six.PY2:
+        # Use deprecated method for python 2.7 compatibility
         arg_spec = inspect.getargspec(func)
+    else:
+        arg_spec = inspect.getfullargspec(func)
     result = dict()
     for i, arg_name in enumerate(arg_spec.args):
         if i >= len(args):
