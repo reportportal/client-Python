@@ -10,9 +10,9 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License
-import sys
-import logging
 import inspect
+import logging
+import sys
 from logging import LogRecord
 
 import pytest
@@ -69,7 +69,8 @@ def test_log_level_filter(handler_level, log_level, expected_calls):
     assert mock_client.log.call_count == expected_calls
 
 
-@pytest.mark.skipif(sys.version_info < (3, 8), '"stacklevel" introduced in Python 3.8, so not actual for earlier versions')
+@pytest.mark.skipif(sys.version_info < (3, 8),
+                    reason='"stacklevel" introduced in Python 3.8, so not actual for earlier versions')
 @mock.patch('reportportal_client.logs.logging.Logger.handle')
 def test_stacklevel_record_make(logger_handler):
     logger = RPLogger('test_logger')
