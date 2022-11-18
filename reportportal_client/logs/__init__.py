@@ -35,7 +35,7 @@ class RPLogger(logging.getLoggerClass()):
         super(RPLogger, self).__init__(name, level=level)
 
     def _log(self, level, msg, args,
-             exc_info=None, extra=None, stack_info=False, attachment=None):
+             exc_info=None, extra=None, stack_info=False, attachment=None, **kwargs):
         """
         Low-level logging routine which creates a LogRecord and then calls.
 
@@ -59,7 +59,10 @@ class RPLogger(logging.getLoggerClass()):
                     # and returns 3 elements
                     fn, lno, func = self.findCaller()
                 else:
-                    fn, lno, func, sinfo = self.findCaller(stack_info)
+                    if 'stacklevel' in kwargs:
+                        fn, lno, func, sinfo = self.findCaller(stack_info, kwargs['stacklevel'])
+                    else:
+                        fn, lno, func, sinfo = self.findCaller(stack_info)
 
             except ValueError:  # pragma: no cover
                 fn, lno, func = '(unknown file)', 0, '(unknown function)'

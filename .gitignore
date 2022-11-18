@@ -72,8 +72,8 @@ target/
 .python-version
 
 # virtualenv
-venv/
-.venv/
+venv*/
+?venv*/
 
 # pycharm
 .idea/
