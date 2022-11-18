@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- Issue [#198](https://github.com/reportportal/client-Python/issues/198): Python 3.8+ logging issue, by @HardNorth
 
 ## [5.2.5]
 ### Fixed

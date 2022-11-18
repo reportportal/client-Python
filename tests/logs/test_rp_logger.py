@@ -69,7 +69,7 @@ def test_log_level_filter(handler_level, log_level, expected_calls):
     assert mock_client.log.call_count == expected_calls
 
 
-@pytest.skipif(sys.version_info < (3, 8), '"stacklevel" introduced in Python 3.8, so not actual for earlier versions')
+@pytest.mark.skipif(sys.version_info < (3, 8), '"stacklevel" introduced in Python 3.8, so not actual for earlier versions')
 @mock.patch('reportportal_client.logs.logging.Logger.handle')
 def test_stacklevel_record_make(logger_handler):
     logger = RPLogger('test_logger')
