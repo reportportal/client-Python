@@ -70,10 +70,12 @@ def test_log_level_filter(handler_level, log_level, expected_calls):
 
 
 @pytest.mark.skipif(sys.version_info < (3, 8),
-                    reason='"stacklevel" introduced in Python 3.8, so not actual for earlier versions')
+                    reason='"stacklevel" introduced in Python 3.8, so not '
+                           'actual for earlier versions')
 @mock.patch('reportportal_client.logs.logging.Logger.handle')
 def test_stacklevel_record_make(logger_handler):
     logger = RPLogger('test_logger')
-    logger.error('test_log', exc_info=RuntimeError('test'), stack_info=inspect.stack(), stacklevel=2)
+    logger.error('test_log', exc_info=RuntimeError('test'),
+                 stack_info=inspect.stack(), stacklevel=2)
     record = verify_record(logger_handler)
     assert record.stack_info.endswith('return func(*newargs, **newkeywargs)')
