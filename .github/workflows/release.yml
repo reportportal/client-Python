@@ -1,4 +1,17 @@
-name: Upload Python Package
+# Copyright 2022 EPAM Systems
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: Release RobotFramework agent
 
 on:
   push:
@@ -6,7 +19,7 @@ on:
     paths-ignore:
       - '.github/**'
       - CHANGELOG.md
-      - README.rst
+      - README.md
       - CONTRIBUTING.rst
 
 env:
@@ -24,6 +37,23 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.8'
+
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip setuptools wheel
+
+      - name: Build package
+        run: python setup.py sdist bdist_wheel
+
+      - name: Publish package
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: ${{ secrets.PYPI_USERNAME }}
+          password: ${{ secrets.PYPI_PASSWORD }}
 
       - name: Generate versions
         uses: HardNorth/github-version-generate@v1
@@ -44,30 +74,6 @@ jobs:
         run: |
           git tag -a ${{ env.RELEASE_VERSION }} -m "Release ${{ env.RELEASE_VERSION }}"
           git push --tags
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.6'
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install setuptools wheel twine
-
-      - name: Build and publish
-        env:
-          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-        run: |
-          python setup.py sdist bdist_wheel
-          twine upload dist/*
-
-      - name: Checkout develop branch
-        uses: actions/checkout@v3
-        with:
-          ref: 'develop'
-          fetch-depth: 0
 
       - name: Update CHANGELOG.md
         id: changelogUpdate
@@ -97,6 +103,12 @@ jobs:
           name: Release ${{ env.RELEASE_VERSION }}
           body: ${{ steps.readChangelogEntry.outputs.changes }}
 
+      - name: Checkout develop branch
+        uses: actions/checkout@v3
+        with:
+          ref: 'develop'
+          fetch-depth: 0
+
       - name: Merge release branch into develop
         id: mergeIntoDevelop
         run: |
@@ -113,5 +125,5 @@ jobs:
           rm ${{ env.VERSION_FILE }}
           mv ${{ env.VERSION_FILE }}${{ env.TMP_SUFFIX }} ${{ env.VERSION_FILE }}
           git add ${{ env.VERSION_FILE }}
-          git commit -m "Version update"
+          git commit -m 'Version update'
           git push
