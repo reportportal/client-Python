@@ -23,12 +23,12 @@ setup(
     description='Python client for Report Portal v5.',
     long_description=read_file('README.md'),
     long_description_content_type='text/markdown',
-    author_email='SupportEPMC-TSTReportPortal@epam.com',
+    author_email='support@reportportal.io',
     url='https://github.com/reportportal/client-Python',
     download_url=('https://github.com/reportportal/client-Python/'
                   'tarball/%s' % __version__),
     license='Apache 2.0.',
-    keywords=['testing', 'reporting', 'reportportal'],
+    keywords=['testing', 'reporting', 'reportportal', 'client'],
     classifiers=[
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3.6',
