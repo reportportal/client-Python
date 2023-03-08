@@ -182,7 +182,7 @@ class ReportPortalService(object):
                  log_batch_size=20,
                  is_skipped_an_issue=True,
                  verify_ssl=True,
-                 retries=None,
+                 retries=0,
                  max_pool_size=50,
                  http_timeout=(10, 10),
                  **kwargs):
@@ -214,7 +214,7 @@ class ReportPortalService(object):
         self.http_timeout = http_timeout
 
         self.session = requests.Session()
-        if retries:
+        if retries or max_pool_size:
             self.session.mount('https://', HTTPAdapter(
                 max_retries=retries, pool_maxsize=max_pool_size))
             self.session.mount('http://', HTTPAdapter(
