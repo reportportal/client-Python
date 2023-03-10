@@ -140,7 +140,7 @@ class RPLogHandler(logging.Handler):
             hostname = urlparse(self.endpoint).hostname
             if hostname:
                 if hasattr(hostname, 'decode') and callable(hostname.decode):
-                    if hostname.decode() in self.format(record):
+                    if hostname.decode('utf-8') in self.format(record):
                         return False
                 else:
                     if str(hostname) in self.format(record):
