@@ -139,8 +139,12 @@ class RPLogHandler(logging.Handler):
             # urllib3 usage
             hostname = urlparse(self.endpoint).hostname
             if hostname:
-                if hostname.decode() in self.format(record):
-                    return False
+                if hasattr(hostname, 'decode') and callable(hostname.decode):
+                    if hostname.decode() in self.format(record):
+                        return False
+                else:
+                    if str(hostname) in self.format(record):
+                        return False
         return True
 
     def _get_rp_log_level(self, levelno):
