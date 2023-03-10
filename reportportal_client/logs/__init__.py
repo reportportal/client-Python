@@ -141,6 +141,16 @@ class RPLogHandler(logging.Handler):
                 return False
         return True
 
+    def _get_rp_log_level(self, levelno):
+        return next(
+            (
+                self._loglevel_map[level]
+                for level in self._sorted_levelnos
+                if levelno >= level
+            ),
+            self._loglevel_map[logging.NOTSET],
+        )
+
     def emit(self, record):
         """
         Emit function.
@@ -156,18 +166,17 @@ class RPLogHandler(logging.Handler):
         except Exception:
             self.handleError(record)
 
-        for level in self._sorted_levelnos:
-            if level <= record.levelno:
-                if self.rp_client:
-                    rp_client = self.rp_client
-                else:
-                    rp_client = current()
-                if rp_client:
-                    rp_client.log(
-                        timestamp(),
-                        msg,
-                        level=self._loglevel_map[level],
-                        attachment=record.__dict__.get('attachment', None),
-                        item_id=rp_client.current_item()
-                    )
-                return
+        log_level = self._get_rp_log_level(record.levelno)
+        if self.rp_client:
+            rp_client = self.rp_client
+        else:
+            rp_client = current()
+        if rp_client:
+            rp_client.log(
+                timestamp(),
+                msg,
+                level=log_level,
+                attachment=record.__dict__.get('attachment', None),
+                item_id=rp_client.current_item()
+            )
+        return

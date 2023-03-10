@@ -12,9 +12,12 @@
 #  limitations under the License
 import re
 
+# noinspection PyPackageRequirements
 import pytest
+# noinspection PyUnresolvedReferences
 from six.moves import mock
 
+# noinspection PyProtectedMember
 from reportportal_client._local import set_current
 from reportportal_client.logs import RPLogHandler, RPLogger
 
