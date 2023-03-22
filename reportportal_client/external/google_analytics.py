@@ -1,29 +1,17 @@
-"""This modules contains interfaces for communications with GA.
-
-Copyright (c) 2020 http://reportportal.io .
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-"""
-
 import logging
+from configparser import ConfigParser
 from platform import python_version
 from pkg_resources import get_distribution
 import requests
-from uuid import uuid4
+import os
+import json
+import uuid
 
-from .constants import GA_INSTANCE, GA_ENDPOINT
+from .constants import CLIENT_INFO, ENDPOINT, EVENT_NAME, CLIENT_ID_PROPERTY
 
 logger = logging.getLogger(__name__)
+
+MEASUREMENT_ID, API_SECRET = CLIENT_INFO.split(':')
 
 
 def _get_client_info():
@@ -43,30 +31,53 @@ def _get_platform_info():
     return 'Python ' + python_version()
 
 
-def send_event(agent_name, agent_version):
-    """Send an event to GA about client and agent versions with their names.
+def _get_client_id():
+    """Get client ID.
 
-    :param agent_name:    Name of the agent that uses the client
+    :return: str represents the client ID
+    """
+    rp_folder = os.path.expanduser('~/.rp')
+    rp_properties = os.path.join(rp_folder, 'rp.properties')
+    client_id = None
+    if os.path.exists(rp_properties):
+        config = ConfigParser.RawConfigParser()
+        config.read(rp_properties)
+        client_id = str(config.get(CLIENT_ID_PROPERTY)).strip()
+    if not client_id:
+        if not os.path.exists(rp_folder):
+            os.mkdir(rp_folder)
+        client_id = str(uuid.uuid4())
+        with open(rp_properties, 'a') as f:
+            f.write('\n' + CLIENT_ID_PROPERTY + '=' + client_id + '\n')
+    return client_id
+
+
+def send_event(agent_name, agent_version):
+    """Send an event to statistics service about client and agent versions with their names.
+
+    :param agent_name: Name of the agent that uses the client
     :param agent_version: Version of the agent
     """
     client_name, client_version = _get_client_info()
     payload = {
-        'v': '1',
-        'tid': GA_INSTANCE,
-        'aip': '1',
-        'cid': str(uuid4()),
-        't': 'event',
-        'ec': 'Client name "{}", version "{}", interpreter "{}"'.format(
-            client_name, client_version, _get_platform_info()
-        ),
-        'ea': 'Start launch',
-        'el': 'Agent name "{}", version "{}"'.format(
-            agent_name, agent_version
-        )
+        'client_id': _get_client_id(),
+        'events': [{
+            'name': EVENT_NAME,
+            'params': {
+                'client_name': client_name,
+                'client_version': client_version,
+                'interpreter': _get_platform_info(),
+                'agent_name': agent_name,
+                'agent_version': agent_version,
+            }
+        }]
     }
-    headers = {'User-Agent': 'Universal Analytics'}
+    headers = {'User-Agent': 'python-requests'}
+    params = {
+        'measurement_id': MEASUREMENT_ID,
+        'api_secret': API_SECRET
+    }
     try:
-        return requests.post(url=GA_ENDPOINT, data=payload, headers=headers)
+        return requests.post(url=ENDPOINT, data=json.dumps(payload), headers=headers, params=params)
     except requests.exceptions.RequestException as err:
-        logger.debug('Failed to send data to Google Analytics: %s',
-                     str(err))
+        logger.debug('Failed to send data to Statistics service: %s', str(err))

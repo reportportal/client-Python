@@ -2,5 +2,7 @@ from typing import Text
 
 def _decode_string(text: Text) -> Text: ...
 
-GA_INSTANCE: Text
-GA_ENDPOINT: Text
+CLIENT_INFO: Text
+ENDPOINT: Text
+EVENT_NAME: Text
+CLIENT_ID_PROPERTY: Text

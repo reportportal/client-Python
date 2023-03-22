@@ -29,5 +29,7 @@ def _decode_string(text):
     return message_bytes.decode('ascii')
 
 
-GA_INSTANCE = _decode_string('VUEtMTczNDU2ODA5LTE=')
-GA_ENDPOINT = 'https://www.google-analytics.com/collect'
+CLIENT_INFO = _decode_string('VUEtMTczNDU2ODA5LTE=')
+ENDPOINT = 'https://www.google-analytics.com/collect'
+EVENT_NAME = 'start_launch'
+CLIENT_ID_PROPERTY = 'client.id'
