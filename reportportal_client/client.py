@@ -108,6 +108,7 @@ class RPClient(object):
         ) if retries else DEFAULT_RETRIES
         self.session.mount('https://', HTTPAdapter(
             max_retries=retry_strategy, pool_maxsize=max_pool_size))
+        # noinspection HttpUrlsUsage
         self.session.mount('http://', HTTPAdapter(
             max_retries=retry_strategy, pool_maxsize=max_pool_size))
         self.session.headers['Authorization'] = 'bearer {0}'.format(self.token)
