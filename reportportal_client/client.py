@@ -19,7 +19,6 @@ from os import getenv
 import requests
 from requests.adapters import HTTPAdapter, Retry, DEFAULT_RETRIES
 
-from services.statistics import send_event
 from ._local import set_current
 from .core.rp_requests import (
     HttpRequest,
@@ -30,6 +29,7 @@ from .core.rp_requests import (
 )
 from .helpers import uri_join, verify_value_length
 from .logs.log_manager import LogManager, MAX_LOG_BATCH_PAYLOAD_SIZE
+from .services.statistics import send_event
 from .static.defines import NOT_FOUND
 from .steps import StepReporter
 
