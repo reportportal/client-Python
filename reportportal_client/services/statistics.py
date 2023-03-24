@@ -88,12 +88,12 @@ def send_event(event_name, agent_name, agent_version):
     """
     client_name, client_version = _get_client_info()
     params = {
-                'client_name': client_name,
-                'client_version': client_version,
-                'interpreter': _get_platform_info(),
-                'agent_name': agent_name,
-                'agent_version': agent_version,
-            }
+        'client_name': client_name,
+        'client_version': client_version,
+        'interpreter': _get_platform_info(),
+        'agent_name': agent_name,
+        'agent_version': agent_version,
+    }
 
     if agent_name:
         params['agent_name'] = agent_name
