@@ -1,17 +1,29 @@
+#  Copyright (c) 2023 EPAM Systems
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#  https://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License
+
 import logging
-from configparser import ConfigParser
-from platform import python_version
-from pkg_resources import get_distribution
-import requests
 import os
-import json
-import uuid
+from platform import python_version
+from uuid import uuid4
+
+import requests
+from pkg_resources import get_distribution
 
 from .constants import CLIENT_INFO, ENDPOINT, EVENT_NAME, CLIENT_ID_PROPERTY
 
 logger = logging.getLogger(__name__)
 
-MEASUREMENT_ID, API_SECRET = CLIENT_INFO.split(':')
+ID, KEY = CLIENT_INFO.split(':')
 
 
 def _get_client_info():
@@ -31,6 +43,20 @@ def _get_platform_info():
     return 'Python ' + python_version()
 
 
+def _load_properties(filepath, sep='=', comment_char='#'):
+    """
+    Read the file passed as parameter as a properties file.
+    """
+    result = {}
+    with open(filepath, "rt") as f:
+        for line in f:
+            s_line = line.strip()
+            if s_line and not s_line.startswith(comment_char):
+                key, value = s_line.split(sep, maxsplit=1)
+                result[key.rstrip()] = value.lstrip()
+    return result
+
+
 def _get_client_id():
     """Get client ID.
 
@@ -40,20 +66,21 @@ def _get_client_id():
     rp_properties = os.path.join(rp_folder, 'rp.properties')
     client_id = None
     if os.path.exists(rp_properties):
-        config = ConfigParser.RawConfigParser()
-        config.read(rp_properties)
-        client_id = str(config.get(CLIENT_ID_PROPERTY)).strip()
+        config = _load_properties(rp_properties)
+        client_id = config.get(CLIENT_ID_PROPERTY)
     if not client_id:
         if not os.path.exists(rp_folder):
             os.mkdir(rp_folder)
-        client_id = str(uuid.uuid4())
+        client_id = str(uuid4())
         with open(rp_properties, 'a') as f:
             f.write('\n' + CLIENT_ID_PROPERTY + '=' + client_id + '\n')
     return client_id
 
 
 def send_event(agent_name, agent_version):
-    """Send an event to statistics service about client and agent versions with their names.
+    """Send an event to statistics service.
+
+     Use client and agent versions with their names.
 
     :param agent_name: Name of the agent that uses the client
     :param agent_version: Version of the agent
@@ -74,10 +101,11 @@ def send_event(agent_name, agent_version):
     }
     headers = {'User-Agent': 'python-requests'}
     params = {
-        'measurement_id': MEASUREMENT_ID,
-        'api_secret': API_SECRET
+        'measurement_id': ID,
+        'api_secret': KEY
     }
     try:
-        return requests.post(url=ENDPOINT, data=json.dumps(payload), headers=headers, params=params)
+        return requests.post(url=ENDPOINT, json=payload, headers=headers,
+                             params=params)
     except requests.exceptions.RequestException as err:
         logger.debug('Failed to send data to Statistics service: %s', str(err))

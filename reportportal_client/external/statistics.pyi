@@ -1,5 +1,3 @@
-"""This package contains handles connections with external services."""
-
 #  Copyright (c) 2023 EPAM Systems
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -12,3 +10,15 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License
+
+from logging import Logger
+import requests
+from typing import Text
+
+logger: Logger
+
+def _get_client_info() -> tuple: ...
+
+def _get_platform_info() -> Text: ...
+
+def send_event(agent_name: Text, agent_version: Text) -> requests.Response: ...
