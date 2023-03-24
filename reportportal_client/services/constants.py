@@ -27,7 +27,8 @@ def _decode_string(text):
     return message_bytes.decode('ascii')
 
 
-CLIENT_INFO = _decode_string('Ry1XUDU3UlNHOFhMOm5Ib3dqRjJQUVotNDFJbzBPcDRoZlE=')
+CLIENT_INFO = \
+    _decode_string('Ry1XUDU3UlNHOFhMOm5Ib3dqRjJQUVotNDFJbzBPcDRoZlE=')
 ENDPOINT = 'https://www.google-analytics.com/mp/collect'
 CLIENT_ID_PROPERTY = 'client.id'
 USER_AGENT = ''
