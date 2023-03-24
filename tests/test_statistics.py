@@ -24,6 +24,8 @@ from reportportal_client.services.statistics import send_event
 EVENT_NAME = 'start_launch'
 
 
+@mock.patch('reportportal_client.services.statistics.uuid4',
+            mock.Mock(return_value=555))
 @mock.patch('reportportal_client.services.statistics._load_properties',
             mock.Mock(return_value={CLIENT_ID_PROPERTY: '555'}))
 @mock.patch('reportportal_client.services.statistics.requests.post')
