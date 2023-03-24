@@ -1,7 +1,9 @@
 # Changelog
 
 ## [Unreleased]
+### Fixed
 - Issue [#198](https://github.com/reportportal/client-Python/issues/198): Python 3.8+ logging issue, by @HardNorth
+- Issue [#200](https://github.com/reportportal/client-Python/issues/200): max_pool_size not worked without retries setting, by @ericscobell
 
 ## [5.2.5]
 ### Fixed
