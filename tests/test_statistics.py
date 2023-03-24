@@ -96,5 +96,5 @@ def test_same_client_id(mocked_distribution, mocked_requests):
     send_event(EVENT_NAME, agent_name, agent_version)
     args_list = mocked_requests.call_args_list
 
-    assert args_list[0].kwargs['json']['client_id'] == \
-           args_list[1].kwargs['json']['client_id']
+    assert args_list[0][1]['json']['client_id'] == \
+           args_list[1][1]['json']['client_id']
