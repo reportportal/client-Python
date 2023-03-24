@@ -52,7 +52,9 @@ def _load_properties(filepath, sep='=', comment_char='#'):
         for line in f:
             s_line = line.strip()
             if s_line and not s_line.startswith(comment_char):
-                key, value = s_line.split(sep, maxsplit=1)
+                sep_idx = s_line.index(sep)
+                key = s_line[0:sep_idx]
+                value = s_line[sep_idx + 1:]
                 result[key.rstrip()] = value.lstrip()
     return result
 
