@@ -1,3 +1,5 @@
+"""This module sends statistics events to a statistics service."""
+
 #  Copyright (c) 2023 EPAM Systems
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -43,15 +45,19 @@ def _get_platform_info():
     return 'Python ' + python_version()
 
 
-def _load_properties(filepath, sep='=', comment_char='#'):
-    """
-    Read the file passed as parameter as a properties file.
+def _load_properties(filepath, sep='=', comment_str='#'):
+    """Read the file passed as parameter as a properties file.
+
+    :param filepath: path to property file
+    :param sep: separator string between key and value
+    :param comment_str: a string which designate comment line
+    :return: property file as Dict
     """
     result = {}
     with open(filepath, "rt") as f:
         for line in f:
             s_line = line.strip()
-            if s_line and not s_line.startswith(comment_char):
+            if s_line and not s_line.startswith(comment_str):
                 sep_idx = s_line.index(sep)
                 key = s_line[0:sep_idx]
                 value = s_line[sep_idx + 1:]

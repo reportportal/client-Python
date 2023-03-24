@@ -1,4 +1,4 @@
-"""This package contains handles connections with external services."""
+"""This package contains different service interfaces."""
 
 #  Copyright (c) 2023 EPAM Systems
 #  Licensed under the Apache License, Version 2.0 (the "License");
