@@ -12,9 +12,3 @@
 #  limitations under the License
 
 """This package contains core reportportal-client modules."""
-
-from reportportal_client.logs import log_manager
-
-__all__ = [
-    'log_manager'
-]
