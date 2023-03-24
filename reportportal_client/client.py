@@ -15,7 +15,7 @@
 
 import logging
 import requests
-from requests.adapters import HTTPAdapter, Retry
+from requests.adapters import HTTPAdapter, Retry, DEFAULT_RETRIES
 
 from ._local import set_current
 from .core.rp_requests import (
@@ -100,16 +100,16 @@ class RPClient(object):
         self.step_reporter = StepReporter(self)
         self._item_stack = []
         self.mode = mode
-        if retries:
-            retry_strategy = Retry(
-                total=retries,
-                backoff_factor=0.1,
-                status_forcelist=[429, 500, 502, 503, 504]
-            )
-            self.session.mount('https://', HTTPAdapter(
-                max_retries=retry_strategy, pool_maxsize=max_pool_size))
-            self.session.mount('http://', HTTPAdapter(
-                max_retries=retry_strategy, pool_maxsize=max_pool_size))
+
+        retry_strategy = Retry(
+            total=retries,
+            backoff_factor=0.1,
+            status_forcelist=[429, 500, 502, 503, 504]
+        ) if retries else DEFAULT_RETRIES
+        self.session.mount('https://', HTTPAdapter(
+            max_retries=retry_strategy, pool_maxsize=max_pool_size))
+        self.session.mount('http://', HTTPAdapter(
+            max_retries=retry_strategy, pool_maxsize=max_pool_size))
         self.session.headers['Authorization'] = 'bearer {0}'.format(self.token)
 
         self._log_manager = LogManager(
