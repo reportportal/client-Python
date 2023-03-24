@@ -24,11 +24,11 @@ from reportportal_client.services.statistics import send_event
 EVENT_NAME = 'start_launch'
 
 
-@mock.patch('reportportal_client.external.statistics._load_properties',
+@mock.patch('reportportal_client.services.statistics._load_properties',
             mock.Mock(return_value={CLIENT_ID_PROPERTY: '555'}))
-@mock.patch('reportportal_client.external.statistics.requests.post')
-@mock.patch('reportportal_client.external.statistics.get_distribution')
-@mock.patch('reportportal_client.external.statistics.python_version',
+@mock.patch('reportportal_client.services.statistics.requests.post')
+@mock.patch('reportportal_client.services.statistics.get_distribution')
+@mock.patch('reportportal_client.services.statistics.python_version',
             mock.Mock(return_value='3.6.6'))
 def test_send_event(mocked_distribution, mocked_requests):
     """Test functionality of the send_event() function.
@@ -64,20 +64,20 @@ def test_send_event(mocked_distribution, mocked_requests):
         params=expected_params)
 
 
-@mock.patch('reportportal_client.external.statistics.uuid4',
+@mock.patch('reportportal_client.services.statistics.uuid4',
             mock.Mock(return_value=555))
-@mock.patch('reportportal_client.external.statistics.requests.post',
+@mock.patch('reportportal_client.services.statistics.requests.post',
             mock.Mock(side_effect=RequestException))
-@mock.patch('reportportal_client.external.statistics.get_distribution',
+@mock.patch('reportportal_client.services.statistics.get_distribution',
             mock.Mock())
 def test_send_event_raises():
     """Test that the send_event() does not raise exceptions."""
     send_event(EVENT_NAME, 'pytest-reportportal', '5.0.5')
 
 
-@mock.patch('reportportal_client.external.statistics.requests.post')
-@mock.patch('reportportal_client.external.statistics.get_distribution')
-@mock.patch('reportportal_client.external.statistics.python_version',
+@mock.patch('reportportal_client.services.statistics.requests.post')
+@mock.patch('reportportal_client.services.statistics.get_distribution')
+@mock.patch('reportportal_client.services.statistics.python_version',
             mock.Mock(return_value='3.6.6'))
 def test_same_client_id(mocked_distribution, mocked_requests):
     """Test functionality of the send_event() function.
