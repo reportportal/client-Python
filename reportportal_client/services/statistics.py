@@ -19,7 +19,7 @@ from uuid import uuid4
 import requests
 from pkg_resources import get_distribution
 
-from .constants import CLIENT_INFO, ENDPOINT, EVENT_NAME, CLIENT_ID_PROPERTY
+from .constants import CLIENT_INFO, ENDPOINT, CLIENT_ID_PROPERTY
 
 logger = logging.getLogger(__name__)
 
@@ -77,26 +77,34 @@ def _get_client_id():
     return client_id
 
 
-def send_event(agent_name, agent_version):
+def send_event(event_name, agent_name, agent_version):
     """Send an event to statistics service.
 
      Use client and agent versions with their names.
 
+    :param event_name: Event name to be used
     :param agent_name: Name of the agent that uses the client
     :param agent_version: Version of the agent
     """
     client_name, client_version = _get_client_info()
-    payload = {
-        'client_id': _get_client_id(),
-        'events': [{
-            'name': EVENT_NAME,
-            'params': {
+    params = {
                 'client_name': client_name,
                 'client_version': client_version,
                 'interpreter': _get_platform_info(),
                 'agent_name': agent_name,
                 'agent_version': agent_version,
             }
+
+    if agent_name:
+        params['agent_name'] = agent_name
+    if agent_version:
+        params['agent_version'] = agent_version
+
+    payload = {
+        'client_id': _get_client_id(),
+        'events': [{
+            'name': event_name,
+            'params': params
         }]
     }
     headers = {'User-Agent': 'python-requests'}

@@ -11,11 +11,19 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License
 
-from typing import Text
+from logging import Logger
+from typing import Text, Optional
 
-def _decode_string(text: Text) -> Text: ...
+import requests
 
-CLIENT_INFO: Text
-ENDPOINT: Text
-EVENT_NAME: Text
-CLIENT_ID_PROPERTY: Text
+logger: Logger
+
+
+def _get_client_info() -> tuple: ...
+
+
+def _get_platform_info() -> Text: ...
+
+
+def send_event(event_name: Text, agent_name: Optional[Text],
+               agent_version: Optional[Text]) -> requests.Response: ...

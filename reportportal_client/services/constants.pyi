@@ -1,5 +1,3 @@
-"""This module contains constants for the external services."""
-
 #  Copyright (c) 2023 EPAM Systems
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -13,22 +11,10 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License
 
-import base64
+from typing import Text
 
+def _decode_string(text: Text) -> Text: ...
 
-def _decode_string(text):
-    """Decode value of the given string.
-
-    :param text: Encoded string
-    :return:     Decoded value
-    """
-    base64_bytes = text.encode('ascii')
-    message_bytes = base64.b64decode(base64_bytes)
-    return message_bytes.decode('ascii')
-
-
-CLIENT_INFO = _decode_string('Ry1XUDU3UlNHOFhMOm5Ib3dqRjJQUVotNDFJbzBPcDRoZlE=')
-ENDPOINT = 'https://www.google-analytics.com/mp/collect'
-EVENT_NAME = 'start_launch'
-CLIENT_ID_PROPERTY = 'client.id'
-USER_AGENT = ''
+CLIENT_INFO: Text
+ENDPOINT: Text
+CLIENT_ID_PROPERTY: Text

@@ -17,9 +17,11 @@ from requests.exceptions import RequestException
 # noinspection PyUnresolvedReferences
 from six.moves import mock
 
-from reportportal_client.external.constants import ENDPOINT, EVENT_NAME, \
-    CLIENT_INFO, CLIENT_ID_PROPERTY
-from reportportal_client.external.statistics import send_event
+from reportportal_client.services.constants import ENDPOINT, CLIENT_INFO, \
+    CLIENT_ID_PROPERTY
+from reportportal_client.services.statistics import send_event
+
+EVENT_NAME = 'start_launch'
 
 
 @mock.patch('reportportal_client.external.statistics._load_properties',
@@ -56,7 +58,7 @@ def test_send_event(mocked_distribution, mocked_requests):
     }
     mid, key = CLIENT_INFO.split(':')
     expected_params = {'measurement_id': mid, 'api_secret': key}
-    send_event(agent_name, agent_version)
+    send_event(EVENT_NAME, agent_name, agent_version)
     mocked_requests.assert_called_with(
         url=ENDPOINT, json=expected_data, headers=expected_headers,
         params=expected_params)
@@ -70,7 +72,7 @@ def test_send_event(mocked_distribution, mocked_requests):
             mock.Mock())
 def test_send_event_raises():
     """Test that the send_event() does not raise exceptions."""
-    send_event('pytest-reportportal', '5.0.5')
+    send_event(EVENT_NAME, 'pytest-reportportal', '5.0.5')
 
 
 @mock.patch('reportportal_client.external.statistics.requests.post')
@@ -88,8 +90,8 @@ def test_same_client_id(mocked_distribution, mocked_requests):
     mocked_distribution.return_value.version = expected_cl_version
     mocked_distribution.return_value.project_name = expected_cl_name
 
-    send_event(agent_name, agent_version)
-    send_event(agent_name, agent_version)
+    send_event(EVENT_NAME, agent_name, agent_version)
+    send_event(EVENT_NAME, agent_name, agent_version)
     args_list = mocked_requests.call_args_list
 
     assert args_list[0].kwargs['json']['client_id'] == \
