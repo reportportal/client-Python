@@ -341,8 +341,9 @@ class RPClient(object):
 
         if not self._skip_analytics:
             agent_name, agent_version = None, None
+
             agent_attribute = [a for a in attributes if
-                               a.get('key') == 'agent']
+                               a.get('key') == 'agent'] if attributes else []
             if len(agent_attribute) > 0 and agent_attribute[0].get('value'):
                 agent_name, agent_version = agent_attribute[0]['value'].split(
                     '|')
