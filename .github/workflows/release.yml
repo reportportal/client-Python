@@ -1,12 +1,25 @@
-name: Upload Python Package
+# Copyright 2022 EPAM Systems
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: Release client
 
 on:
   push:
-    branches: ['master']
+    branches: [ 'master' ]
     paths-ignore:
       - '.github/**'
       - CHANGELOG.md
-      - README.rst
+      - README.md
       - CONTRIBUTING.rst
 
 env:
@@ -22,99 +35,95 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    - name: Generate versions
-      uses: HardNorth/github-version-generate@v1.2.0
-      with:
-        version-source: file
-        version-file: ${{ env.VERSION_FILE }}
-        version-file-extraction-pattern: ${{ env.VERSION_EXTRACT_PATTERN }}
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.8'
 
-    - name: Setup git credentials
-      uses: oleksiyrudenko/gha-git-credentials@v2
-      with:
-        name: 'reportportal.io'
-        email: 'support@reportportal.io'
-        token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip setuptools wheel
 
-    - name: Tagging new version
-      id: newVersionTag
-      run: |
-        git tag -a ${{ env.RELEASE_VERSION }} -m "Release ${{ env.RELEASE_VERSION }}"
-        git push --tags
+      - name: Build package
+        run: python setup.py sdist bdist_wheel
 
-    - name: Set up Python
-      uses: actions/setup-python@v1
-      with:
-        python-version: '3.6'
+      - name: Publish package
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: ${{ secrets.PYPI_USERNAME }}
+          password: ${{ secrets.PYPI_PASSWORD }}
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install setuptools wheel twine
+      - name: Generate versions
+        uses: HardNorth/github-version-generate@v1
+        with:
+          version-source: file
+          version-file: ${{ env.VERSION_FILE }}
+          version-file-extraction-pattern: ${{ env.VERSION_EXTRACT_PATTERN }}
 
-    - name: Build and publish
-      env:
-        TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-      run: |
-        python setup.py sdist bdist_wheel
-        twine upload dist/*
+      - name: Setup git credentials
+        uses: oleksiyrudenko/gha-git-credentials@v2.1.1
+        with:
+          name: 'reportportal.io'
+          email: 'support@reportportal.io'
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Checkout develop branch
-      uses: actions/checkout@v2
-      with:
-        ref: 'develop'
-        fetch-depth: 0
+      - name: Tagging new version
+        id: newVersionTag
+        run: |
+          git tag -a ${{ env.RELEASE_VERSION }} -m "Release ${{ env.RELEASE_VERSION }}"
+          git push --tags
 
-    - name: Update CHANGELOG.md
-      id: changelogUpdate
-      run: |
-        sed '/\[Unreleased\]/q' ${{ env.CHANGE_LOG_FILE }} >> ${{ env.CHANGE_LOG_FILE }}${{ env.TMP_SUFFIX }}
-        sed -E '1,/#?#\s*\[Unreleased\]/d' ${{ env.CHANGE_LOG_FILE }} | sed -E '/#?#\s*\[/q' | \
-        { echo -e '\n## [${{ env.RELEASE_VERSION }}]'; sed '$d'; } >> ${{ env.CHANGE_LOG_FILE }}${{ env.TMP_SUFFIX }}
-        grep -E '#?#\s*\[[0-9]' ${{ env.CHANGE_LOG_FILE }} | head -n1 >> ${{ env.CHANGE_LOG_FILE }}${{ env.TMP_SUFFIX }}
-        sed -E '1,/#?#\s*\[[0-9]/d' ${{ env.CHANGE_LOG_FILE }} >> ${{ env.CHANGE_LOG_FILE }}${{ env.TMP_SUFFIX }}
-        rm ${{ env.CHANGE_LOG_FILE }}
-        mv ${{ env.CHANGE_LOG_FILE }}${{ env.TMP_SUFFIX }} ${{ env.CHANGE_LOG_FILE }}
-        git add ${{ env.CHANGE_LOG_FILE }}
-        git commit -m "Changelog update"
+      - name: Update CHANGELOG.md
+        id: changelogUpdate
+        run: |
+          sed '/\[Unreleased\]/q' ${{ env.CHANGE_LOG_FILE }} >> ${{ env.CHANGE_LOG_FILE }}${{ env.TMP_SUFFIX }}
+          sed -E '1,/#?#\s*\[Unreleased\]/d' ${{ env.CHANGE_LOG_FILE }} | sed -E '/#?#\s*\[/q' | \
+          { echo -e '\n## [${{ env.RELEASE_VERSION }}]'; sed '$d'; } >> ${{ env.CHANGE_LOG_FILE }}${{ env.TMP_SUFFIX }}
+          grep -E '#?#\s*\[[0-9]' ${{ env.CHANGE_LOG_FILE }} | head -n1 >> ${{ env.CHANGE_LOG_FILE }}${{ env.TMP_SUFFIX }}
+          sed -E '1,/#?#\s*\[[0-9]/d' ${{ env.CHANGE_LOG_FILE }} >> ${{ env.CHANGE_LOG_FILE }}${{ env.TMP_SUFFIX }}
+          rm ${{ env.CHANGE_LOG_FILE }}
+          mv ${{ env.CHANGE_LOG_FILE }}${{ env.TMP_SUFFIX }} ${{ env.CHANGE_LOG_FILE }}
+          git add ${{ env.CHANGE_LOG_FILE }}
+          git commit -m "Changelog update"
 
-    - name: Read changelog Entry
-      id: readChangelogEntry
-      uses: mindsers/changelog-reader-action@v1.3.1
-      with:
-        version: ${{ env.RELEASE_VERSION }}
-        path: ./${{ env.CHANGE_LOG_FILE }}
+      - name: Read changelog Entry
+        id: readChangelogEntry
+        uses: mindsers/changelog-reader-action@v2
+        with:
+          version: ${{ env.RELEASE_VERSION }}
+          path: ./${{ env.CHANGE_LOG_FILE }}
 
-    - name: Create Release
-      id: createRelease
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ env.RELEASE_VERSION }}
-        release_name: Release ${{ env.RELEASE_VERSION }}
-        body: ${{ steps.readChangelogEntry.outputs.log_entry }}
-        draft: false
-        prerelease: false
+      - name: Create Release
+        id: createRelease
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ env.RELEASE_VERSION }}
+          name: Release ${{ env.RELEASE_VERSION }}
+          body: ${{ steps.readChangelogEntry.outputs.changes }}
 
-    - name: Merge release branch into develop
-      id: mergeIntoDevelop
-      run: |
-        git merge -m 'Merge master branch into develop after a release' origin/master
-        git status | (! grep -Fq 'both modified:') || git status | grep -F 'both modified:' \
-        | { echo -e 'Unable to merge master into develop, merge conflicts:'; (! grep -Eo '[^ ]+$') }
+      - name: Checkout develop branch
+        uses: actions/checkout@v3
+        with:
+          ref: 'develop'
+          fetch-depth: 0
 
-    - name: Update version file
-      id: versionFileUpdate
-      run: |
-        export CURRENT_VERSION_VALUE=`echo '${{ env.CURRENT_VERSION }}' | sed -E "s/(.*)/${{ env.VERSION_REPLACE_PATTERN }}/"`
-        export NEXT_VERSION_VALUE=`echo '${{ env.NEXT_VERSION }}' | sed -E "s/(.*)/${{ env.VERSION_REPLACE_PATTERN }}/"`
-        sed "s/${CURRENT_VERSION_VALUE}/${NEXT_VERSION_VALUE}/g" ${{ env.VERSION_FILE }} > ${{ env.VERSION_FILE }}${{ env.TMP_SUFFIX }}
-        rm ${{ env.VERSION_FILE }}
-        mv ${{ env.VERSION_FILE }}${{ env.TMP_SUFFIX }} ${{ env.VERSION_FILE }}
-        git add ${{ env.VERSION_FILE }}
-        git commit -m "Version update"
-        git push
+      - name: Merge release branch into develop
+        id: mergeIntoDevelop
+        run: |
+          git merge -m 'Merge master branch into develop after a release' origin/master
+          git status | (! grep -Fq 'both modified:') || git status | grep -F 'both modified:' \
+          | { echo -e 'Unable to merge master into develop, merge conflicts:'; (! grep -Eo '[^ ]+$') }
+
+      - name: Update version file
+        id: versionFileUpdate
+        run: |
+          export CURRENT_VERSION_VALUE=`echo '${{ env.CURRENT_VERSION }}' | sed -E "s/(.*)/${{ env.VERSION_REPLACE_PATTERN }}/"`
+          export NEXT_VERSION_VALUE=`echo '${{ env.NEXT_VERSION }}' | sed -E "s/(.*)/${{ env.VERSION_REPLACE_PATTERN }}/"`
+          sed "s/${CURRENT_VERSION_VALUE}/${NEXT_VERSION_VALUE}/g" ${{ env.VERSION_FILE }} > ${{ env.VERSION_FILE }}${{ env.TMP_SUFFIX }}
+          rm ${{ env.VERSION_FILE }}
+          mv ${{ env.VERSION_FILE }}${{ env.TMP_SUFFIX }} ${{ env.VERSION_FILE }}
+          git add ${{ env.VERSION_FILE }}
+          git commit -m 'Version update'
+          git push

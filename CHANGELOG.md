@@ -2,8 +2,18 @@
 
 ## [Unreleased]
 ### Fixed
+- Issue [#198](https://github.com/reportportal/client-Python/issues/198): Python 3.8+ logging issue, by @HardNorth
+- Issue [#200](https://github.com/reportportal/client-Python/issues/200): max_pool_size not worked without retries setting, by @ericscobell
+- Issue [#202](https://github.com/reportportal/client-Python/issues/202): TypeError on request make, by @HardNorth
+### Changed
+- Statistics service rewrite, by @HardNorth
+### Removed
+- Deprecated code, `service.py` and `LogManager` in `core` package, by @HardNorth
+
+## [5.2.5]
+### Fixed
 - Issue [#194](https://github.com/reportportal/client-Python/issues/194): logging URL generation, by @HardNorth
-- Issue [#195](https://github.com/reportportal/client-Python/issues/195): `None` mode exception
+- Issue [#195](https://github.com/reportportal/client-Python/issues/195): `None` mode exception, by @HardNorth
 
 ## [5.2.4]
 ### Changed

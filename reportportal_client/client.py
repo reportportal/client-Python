@@ -1,22 +1,23 @@
-"""This module contains Report Portal Client class.
+"""This module contains Report Portal Client class."""
 
-Copyright (c) 2022 https://reportportal.io .
+#  Copyright (c) 2023 EPAM Systems
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#  https://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-https://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-"""
 import logging
+from os import getenv
+
 import requests
-from requests.adapters import HTTPAdapter, Retry
+from requests.adapters import HTTPAdapter, Retry, DEFAULT_RETRIES
 
 from ._local import set_current
 from .core.rp_requests import (
@@ -28,6 +29,7 @@ from .core.rp_requests import (
 )
 from .helpers import uri_join, verify_value_length
 from .logs.log_manager import LogManager, MAX_LOG_BATCH_PAYLOAD_SIZE
+from .services.statistics import send_event
 from .static.defines import NOT_FOUND
 from .steps import StepReporter
 
@@ -101,16 +103,18 @@ class RPClient(object):
         self.step_reporter = StepReporter(self)
         self._item_stack = []
         self.mode = mode
-        if retries:
-            retry_strategy = Retry(
-                total=retries,
-                backoff_factor=0.1,
-                status_forcelist=[429, 500, 502, 503, 504]
-            )
-            self.session.mount('https://', HTTPAdapter(
-                max_retries=retry_strategy, pool_maxsize=max_pool_size))
-            self.session.mount('http://', HTTPAdapter(
-                max_retries=retry_strategy, pool_maxsize=max_pool_size))
+        self._skip_analytics = getenv('AGENT_NO_ANALYTICS')
+
+        retry_strategy = Retry(
+            total=retries,
+            backoff_factor=0.1,
+            status_forcelist=[429, 500, 502, 503, 504]
+        ) if retries else DEFAULT_RETRIES
+        self.session.mount('https://', HTTPAdapter(
+            max_retries=retry_strategy, pool_maxsize=max_pool_size))
+        # noinspection HttpUrlsUsage
+        self.session.mount('http://', HTTPAdapter(
+            max_retries=retry_strategy, pool_maxsize=max_pool_size))
         self.session.headers['Authorization'] = 'bearer {0}'.format(self.token)
 
         self._log_manager = LogManager(
@@ -301,9 +305,9 @@ class RPClient(object):
         :param start_time:  Launch start time
         :param description: Launch description
         :param attributes:  Launch attributes
-        :param rerun:       Enables launch rerun mode
-        :param rerun_of:    Rerun mode. Specifies launch to be re-runned.
-                            Should be used with the 'rerun' option.
+        :param rerun:       Start launch in rerun mode
+        :param rerun_of:    For rerun mode specifies which launch will be
+                            re-run. Should be used with the 'rerun' option.
         """
         url = uri_join(self.base_url_v2, 'launch')
 
@@ -334,6 +338,17 @@ class RPClient(object):
                                verify_ssl=self.verify_ssl).make()
         if not response:
             return
+
+        if not self._skip_analytics:
+            agent_name, agent_version = None, None
+
+            agent_attribute = [a for a in attributes if
+                               a.get('key') == 'agent'] if attributes else []
+            if len(agent_attribute) > 0 and agent_attribute[0].get('value'):
+                agent_name, agent_version = agent_attribute[0]['value'].split(
+                    '|')
+            send_event('start_launch', agent_name, agent_version)
+
         self._log_manager.launch_id = self.launch_id = response.id
         logger.debug('start_launch - ID: %s', self.launch_id)
         return self.launch_id

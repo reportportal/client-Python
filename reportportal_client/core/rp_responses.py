@@ -71,15 +71,7 @@ class RPResponse(object):
         :param data: requests.Response object
         :return:     dict
         """
-        if not data.text:
-            return {}
-        try:
-            return data.json()
-        except ValueError as error:
-            logger.warning('Invalid response: {0}: {1}'
-                           .format(error, data.text),
-                           exc_info=error)
-            return {}
+        return data.json()
 
     @property
     def id(self):

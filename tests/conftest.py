@@ -2,10 +2,10 @@
 
 from six.moves import mock
 
+# noinspection PyPackageRequirements
 from pytest import fixture
 
 from reportportal_client.client import RPClient
-from reportportal_client.service import ReportPortalService
 
 
 @fixture()
@@ -23,14 +23,6 @@ def response():
             resp.json.return_value = ret_value
             return resp
     return inner
-
-
-@fixture(scope='session')
-def rp_service():
-    """Prepare instance of the ReportPortalService for testing."""
-    service = ReportPortalService('http://endpoint', 'project', 'token')
-    service.session = mock.Mock()
-    return service
 
 
 @fixture

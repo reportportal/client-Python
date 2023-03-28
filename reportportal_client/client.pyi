@@ -2,8 +2,8 @@ from typing import Any, Dict, List, Optional, Text, Tuple, Union
 
 from requests import Session
 
-from reportportal_client.logs.log_manager import LogManager as LogManager
 from reportportal_client.core.rp_issues import Issue as Issue
+from reportportal_client.logs.log_manager import LogManager as LogManager
 from reportportal_client.steps import StepReporter
 
 
@@ -28,6 +28,7 @@ class RPClient:
     session: Session = ...
     step_reporter: StepReporter = ...
     mode: str = ...
+    _skip_analytics: Text = ...
 
     def __init__(
             self,
@@ -103,3 +104,5 @@ class RPClient:
                          description: Optional[Text]) -> Text: ...
 
     def current_item(self) -> Text: ...
+
+    def start(self) -> None : ...

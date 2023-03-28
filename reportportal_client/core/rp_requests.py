@@ -76,7 +76,7 @@ class HttpRequest:
                 timeout=self.http_timeout)
             )
             # https://github.com/reportportal/client-Python/issues/39
-        except (KeyError, IOError, ValueError) as exc:
+        except (KeyError, IOError, ValueError, TypeError) as exc:
             logger.warning(
                 "Report Portal %s request failed",
                 self.name,

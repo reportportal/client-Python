@@ -16,13 +16,13 @@ limitations under the License.
 
 from ._local import current
 from .logs import RPLogger, RPLogHandler
-from .service import ReportPortalService
+from .client import RPClient
 from .steps import step
 
 __all__ = [
     'current',
     'RPLogger',
     'RPLogHandler',
-    'ReportPortalService',
+    'RPClient',
     'step',
 ]

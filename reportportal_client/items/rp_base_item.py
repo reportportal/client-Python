@@ -1,24 +1,19 @@
-"""
-This module contains functional for Base RP items management.
+"""This module contains functional for Base RP items management."""
 
-Copyright (c) 2018 http://reportportal.io .
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-"""
+#  Copyright (c) 2023 EPAM Systems
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#  https://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License
 
 from reportportal_client.core.rp_requests import HttpRequest
-from reportportal_client.core.rp_responses import RPResponse
-from reportportal_client.static.defines import NOT_FOUND
 
 
 class BaseRPItem(object):
@@ -51,34 +46,6 @@ class BaseRPItem(object):
         :return: request object
         """
         return self.http_requests[-1] if self.http_requests else None
-
-    @property
-    def response(self):
-        """Get last http response.
-
-        :return: Response data object
-        """
-        return self.responses[-1] if self.responses else None
-
-    @response.setter
-    def response(self, data):
-        """Set the response object for the test item.
-
-        :param data: Response data object
-        """
-        response = RPResponse(data)
-        self.responses.append(response)
-        self.uuid = response.id if (response.id is
-                                    not NOT_FOUND) else self.uuid
-
-    @property
-    def unhandled_requests(self):
-        """Get list of requests that were not handled.
-
-        :return: list of HttpRequest objects
-        """
-        return [request for request in self.http_requests
-                if not request.response]
 
     def add_request(self, endpoint, method, request_class, *args, **kwargs):
         """Add new request object.

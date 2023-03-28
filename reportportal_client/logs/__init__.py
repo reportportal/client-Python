@@ -18,6 +18,7 @@ import sys
 from six import PY2
 from six.moves.urllib.parse import urlparse
 
+# noinspection PyProtectedMember
 from reportportal_client._local import current
 from reportportal_client.helpers import timestamp
 
@@ -34,8 +35,8 @@ class RPLogger(logging.getLoggerClass()):
         """
         super(RPLogger, self).__init__(name, level=level)
 
-    def _log(self, level, msg, args,
-             exc_info=None, extra=None, stack_info=False, attachment=None):
+    def _log(self, level, msg, args, exc_info=None, extra=None,
+             stack_info=False, attachment=None, **kwargs):
         """
         Low-level logging routine which creates a LogRecord and then calls.
 
@@ -59,7 +60,11 @@ class RPLogger(logging.getLoggerClass()):
                     # and returns 3 elements
                     fn, lno, func = self.findCaller()
                 else:
-                    fn, lno, func, sinfo = self.findCaller(stack_info)
+                    if 'stacklevel' in kwargs:
+                        fn, lno, func, sinfo = \
+                            self.findCaller(stack_info, kwargs['stacklevel'])
+                    else:
+                        fn, lno, func, sinfo = self.findCaller(stack_info)
 
             except ValueError:  # pragma: no cover
                 fn, lno, func = '(unknown file)', 0, '(unknown function)'
@@ -133,9 +138,24 @@ class RPLogHandler(logging.Handler):
             # Filter the reportportal_client requests instance
             # urllib3 usage
             hostname = urlparse(self.endpoint).hostname
-            if hostname in self.format(record):
-                return False
+            if hostname:
+                if hasattr(hostname, 'decode') and callable(hostname.decode):
+                    if hostname.decode('utf-8') in self.format(record):
+                        return False
+                else:
+                    if str(hostname) in self.format(record):
+                        return False
         return True
+
+    def _get_rp_log_level(self, levelno):
+        return next(
+            (
+                self._loglevel_map[level]
+                for level in self._sorted_levelnos
+                if levelno >= level
+            ),
+            self._loglevel_map[logging.NOTSET],
+        )
 
     def emit(self, record):
         """
@@ -145,6 +165,7 @@ class RPLogHandler(logging.Handler):
         """
         msg = ''
 
+        # noinspection PyBroadException
         try:
             msg = self.format(record)
         except (KeyboardInterrupt, SystemExit):
@@ -152,18 +173,17 @@ class RPLogHandler(logging.Handler):
         except Exception:
             self.handleError(record)
 
-        for level in self._sorted_levelnos:
-            if level <= record.levelno:
-                if self.rp_client:
-                    rp_client = self.rp_client
-                else:
-                    rp_client = current()
-                if rp_client:
-                    rp_client.log(
-                        timestamp(),
-                        msg,
-                        level=self._loglevel_map[level],
-                        attachment=record.__dict__.get('attachment', None),
-                        item_id=rp_client.current_item()
-                    )
-                return
+        log_level = self._get_rp_log_level(record.levelno)
+        if self.rp_client:
+            rp_client = self.rp_client
+        else:
+            rp_client = current()
+        if rp_client:
+            rp_client.log(
+                timestamp(),
+                msg,
+                level=log_level,
+                attachment=record.__dict__.get('attachment', None),
+                item_id=rp_client.current_item()
+            )
+        return
