@@ -14,6 +14,8 @@
 #  limitations under the License
 
 import logging
+from os import getenv
+
 import requests
 from requests.adapters import HTTPAdapter, Retry, DEFAULT_RETRIES
 
@@ -27,6 +29,7 @@ from .core.rp_requests import (
 )
 from .helpers import uri_join, verify_value_length
 from .logs.log_manager import LogManager, MAX_LOG_BATCH_PAYLOAD_SIZE
+from .services.statistics import send_event
 from .static.defines import NOT_FOUND
 from .steps import StepReporter
 
@@ -100,6 +103,7 @@ class RPClient(object):
         self.step_reporter = StepReporter(self)
         self._item_stack = []
         self.mode = mode
+        self._skip_analytics = getenv('AGENT_NO_ANALYTICS')
 
         retry_strategy = Retry(
             total=retries,
@@ -108,6 +112,7 @@ class RPClient(object):
         ) if retries else DEFAULT_RETRIES
         self.session.mount('https://', HTTPAdapter(
             max_retries=retry_strategy, pool_maxsize=max_pool_size))
+        # noinspection HttpUrlsUsage
         self.session.mount('http://', HTTPAdapter(
             max_retries=retry_strategy, pool_maxsize=max_pool_size))
         self.session.headers['Authorization'] = 'bearer {0}'.format(self.token)
@@ -300,9 +305,9 @@ class RPClient(object):
         :param start_time:  Launch start time
         :param description: Launch description
         :param attributes:  Launch attributes
-        :param rerun:       Enables launch rerun mode
-        :param rerun_of:    Rerun mode. Specifies launch to be re-runned.
-                            Should be used with the 'rerun' option.
+        :param rerun:       Start launch in rerun mode
+        :param rerun_of:    For rerun mode specifies which launch will be
+                            re-run. Should be used with the 'rerun' option.
         """
         url = uri_join(self.base_url_v2, 'launch')
 
@@ -333,6 +338,17 @@ class RPClient(object):
                                verify_ssl=self.verify_ssl).make()
         if not response:
             return
+
+        if not self._skip_analytics:
+            agent_name, agent_version = None, None
+
+            agent_attribute = [a for a in attributes if
+                               a.get('key') == 'agent'] if attributes else []
+            if len(agent_attribute) > 0 and agent_attribute[0].get('value'):
+                agent_name, agent_version = agent_attribute[0]['value'].split(
+                    '|')
+            send_event('start_launch', agent_name, agent_version)
+
         self._log_manager.launch_id = self.launch_id = response.id
         logger.debug('start_launch - ID: %s', self.launch_id)
         return self.launch_id
