@@ -23,6 +23,7 @@ setup(
     description='Python client for Report Portal v5.',
     long_description=read_file('README.md'),
     long_description_content_type='text/markdown',
+    author='Report Portal Team',
     author_email='support@reportportal.io',
     url='https://github.com/reportportal/client-Python',
     download_url=('https://github.com/reportportal/client-Python/'
