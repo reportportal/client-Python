@@ -90,7 +90,7 @@ class RPClient:
                         start_time: Text,
                         item_type: Text,
                         description: Text = ...,
-                        attributes: Optional[Union[List, Dict]] = ...,
+                        attributes: Optional[List[Dict]] = ...,
                         parameters: Dict = ...,
                         parent_item_id: Text = ...,
                         has_stats: bool = ...,
