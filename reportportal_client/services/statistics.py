@@ -15,6 +15,7 @@
 
 import configparser
 import io
+import sys
 import logging
 import os
 from platform import python_version
@@ -22,7 +23,6 @@ from uuid import uuid4
 
 import requests
 from pkg_resources import get_distribution
-from six import PY2
 
 from .constants import CLIENT_INFO, ENDPOINT, CLIENT_ID_PROPERTY
 
@@ -72,7 +72,7 @@ def _load_properties(filepath, sep='=', comment_str='#'):
 
 def _preprocess_file(fp):
     content = '[' + DEFAULT_SECTION + ']' + '\n' + fp.read()
-    return io.StringIO(content)
+    return io.StringIO(u"" + content)
 
 
 class NoSectionConfigParser(configparser.ConfigParser):
@@ -80,7 +80,7 @@ class NoSectionConfigParser(configparser.ConfigParser):
         if isinstance(filenames, str):
             filenames = [filenames]
         for filename in filenames:
-            if PY2:
+            if sys.version_info[0] == 2:
                 with open(filename) as fp:
                     preprocessed_fp = _preprocess_file(fp)
                     super().read_file(preprocessed_fp, filename)
