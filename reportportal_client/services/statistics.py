@@ -13,15 +13,20 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License
 
+import configparser
+import io
 import logging
 import os
 from platform import python_version
 from uuid import uuid4
 
 import requests
+import six
 from pkg_resources import get_distribution
 
 from .constants import CLIENT_INFO, ENDPOINT, CLIENT_ID_PROPERTY
+
+DEFAULT_SECTION = 'DEFAULT'
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +59,7 @@ def _load_properties(filepath, sep='=', comment_str='#'):
     :return: property file as Dict
     """
     result = {}
-    with open(filepath, "rt") as f:
+    with open(filepath, 'rt') as f:
         for line in f:
             s_line = line.strip()
             if s_line and not s_line.startswith(comment_str):
@@ -65,23 +70,51 @@ def _load_properties(filepath, sep='=', comment_str='#'):
     return result
 
 
-def _get_client_id():
-    """Get client ID.
+def _preprocess_file(fp):
+    content = u'[' + DEFAULT_SECTION + ']\n' + fp.read()
+    return io.StringIO(content)
 
-    :return: str represents the client ID
-    """
-    rp_folder = os.path.expanduser('~/.rp')
-    rp_properties = os.path.join(rp_folder, 'rp.properties')
-    client_id = None
-    if os.path.exists(rp_properties):
-        config = _load_properties(rp_properties)
-        client_id = config.get(CLIENT_ID_PROPERTY)
-    if not client_id:
-        if not os.path.exists(rp_folder):
-            os.mkdir(rp_folder)
+
+class _NoSectionConfigParser(configparser.ConfigParser):
+    def read(self, filenames, encoding=None):
+        if isinstance(filenames, six.string_types):
+            filenames = [filenames]
+        for filename in filenames:
+            with open(filename, 'r') as fp:
+                preprocessed_fp = _preprocess_file(fp)
+                super(_NoSectionConfigParser, self).read_file(preprocessed_fp,
+                                                              filename)
+
+    def write(self, fp, space_around_delimiters=True):
+        for key, value in self.items(DEFAULT_SECTION):
+            delimiter = ' = ' if space_around_delimiters else '='
+            fp.write(u'{}{}{}\n'.format(key, delimiter, value))
+
+
+def _get_client_id():
+    home_dir = os.path.expanduser('~')
+    rp_dir = os.path.join(home_dir, '.rp')
+    properties_file = os.path.join(rp_dir, 'rp.properties')
+
+    config = _NoSectionConfigParser()
+
+    if os.path.exists(properties_file):
+        config.read(properties_file)
+        if config.has_option(DEFAULT_SECTION, CLIENT_ID_PROPERTY):
+            client_id = config.get(DEFAULT_SECTION, CLIENT_ID_PROPERTY)
+        else:
+            client_id = str(uuid4())
+            config.set(DEFAULT_SECTION, CLIENT_ID_PROPERTY, client_id)
+            with open(properties_file, 'w') as fp:
+                config.write(fp)
+    else:
+        if not os.path.exists(rp_dir):
+            os.makedirs(rp_dir)
         client_id = str(uuid4())
-        with open(rp_properties, 'a') as f:
-            f.write('\n' + CLIENT_ID_PROPERTY + '=' + client_id + '\n')
+        config[DEFAULT_SECTION] = {CLIENT_ID_PROPERTY: client_id}
+        with open(properties_file, 'w') as fp:
+            config.write(fp)
+
     return client_id
 
 
