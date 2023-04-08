@@ -71,7 +71,7 @@ def _load_properties(filepath, sep='=', comment_str='#'):
 
 
 def _preprocess_file(fp):
-    content = '[' + DEFAULT_SECTION + ']\n' + fp.read()
+    content = u'[' + DEFAULT_SECTION + ']\n' + fp.read()
     return io.StringIO(content)
 
 
