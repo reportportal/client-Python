@@ -15,13 +15,13 @@
 
 import configparser
 import io
-import sys
 import logging
 import os
 from platform import python_version
 from uuid import uuid4
 
 import requests
+import six
 from pkg_resources import get_distribution
 
 from .constants import CLIENT_INFO, ENDPOINT, CLIENT_ID_PROPERTY
@@ -71,28 +71,23 @@ def _load_properties(filepath, sep='=', comment_str='#'):
 
 
 def _preprocess_file(fp):
-    content = '[' + DEFAULT_SECTION + ']' + '\n' + fp.read()
-    return io.StringIO(u"" + content)
+    content = '[' + DEFAULT_SECTION + ']\n' + fp.read()
+    return io.StringIO(content)
 
 
 class NoSectionConfigParser(configparser.ConfigParser):
     def read(self, filenames, encoding=None):
-        if isinstance(filenames, str):
+        if isinstance(filenames, six.string_types):
             filenames = [filenames]
         for filename in filenames:
-            if sys.version_info[0] == 2:
-                with open(filename) as fp:
-                    preprocessed_fp = _preprocess_file(fp)
-                    super().read_file(preprocessed_fp, filename)
-            else:
-                with open(filename, encoding=encoding) as fp:
-                    preprocessed_fp = _preprocess_file(fp)
-                    super().read_file(preprocessed_fp, filename)
+            with open(filename, 'r') as fp:
+                preprocessed_fp = _preprocess_file(fp)
+                super(NoSectionConfigParser, self).read_file(preprocessed_fp, filename)
 
     def write(self, fp, space_around_delimiters=True):
-        for key, value in self[DEFAULT_SECTION].items():
+        for key, value in self.items(DEFAULT_SECTION):
             delimiter = ' = ' if space_around_delimiters else '='
-            fp.write(str(key) + str(delimiter) + str(value) + '\n')
+            fp.write(u'{}{}{}\n'.format(key, delimiter, value))
 
 
 def _get_client_id():
