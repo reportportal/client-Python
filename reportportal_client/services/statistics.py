@@ -13,6 +13,8 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License
 
+import configparser
+import io
 import logging
 import os
 from platform import python_version
@@ -22,6 +24,8 @@ import requests
 from pkg_resources import get_distribution
 
 from .constants import CLIENT_INFO, ENDPOINT, CLIENT_ID_PROPERTY
+
+DEFAULT = "DEFAULT"
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +58,7 @@ def _load_properties(filepath, sep='=', comment_str='#'):
     :return: property file as Dict
     """
     result = {}
-    with open(filepath, "rt") as f:
+    with open(filepath, 'rt') as f:
         for line in f:
             s_line = line.strip()
             if s_line and not s_line.startswith(comment_str):
@@ -65,23 +69,50 @@ def _load_properties(filepath, sep='=', comment_str='#'):
     return result
 
 
-def _get_client_id():
-    """Get client ID.
+def _preprocess_file(fp):
+    content = '[DEFAULT]\n' + fp.read()
+    return io.StringIO(content)
 
-    :return: str represents the client ID
-    """
-    rp_folder = os.path.expanduser('~/.rp')
-    rp_properties = os.path.join(rp_folder, 'rp.properties')
-    client_id = None
-    if os.path.exists(rp_properties):
-        config = _load_properties(rp_properties)
-        client_id = config.get(CLIENT_ID_PROPERTY)
-    if not client_id:
-        if not os.path.exists(rp_folder):
-            os.mkdir(rp_folder)
+
+class NoSectionConfigParser(configparser.ConfigParser):
+    def read(self, filenames, encoding=None):
+        if isinstance(filenames, str):
+            filenames = [filenames]
+        for filename in filenames:
+            with open(filename, encoding=encoding) as fp:
+                preprocessed_fp = _preprocess_file(fp)
+                super().read_file(preprocessed_fp, filename)
+
+    def write(self, fp, space_around_delimiters=True):
+        for key, value in self['DEFAULT'].items():
+            delimiter = ' = ' if space_around_delimiters else '='
+            fp.write(str(key) + str(delimiter) + str(value) + '\n')
+
+
+def _get_client_id():
+    home_dir = os.path.expanduser("~")
+    rp_dir = os.path.join(home_dir, ".rp")
+    properties_file = os.path.join(rp_dir, "rp.properties")
+
+    config = NoSectionConfigParser()
+
+    if os.path.exists(properties_file):
+        config.read(properties_file)
+        if config.has_option("DEFAULT", "client_id"):
+            client_id = config.get("DEFAULT", "client_id")
+        else:
+            client_id = str(uuid4())
+            config.set("DEFAULT", "client_id", client_id)
+            with open(properties_file, "w") as fp:
+                config.write(fp)
+    else:
+        if not os.path.exists(rp_dir):
+            os.makedirs(rp_dir)
         client_id = str(uuid4())
-        with open(rp_properties, 'a') as f:
-            f.write('\n' + CLIENT_ID_PROPERTY + '=' + client_id + '\n')
+        config["DEFAULT"] = {"client_id": client_id}
+        with open(properties_file, "w") as fp:
+            config.write(fp)
+
     return client_id
 
 
