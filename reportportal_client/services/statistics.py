@@ -22,6 +22,7 @@ from uuid import uuid4
 
 import requests
 from pkg_resources import get_distribution
+from six import PY2
 
 from .constants import CLIENT_INFO, ENDPOINT, CLIENT_ID_PROPERTY
 
@@ -79,9 +80,14 @@ class NoSectionConfigParser(configparser.ConfigParser):
         if isinstance(filenames, str):
             filenames = [filenames]
         for filename in filenames:
-            with open(filename, encoding=encoding) as fp:
-                preprocessed_fp = _preprocess_file(fp)
-                super().read_file(preprocessed_fp, filename)
+            if PY2:
+                with open(filename) as fp:
+                    preprocessed_fp = _preprocess_file(fp)
+                    super().read_file(preprocessed_fp, filename)
+            else:
+                with open(filename, encoding=encoding) as fp:
+                    preprocessed_fp = _preprocess_file(fp)
+                    super().read_file(preprocessed_fp, filename)
 
     def write(self, fp, space_around_delimiters=True):
         for key, value in self[DEFAULT_SECTION].items():
