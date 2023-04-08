@@ -75,14 +75,14 @@ def _preprocess_file(fp):
     return io.StringIO(content)
 
 
-class NoSectionConfigParser(configparser.ConfigParser):
+class _NoSectionConfigParser(configparser.ConfigParser):
     def read(self, filenames, encoding=None):
         if isinstance(filenames, six.string_types):
             filenames = [filenames]
         for filename in filenames:
             with open(filename, 'r') as fp:
                 preprocessed_fp = _preprocess_file(fp)
-                super(NoSectionConfigParser, self).read_file(preprocessed_fp, filename)
+                super(_NoSectionConfigParser, self).read_file(preprocessed_fp, filename)
 
     def write(self, fp, space_around_delimiters=True):
         for key, value in self.items(DEFAULT_SECTION):
@@ -95,7 +95,7 @@ def _get_client_id():
     rp_dir = os.path.join(home_dir, '.rp')
     properties_file = os.path.join(rp_dir, 'rp.properties')
 
-    config = NoSectionConfigParser()
+    config = _NoSectionConfigParser()
 
     if os.path.exists(properties_file):
         config.read(properties_file)
