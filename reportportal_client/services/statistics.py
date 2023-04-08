@@ -25,7 +25,7 @@ from pkg_resources import get_distribution
 
 from .constants import CLIENT_INFO, ENDPOINT, CLIENT_ID_PROPERTY
 
-DEFAULT = "DEFAULT"
+DEFAULT_SECTION = 'DEFAULT'
 
 logger = logging.getLogger(__name__)
 
@@ -70,7 +70,7 @@ def _load_properties(filepath, sep='=', comment_str='#'):
 
 
 def _preprocess_file(fp):
-    content = '[DEFAULT]\n' + fp.read()
+    content = '[' + DEFAULT_SECTION + ']' + '\n' + fp.read()
     return io.StringIO(content)
 
 
@@ -84,33 +84,33 @@ class NoSectionConfigParser(configparser.ConfigParser):
                 super().read_file(preprocessed_fp, filename)
 
     def write(self, fp, space_around_delimiters=True):
-        for key, value in self['DEFAULT'].items():
+        for key, value in self[DEFAULT_SECTION].items():
             delimiter = ' = ' if space_around_delimiters else '='
             fp.write(str(key) + str(delimiter) + str(value) + '\n')
 
 
 def _get_client_id():
-    home_dir = os.path.expanduser("~")
-    rp_dir = os.path.join(home_dir, ".rp")
-    properties_file = os.path.join(rp_dir, "rp.properties")
+    home_dir = os.path.expanduser('~')
+    rp_dir = os.path.join(home_dir, '.rp')
+    properties_file = os.path.join(rp_dir, 'rp.properties')
 
     config = NoSectionConfigParser()
 
     if os.path.exists(properties_file):
         config.read(properties_file)
-        if config.has_option("DEFAULT", "client_id"):
-            client_id = config.get("DEFAULT", "client_id")
+        if config.has_option(DEFAULT_SECTION, CLIENT_ID_PROPERTY):
+            client_id = config.get(DEFAULT_SECTION, CLIENT_ID_PROPERTY)
         else:
             client_id = str(uuid4())
-            config.set("DEFAULT", "client_id", client_id)
-            with open(properties_file, "w") as fp:
+            config.set(DEFAULT_SECTION, CLIENT_ID_PROPERTY, client_id)
+            with open(properties_file, 'w') as fp:
                 config.write(fp)
     else:
         if not os.path.exists(rp_dir):
             os.makedirs(rp_dir)
         client_id = str(uuid4())
-        config["DEFAULT"] = {"client_id": client_id}
-        with open(properties_file, "w") as fp:
+        config[DEFAULT_SECTION] = {CLIENT_ID_PROPERTY: client_id}
+        with open(properties_file, 'w') as fp:
             config.write(fp)
 
     return client_id
