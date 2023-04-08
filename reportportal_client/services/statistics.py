@@ -82,7 +82,8 @@ class _NoSectionConfigParser(configparser.ConfigParser):
         for filename in filenames:
             with open(filename, 'r') as fp:
                 preprocessed_fp = _preprocess_file(fp)
-                super(_NoSectionConfigParser, self).read_file(preprocessed_fp, filename)
+                super(_NoSectionConfigParser, self).read_file(preprocessed_fp,
+                                                              filename)
 
     def write(self, fp, space_around_delimiters=True):
         for key, value in self.items(DEFAULT_SECTION):
