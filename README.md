@@ -32,7 +32,6 @@ Basic usage example:
 ```python
 import os
 import subprocess
-import traceback
 from mimetypes import guess_type
 
 from reportportal_client import RPClient
@@ -44,17 +43,6 @@ project = "default"
 token = "1adf271d-505f-44a8-ad71-0afbdf8c83bd"
 launch_name = "Test launch"
 launch_doc = "Testing logging with attachment."
-
-
-def my_error_handler(exc_info):
-    """
-    This callback function will be called by async service client when error occurs.
-    Return True if error is not critical and you want to continue work.
-    :param exc_info: result of sys.exc_info() -> (type, value, traceback)
-    :return:
-    """
-    print("Error occurred: {}".format(exc_info[1]))
-    traceback.print_exception(*exc_info)
 
 
 client = RPClient(endpoint=endpoint, project=project,
