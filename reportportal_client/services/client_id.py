@@ -1,3 +1,5 @@
+"""This module generates and store unique client ID of an instance."""
+
 #  Copyright (c) 2023 EPAM Systems
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -71,6 +73,7 @@ def _store_client_id(client_id):
 
 
 def get_client_id():
+    """Return unique client ID of the instance, generate new if not exists."""
     client_id = _read_client_id()
     if not client_id:
         client_id = str(uuid4())
