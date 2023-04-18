@@ -17,8 +17,7 @@ from requests.exceptions import RequestException
 # noinspection PyUnresolvedReferences
 from six.moves import mock
 
-from reportportal_client.services.constants import ENDPOINT, CLIENT_INFO, \
-    CLIENT_ID_PROPERTY
+from reportportal_client.services.constants import ENDPOINT, CLIENT_INFO
 from reportportal_client.services.statistics import send_event
 
 EVENT_NAME = 'start_launch'

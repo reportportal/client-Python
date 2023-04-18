@@ -59,7 +59,7 @@ def test_get_client_id_should_read_id_from_property_file():
     assert get_client_id() == client_id
 
 
-def test_get_client_id_should_read_id_from_property_file_if_not_empty_and_id_is_the_first_line():
+def test_get_client_id_should_read_id_from_property_file_if_not_empty_and_id_is_the_first_line():  # noqa: E501
     os.remove(RP_PROPERTIES_FILE_PATH)
     client_id = str(uuid4())
     with open(RP_PROPERTIES_FILE_PATH, 'w') as fp:
@@ -68,7 +68,7 @@ def test_get_client_id_should_read_id_from_property_file_if_not_empty_and_id_is_
     assert get_client_id() == client_id
 
 
-def test_get_client_id_should_read_id_from_property_file_if_not_empty_and_id_is_not_the_first_line():
+def test_get_client_id_should_read_id_from_property_file_if_not_empty_and_id_is_not_the_first_line():  # noqa: E501
     os.remove(RP_PROPERTIES_FILE_PATH)
     client_id = str(uuid4())
     with open(RP_PROPERTIES_FILE_PATH, 'w') as fp:
