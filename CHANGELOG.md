@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.3.1]
 ### Added
 - `MAX_LOG_BATCH_SIZE` constant into `log_manager` module, by @HardNorth
 ### Fixed
