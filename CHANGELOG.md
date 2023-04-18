@@ -5,6 +5,8 @@
 - `MAX_LOG_BATCH_SIZE` constant into `log_manager` module, by @HardNorth
 ### Fixed
 - Missed `verify_ssl` argument passing to `LogManager` class, by @rplevka
+### Changed
+- Statistics service was refactored, by @HardNorth
 
 ## [5.3.0]
 ### Fixed
