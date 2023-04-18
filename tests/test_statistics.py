@@ -24,10 +24,8 @@ from reportportal_client.services.statistics import send_event
 EVENT_NAME = 'start_launch'
 
 
-@mock.patch('reportportal_client.services.statistics.uuid4',
-            mock.Mock(return_value=555))
-@mock.patch('reportportal_client.services.statistics._load_properties',
-            mock.Mock(return_value={CLIENT_ID_PROPERTY: '555'}))
+@mock.patch('reportportal_client.services.statistics.get_client_id',
+            mock.Mock(return_value='555'))
 @mock.patch('reportportal_client.services.statistics.requests.post')
 @mock.patch('reportportal_client.services.statistics.get_distribution')
 @mock.patch('reportportal_client.services.statistics.python_version',
@@ -66,8 +64,8 @@ def test_send_event(mocked_distribution, mocked_requests):
         params=expected_params)
 
 
-@mock.patch('reportportal_client.services.statistics.uuid4',
-            mock.Mock(return_value=555))
+@mock.patch('reportportal_client.services.statistics.get_client_id',
+            mock.Mock(return_value='555'))
 @mock.patch('reportportal_client.services.statistics.requests.post',
             mock.Mock(side_effect=RequestException))
 @mock.patch('reportportal_client.services.statistics.get_distribution',

@@ -11,14 +11,13 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License
 
-from typing import Text
+from typing import Optional, Text
 
+def _read_client_id() -> Optional[Text]:
+    pass
 
-def _decode_string(text: Text) -> Text: ...
+def _store_client_id(client_id: Text) -> None:
+    pass
 
-
-CLIENT_INFO: Text
-ENDPOINT: Text
-CLIENT_ID_PROPERTY: Text
-RP_FOLDER_PATH: Text
-RP_PROPERTIES_FILE_PATH: Text
+def get_client_id() -> Text:
+    pass

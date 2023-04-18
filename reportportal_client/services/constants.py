@@ -14,6 +14,7 @@
 #  limitations under the License
 
 import base64
+import os
 
 
 def _decode_string(text):
@@ -31,4 +32,5 @@ CLIENT_INFO = \
     _decode_string('Ry1XUDU3UlNHOFhMOm5Ib3dqRjJQUVotNDFJbzBPcDRoZlE=')
 ENDPOINT = 'https://www.google-analytics.com/mp/collect'
 CLIENT_ID_PROPERTY = 'client.id'
-USER_AGENT = ''
+RP_FOLDER_PATH = os.path.join(os.path.expanduser('~'), '.rp')
+RP_PROPERTIES_FILE_PATH = os.path.join(RP_FOLDER_PATH, 'rp.properties')

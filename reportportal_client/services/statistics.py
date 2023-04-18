@@ -13,20 +13,14 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License
 
-import configparser
-import io
 import logging
-import os
 from platform import python_version
-from uuid import uuid4
 
 import requests
-import six
 from pkg_resources import get_distribution
 
-from .constants import CLIENT_INFO, ENDPOINT, CLIENT_ID_PROPERTY
-
-DEFAULT_SECTION = 'DEFAULT'
+from .client_id import get_client_id
+from .constants import CLIENT_INFO, ENDPOINT
 
 logger = logging.getLogger(__name__)
 
@@ -48,74 +42,6 @@ def _get_platform_info():
     :return: str represents the current platform, e.g.: 'Python 3.6.1'
     """
     return 'Python ' + python_version()
-
-
-def _load_properties(filepath, sep='=', comment_str='#'):
-    """Read the file passed as parameter as a properties file.
-
-    :param filepath: path to property file
-    :param sep: separator string between key and value
-    :param comment_str: a string which designate comment line
-    :return: property file as Dict
-    """
-    result = {}
-    with open(filepath, 'rt') as f:
-        for line in f:
-            s_line = line.strip()
-            if s_line and not s_line.startswith(comment_str):
-                sep_idx = s_line.index(sep)
-                key = s_line[0:sep_idx]
-                value = s_line[sep_idx + 1:]
-                result[key.rstrip()] = value.lstrip()
-    return result
-
-
-def _preprocess_file(fp):
-    content = u'[' + DEFAULT_SECTION + ']\n' + fp.read()
-    return io.StringIO(content)
-
-
-class _NoSectionConfigParser(configparser.ConfigParser):
-    def read(self, filenames, encoding=None):
-        if isinstance(filenames, six.string_types):
-            filenames = [filenames]
-        for filename in filenames:
-            with open(filename, 'r') as fp:
-                preprocessed_fp = _preprocess_file(fp)
-                super(_NoSectionConfigParser, self).read_file(preprocessed_fp,
-                                                              filename)
-
-    def write(self, fp, space_around_delimiters=True):
-        for key, value in self.items(DEFAULT_SECTION):
-            delimiter = ' = ' if space_around_delimiters else '='
-            fp.write(u'{}{}{}\n'.format(key, delimiter, value))
-
-
-def _get_client_id():
-    home_dir = os.path.expanduser('~')
-    rp_dir = os.path.join(home_dir, '.rp')
-    properties_file = os.path.join(rp_dir, 'rp.properties')
-
-    config = _NoSectionConfigParser()
-
-    if os.path.exists(properties_file):
-        config.read(properties_file)
-        if config.has_option(DEFAULT_SECTION, CLIENT_ID_PROPERTY):
-            client_id = config.get(DEFAULT_SECTION, CLIENT_ID_PROPERTY)
-        else:
-            client_id = str(uuid4())
-            config.set(DEFAULT_SECTION, CLIENT_ID_PROPERTY, client_id)
-            with open(properties_file, 'w') as fp:
-                config.write(fp)
-    else:
-        if not os.path.exists(rp_dir):
-            os.makedirs(rp_dir)
-        client_id = str(uuid4())
-        config[DEFAULT_SECTION] = {CLIENT_ID_PROPERTY: client_id}
-        with open(properties_file, 'w') as fp:
-            config.write(fp)
-
-    return client_id
 
 
 def send_event(event_name, agent_name, agent_version):
@@ -142,7 +68,7 @@ def send_event(event_name, agent_name, agent_version):
         params['agent_version'] = agent_version
 
     payload = {
-        'client_id': _get_client_id(),
+        'client_id': get_client_id(),
         'events': [{
             'name': event_name,
             'params': params
