@@ -15,8 +15,8 @@ import os
 import re
 from uuid import UUID, uuid4
 
-from services.client_id import get_client_id
-from services.constants import RP_PROPERTIES_FILE_PATH
+from reportportal_client.services.client_id import get_client_id
+from reportportal_client.services.constants import RP_PROPERTIES_FILE_PATH
 
 
 def test_get_client_id_should_return_the_id_for_two_calls():
