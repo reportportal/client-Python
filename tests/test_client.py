@@ -17,6 +17,7 @@ from requests.exceptions import ReadTimeout
 from six.moves import mock
 
 from reportportal_client.helpers import timestamp
+from reportportal_client import RPClient
 
 
 def connection_error(*args, **kwargs):
@@ -118,3 +119,23 @@ def test_launch_url_get(rp_client, launch_mode, project_name, expected_url):
     rp_client.session.get.side_effect = get_call
 
     assert rp_client.get_launch_ui_url() == expected_url
+
+
+@mock.patch('reportportal_client.client.getenv')
+@mock.patch('reportportal_client.client.send_event')
+def test_skip_analytics(send_event, getenv):
+    getenv.return_value = '1'
+    client = RPClient('http://endpoint', 'project', 'token')
+    client.session = mock.Mock()
+    client.start_launch('Test Launch', timestamp())
+    assert mock.call('start_launch', None, None) not in send_event.mock_calls
+
+
+@mock.patch('reportportal_client.client.getenv')
+@mock.patch('reportportal_client.client.send_event')
+def test_analytics(send_event, getenv):
+    getenv.return_value = ''
+    client = RPClient('http://endpoint', 'project', 'token')
+    client.session = mock.Mock()
+    client.start_launch('Test Launch', timestamp())
+    assert mock.call('start_launch', None, None) in send_event.mock_calls

@@ -1,9 +1,12 @@
 """Config for setup package client Python."""
 
 import os
+
 from setuptools import setup, find_packages
 
-__version__ = '5.3.0'
+__version__ = '5.3.1'
+
+TYPE_STUBS = ['*.pyi']
 
 
 def read_file(fname):
@@ -19,10 +22,15 @@ def read_file(fname):
 setup(
     name='reportportal-client',
     packages=find_packages(exclude=('tests', 'tests.*')),
+    package_data={
+        'reportportal_client': TYPE_STUBS,
+        'reportportal_client.steps': TYPE_STUBS
+    },
     version=__version__,
     description='Python client for Report Portal v5.',
     long_description=read_file('README.md'),
     long_description_content_type='text/markdown',
+    author='Report Portal Team',
     author_email='support@reportportal.io',
     url='https://github.com/reportportal/client-Python',
     download_url=('https://github.com/reportportal/client-Python/'

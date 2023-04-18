@@ -17,17 +17,14 @@ from requests.exceptions import RequestException
 # noinspection PyUnresolvedReferences
 from six.moves import mock
 
-from reportportal_client.services.constants import ENDPOINT, CLIENT_INFO, \
-    CLIENT_ID_PROPERTY
+from reportportal_client.services.constants import ENDPOINT, CLIENT_INFO
 from reportportal_client.services.statistics import send_event
 
 EVENT_NAME = 'start_launch'
 
 
-@mock.patch('reportportal_client.services.statistics.uuid4',
-            mock.Mock(return_value=555))
-@mock.patch('reportportal_client.services.statistics._load_properties',
-            mock.Mock(return_value={CLIENT_ID_PROPERTY: '555'}))
+@mock.patch('reportportal_client.services.statistics.get_client_id',
+            mock.Mock(return_value='555'))
 @mock.patch('reportportal_client.services.statistics.requests.post')
 @mock.patch('reportportal_client.services.statistics.get_distribution')
 @mock.patch('reportportal_client.services.statistics.python_version',
@@ -66,8 +63,8 @@ def test_send_event(mocked_distribution, mocked_requests):
         params=expected_params)
 
 
-@mock.patch('reportportal_client.services.statistics.uuid4',
-            mock.Mock(return_value=555))
+@mock.patch('reportportal_client.services.statistics.get_client_id',
+            mock.Mock(return_value='555'))
 @mock.patch('reportportal_client.services.statistics.requests.post',
             mock.Mock(side_effect=RequestException))
 @mock.patch('reportportal_client.services.statistics.get_distribution',
@@ -96,5 +93,7 @@ def test_same_client_id(mocked_distribution, mocked_requests):
     send_event(EVENT_NAME, agent_name, agent_version)
     args_list = mocked_requests.call_args_list
 
-    assert args_list[0][1]['json']['client_id'] == \
-           args_list[1][1]['json']['client_id']
+    result1 = args_list[0][1]['json']['client_id']
+    result2 = args_list[1][1]['json']['client_id']
+
+    assert result1 == result2

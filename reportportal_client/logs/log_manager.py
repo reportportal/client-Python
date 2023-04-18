@@ -30,6 +30,7 @@ from reportportal_client.static.defines import NOT_FOUND
 
 logger = logging.getLogger(__name__)
 
+MAX_LOG_BATCH_SIZE = 20
 MAX_LOG_BATCH_PAYLOAD_SIZE = 65000000
 
 
@@ -37,7 +38,7 @@ class LogManager(object):
     """Manager of the log items."""
 
     def __init__(self, rp_url, session, api_version, launch_id, project_name,
-                 max_entry_number=20, verify_ssl=True,
+                 max_entry_number=MAX_LOG_BATCH_SIZE, verify_ssl=True,
                  max_payload_size=MAX_LOG_BATCH_PAYLOAD_SIZE):
         """Initialize instance attributes.
 

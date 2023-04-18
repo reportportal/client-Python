@@ -14,14 +14,13 @@
 #  limitations under the License
 
 import logging
-import os
 from platform import python_version
-from uuid import uuid4
 
 import requests
 from pkg_resources import get_distribution
 
-from .constants import CLIENT_INFO, ENDPOINT, CLIENT_ID_PROPERTY
+from .client_id import get_client_id
+from .constants import CLIENT_INFO, ENDPOINT
 
 logger = logging.getLogger(__name__)
 
@@ -43,46 +42,6 @@ def _get_platform_info():
     :return: str represents the current platform, e.g.: 'Python 3.6.1'
     """
     return 'Python ' + python_version()
-
-
-def _load_properties(filepath, sep='=', comment_str='#'):
-    """Read the file passed as parameter as a properties file.
-
-    :param filepath: path to property file
-    :param sep: separator string between key and value
-    :param comment_str: a string which designate comment line
-    :return: property file as Dict
-    """
-    result = {}
-    with open(filepath, "rt") as f:
-        for line in f:
-            s_line = line.strip()
-            if s_line and not s_line.startswith(comment_str):
-                sep_idx = s_line.index(sep)
-                key = s_line[0:sep_idx]
-                value = s_line[sep_idx + 1:]
-                result[key.rstrip()] = value.lstrip()
-    return result
-
-
-def _get_client_id():
-    """Get client ID.
-
-    :return: str represents the client ID
-    """
-    rp_folder = os.path.expanduser('~/.rp')
-    rp_properties = os.path.join(rp_folder, 'rp.properties')
-    client_id = None
-    if os.path.exists(rp_properties):
-        config = _load_properties(rp_properties)
-        client_id = config.get(CLIENT_ID_PROPERTY)
-    if not client_id:
-        if not os.path.exists(rp_folder):
-            os.mkdir(rp_folder)
-        client_id = str(uuid4())
-        with open(rp_properties, 'a') as f:
-            f.write('\n' + CLIENT_ID_PROPERTY + '=' + client_id + '\n')
-    return client_id
 
 
 def send_event(event_name, agent_name, agent_version):
@@ -109,7 +68,7 @@ def send_event(event_name, agent_name, agent_version):
         params['agent_version'] = agent_version
 
     payload = {
-        'client_id': _get_client_id(),
+        'client_id': get_client_id(),
         'events': [{
             'name': event_name,
             'params': params

@@ -174,9 +174,8 @@ class RPLogHandler(logging.Handler):
             self.handleError(record)
 
         log_level = self._get_rp_log_level(record.levelno)
-        if self.rp_client:
-            rp_client = self.rp_client
-        else:
+        rp_client = self.rp_client
+        if not rp_client:
             rp_client = current()
         if rp_client:
             rp_client.log(
