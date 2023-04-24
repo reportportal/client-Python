@@ -28,6 +28,7 @@ from .constants import CLIENT_ID_PROPERTY, RP_FOLDER_PATH, \
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
+
 class __NoSectionConfigParser(configparser.ConfigParser):
     DEFAULT_SECTION = 'DEFAULT'
 
