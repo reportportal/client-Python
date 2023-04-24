@@ -15,6 +15,7 @@
 
 import configparser
 import io
+import logging
 import os
 from uuid import uuid4
 
@@ -23,6 +24,9 @@ import six
 from .constants import CLIENT_ID_PROPERTY, RP_FOLDER_PATH, \
     RP_PROPERTIES_FILE_PATH
 
+
+logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())
 
 class __NoSectionConfigParser(configparser.ConfigParser):
     DEFAULT_SECTION = 'DEFAULT'
@@ -64,12 +68,16 @@ def _read_client_id():
 
 def _store_client_id(client_id):
     config = __read_config()
-    if not os.path.exists(RP_FOLDER_PATH):
-        os.makedirs(RP_FOLDER_PATH)
-    config.set(__NoSectionConfigParser.DEFAULT_SECTION, CLIENT_ID_PROPERTY,
-               client_id)
-    with open(RP_PROPERTIES_FILE_PATH, 'w') as fp:
-        config.write(fp)
+    try:
+        if not os.path.exists(RP_FOLDER_PATH):
+            os.makedirs(RP_FOLDER_PATH)
+        config.set(__NoSectionConfigParser.DEFAULT_SECTION, CLIENT_ID_PROPERTY,
+                   client_id)
+        with open(RP_PROPERTIES_FILE_PATH, 'w') as fp:
+            config.write(fp)
+    except (PermissionError, IOError) as error:
+        logger.exception('[%s] Unknown exception has occurred. '
+                         'Skipping client ID saving.', error)
 
 
 def get_client_id():
