@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.3.2]
 ### Fixed
 - Client crash in case of Client ID saving error, by @HardNorth
 
