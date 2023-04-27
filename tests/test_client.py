@@ -123,7 +123,7 @@ def test_launch_url_get(rp_client, launch_mode, project_name, expected_url):
 
 @mock.patch('reportportal_client.client.getenv')
 @mock.patch('reportportal_client.client.send_event')
-def test_skip_analytics(send_event, getenv):
+def test_skip_statistics(send_event, getenv):
     getenv.return_value = '1'
     client = RPClient('http://endpoint', 'project', 'token')
     client.session = mock.Mock()
@@ -133,7 +133,7 @@ def test_skip_analytics(send_event, getenv):
 
 @mock.patch('reportportal_client.client.getenv')
 @mock.patch('reportportal_client.client.send_event')
-def test_analytics(send_event, getenv):
+def test_statistics(send_event, getenv):
     getenv.return_value = ''
     client = RPClient('http://endpoint', 'project', 'token')
     client.session = mock.Mock()
