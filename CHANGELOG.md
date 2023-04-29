@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Fixed
+- Client crash in case of Client ID reading error, by @HardNorth
 
 ## [5.3.2]
 ### Fixed
