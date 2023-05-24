@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- `RPClient.clone()` method, by @HardNorth
 ### Fixed
 - Client crash in case of Client ID reading error, by @HardNorth
 
