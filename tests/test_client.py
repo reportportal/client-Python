@@ -139,3 +139,23 @@ def test_statistics(send_event, getenv):
     client.session = mock.Mock()
     client.start_launch('Test Launch', timestamp())
     assert mock.call('start_launch', None, None) in send_event.mock_calls
+
+
+def test_clone():
+    args = ['http://endpoint', 'project', 'token']
+    kwargs = {'log_batch_size': 30, 'is_skipped_an_issue': False, 'verify_ssl': False, 'retries': 5,
+              'max_pool_size': 30, 'launch_id': 'test-123', 'http_timeout': (30, 30),
+              'log_batch_payload_size': 1000000, 'mode': 'DEBUG'}
+    client = RPClient(*args, **kwargs)
+    client._item_stack.append('test-321')
+    client._item_stack.append('test-322')
+    cloned = client.clone()
+    assert cloned is not None and client is not cloned
+    assert cloned.endpoint == args[0] and cloned.project == args[1] and cloned.token == args[2]
+    assert cloned.log_batch_size == kwargs['log_batch_size'] and cloned.is_skipped_an_issue == kwargs[
+        'is_skipped_an_issue'] and cloned.verify_ssl == kwargs['verify_ssl'] and cloned.retries == kwargs[
+               'retries'] and cloned.max_pool_size == kwargs['max_pool_size'] and cloned.launch_id == kwargs[
+               'launch_id'] and cloned.http_timeout == kwargs[
+               'http_timeout'] and cloned.log_batch_payload_size == kwargs[
+               'log_batch_payload_size'] and cloned.mode == kwargs['mode']
+    assert len(cloned._item_stack) == 1 and client.current_item() == cloned.current_item()
