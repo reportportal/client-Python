@@ -477,3 +477,4 @@ class RPClient(object):
         current_item = self.current_item()
         if current_item:
             cloned._item_stack.append(current_item)
+        return cloned
