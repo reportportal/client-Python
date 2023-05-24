@@ -14,12 +14,13 @@
 
 import logging
 import sys
+import threading
 
 from six import PY2
 from six.moves.urllib.parse import urlparse
 
 # noinspection PyProtectedMember
-from reportportal_client._local import current
+from reportportal_client._local import current, set_current
 from reportportal_client.helpers import timestamp
 
 
@@ -177,6 +178,11 @@ class RPLogHandler(logging.Handler):
         rp_client = self.rp_client
         if not rp_client:
             rp_client = current()
+            if not rp_client:
+                rp_client = getattr(threading.current_thread(),
+                                    'parent_rp_client', None)
+                if rp_client:
+                    set_current(rp_client)
         if rp_client:
             rp_client.log(
                 timestamp(),
