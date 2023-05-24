@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 ### Added
+- Check for parent `RPClient` object in thread before logging, by @HardNorth
+
+## [5.3.3]
+### Added
 - `RPClient.clone()` method, by @HardNorth
 ### Fixed
 - Client crash in case of Client ID reading error, by @HardNorth
