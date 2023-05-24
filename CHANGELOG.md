@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.3.4]
 ### Added
 - Check for parent `RPClient` object in thread before logging, by @HardNorth
 
