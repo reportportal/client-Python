@@ -79,7 +79,12 @@ def _store_client_id(client_id):
 
 def get_client_id():
     """Return unique client ID of the instance, generate new if not exists."""
-    client_id = _read_client_id()
+    client_id = None
+    try:
+        client_id = _read_client_id()
+    except (PermissionError, IOError) as error:
+        logger.exception('[%s] Unknown exception has occurred. '
+                         'Skipping client ID reading.', error)
     if not client_id:
         client_id = str(uuid4())
         try:

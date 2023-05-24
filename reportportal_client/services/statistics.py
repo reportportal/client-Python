@@ -54,7 +54,7 @@ def send_event(event_name, agent_name, agent_version):
     :param agent_version: Version of the agent
     """
     client_name, client_version = _get_client_info()
-    params = {
+    request_params = {
         'client_name': client_name,
         'client_version': client_version,
         'interpreter': _get_platform_info(),
@@ -63,24 +63,24 @@ def send_event(event_name, agent_name, agent_version):
     }
 
     if agent_name:
-        params['agent_name'] = agent_name
+        request_params['agent_name'] = agent_name
     if agent_version:
-        params['agent_version'] = agent_version
+        request_params['agent_version'] = agent_version
 
     payload = {
         'client_id': get_client_id(),
         'events': [{
             'name': event_name,
-            'params': params
+            'params': request_params
         }]
     }
     headers = {'User-Agent': 'python-requests'}
-    params = {
+    query_params = {
         'measurement_id': ID,
         'api_secret': KEY
     }
     try:
         return requests.post(url=ENDPOINT, json=payload, headers=headers,
-                             params=params)
+                             params=query_params)
     except requests.exceptions.RequestException as err:
         logger.debug('Failed to send data to Statistics service: %s', str(err))

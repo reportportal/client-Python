@@ -98,6 +98,8 @@ class RPClient(object):
         self.log_batch_payload_size = log_batch_payload_size
         self.token = token
         self.verify_ssl = verify_ssl
+        self.retries = retries
+        self.max_pool_size = max_pool_size
         self.http_timeout = http_timeout
         self.session = requests.Session()
         self.step_reporter = StepReporter(self)
@@ -167,7 +169,7 @@ class RPClient(object):
         """Finish suite/case/step/nested step item.
 
         :param item_id:     ID of the test item
-        :param end_time:    Test item end time
+        :param end_time:    The item end time
         :param status:      Test status. Allowable values: "passed",
                             "failed", "stopped", "skipped", "interrupted",
                             "cancelled" or None
@@ -197,7 +199,6 @@ class RPClient(object):
                                verify_ssl=self.verify_ssl).make()
         if not response:
             return
-        # noinspection PyUnresolvedReferences
         self._item_stack.pop() if len(self._item_stack) > 0 else None
         logger.debug('finish_test_item - ID: %s', item_id)
         logger.debug('response message: %s', response.message)
@@ -281,9 +282,9 @@ class RPClient(object):
         """Send log message to the Report Portal.
 
         :param time:       Time in UTC
-        :param message:    Log message
+        :param message:    Log message text
         :param level:      Message's log level
-        :param attachment: Message attachments
+        :param attachment: Message's attachments
         :param item_id:    ID of the RP item the message belongs to
         """
         self._log_manager.log(time, message, level, attachment, item_id)
@@ -370,7 +371,7 @@ class RPClient(object):
         """Start case/step/nested step item.
 
         :param name:           Name of the test item
-        :param start_time:     Test item start time
+        :param start_time:     The item start time
         :param item_type:      Type of the test item. Allowable values:
                                "suite", "story", "test", "scenario", "step",
                                "before_class", "before_groups",
@@ -379,7 +380,7 @@ class RPClient(object):
                                "after_method", "after_suite", "after_test"
         :param attributes:     Test item attributes
         :param code_ref:       Physical location of the test item
-        :param description:    Test item description
+        :param description:    The item description
         :param has_stats:      Set to False if test item is nested step
         :param parameters:     Set of parameters (for parametrized test items)
         :param parent_item_id: An ID of a parent SUITE / STEP
@@ -418,7 +419,6 @@ class RPClient(object):
         item_id = response.id
         if item_id is not NOT_FOUND:
             logger.debug('start_test_item - ID: %s', item_id)
-            # noinspection PyUnresolvedReferences
             self._item_stack.append(item_id)
         else:
             logger.warning('start_test_item - invalid response: %s',
@@ -452,5 +452,29 @@ class RPClient(object):
 
     def current_item(self):
         """Retrieve the last item reported by the client."""
-        # noinspection PyUnresolvedReferences
         return self._item_stack[-1] if len(self._item_stack) > 0 else None
+
+    def clone(self):
+        """Clone the client object, set current Item ID as cloned item ID.
+
+        :returns: Cloned client object
+        :rtype: RPClient
+        """
+        cloned = RPClient(
+            endpoint=self.endpoint,
+            project=self.project,
+            token=self.token,
+            log_batch_size=self.log_batch_size,
+            is_skipped_an_issue=self.is_skipped_an_issue,
+            verify_ssl=self.verify_ssl,
+            retries=self.retries,
+            max_pool_size=self.max_pool_size,
+            launch_id=self.launch_id,
+            http_timeout=self.http_timeout,
+            log_batch_payload_size=self.log_batch_payload_size,
+            mode=self.mode
+        )
+        current_item = self.current_item()
+        if current_item:
+            cloned._item_stack.append(current_item)
+        return cloned
