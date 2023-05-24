@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.3.3]
 ### Added
 - `RPClient.clone()` method, by @HardNorth
 ### Fixed
