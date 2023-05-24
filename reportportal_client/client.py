@@ -455,7 +455,7 @@ class RPClient(object):
         return self._item_stack[-1] if len(self._item_stack) > 0 else None
 
     def clone(self):
-        """Clone the current client, set current item ID as cloned object item ID.
+        """Clone the client object, set current Item ID as cloned item ID.
 
         :returns: Cloned client object
         :rtype: RPClient
