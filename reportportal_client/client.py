@@ -37,6 +37,22 @@ logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
 
+def _init_session(token, retries, max_pool_size):
+    retry_strategy = Retry(
+        total=retries,
+        backoff_factor=0.1,
+        status_forcelist=[429, 500, 502, 503, 504]
+    ) if retries else DEFAULT_RETRIES
+    session = requests.Session()
+    session.mount('https://', HTTPAdapter(
+        max_retries=retry_strategy, pool_maxsize=max_pool_size))
+    # noinspection HttpUrlsUsage
+    session.mount('http://', HTTPAdapter(
+        max_retries=retry_strategy, pool_maxsize=max_pool_size))
+    session.headers['Authorization'] = 'bearer {0}'.format(token)
+    return session
+
+
 class RPClient(object):
     """Report portal client.
 
@@ -101,24 +117,13 @@ class RPClient(object):
         self.retries = retries
         self.max_pool_size = max_pool_size
         self.http_timeout = http_timeout
-        self.session = requests.Session()
         self.step_reporter = StepReporter(self)
         self._item_stack = []
         self.mode = mode
         self._skip_analytics = getenv('AGENT_NO_ANALYTICS')
+        self.started = False
 
-        retry_strategy = Retry(
-            total=retries,
-            backoff_factor=0.1,
-            status_forcelist=[429, 500, 502, 503, 504]
-        ) if retries else DEFAULT_RETRIES
-        self.session.mount('https://', HTTPAdapter(
-            max_retries=retry_strategy, pool_maxsize=max_pool_size))
-        # noinspection HttpUrlsUsage
-        self.session.mount('http://', HTTPAdapter(
-            max_retries=retry_strategy, pool_maxsize=max_pool_size))
-        self.session.headers['Authorization'] = 'bearer {0}'.format(self.token)
-
+        self.session = _init_session(token, retries, max_pool_size)
         self._log_manager = LogManager(
             self.endpoint, self.session, self.api_v2, self.launch_id,
             self.project, max_entry_number=log_batch_size,
@@ -292,6 +297,7 @@ class RPClient(object):
     def start(self):
         """Start the client."""
         self._log_manager.start()
+        self.started = True
 
     def start_launch(self,
                      name,
@@ -428,6 +434,7 @@ class RPClient(object):
     def terminate(self, *args, **kwargs):
         """Call this to terminate the client."""
         self._log_manager.stop()
+        self.started = False
 
     def update_test_item(self, item_uuid, attributes=None, description=None):
         """Update existing test item at the Report Portal.
@@ -478,3 +485,17 @@ class RPClient(object):
         if current_item:
             cloned._item_stack.append(current_item)
         return cloned
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        # Don't pickle session, since it contains unpickling 'socket'
+        del state['session']
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        # Restore session field
+        self.session = _init_session(self.token, self.retries,
+                                     self.max_pool_size)
+        if self.started:
+            self.start()

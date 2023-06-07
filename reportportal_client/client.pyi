@@ -1,6 +1,7 @@
 from typing import Any, Dict, List, Optional, Text, Tuple, Union
 
 from requests import Session
+from urllib3 import Retry
 
 from reportportal_client.core.rp_issues import Issue as Issue
 from reportportal_client.logs.log_manager import LogManager as LogManager
@@ -8,6 +9,10 @@ from reportportal_client.steps import StepReporter
 
 
 def current() -> RPClient: ...
+
+
+def _init_session(token: Text, retries: Optional[int],
+                  max_pool_size: int) -> Session: ...
 
 
 class RPClient:
@@ -32,6 +37,7 @@ class RPClient:
     mode: str = ...
     _skip_analytics: Text = ...
     _item_stack: List[Text] = ...
+    started: bool = ...
 
     def __init__(
             self,
@@ -109,6 +115,6 @@ class RPClient:
 
     def current_item(self) -> Text: ...
 
-    def start(self) -> None : ...
+    def start(self) -> None: ...
 
     def clone(self) -> RPClient: ...
