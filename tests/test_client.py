@@ -166,3 +166,33 @@ def test_clone():
                'log_batch_payload_size'] and cloned.mode == kwargs['mode']
     assert len(cloned._item_stack) == 1 \
            and client.current_item() == cloned.current_item()
+
+
+@mock.patch('reportportal_client.client.warnings.warn')
+def test_deprecated_token_argument(warn):
+    api_key = 'api_key'
+    client = RPClient(endpoint='http://endpoint', project='project',
+                      token=api_key)
+
+    assert warn.call_count == 1
+    assert client.api_key == api_key
+
+
+@mock.patch('reportportal_client.client.warnings.warn')
+def test_api_key_argument(warn):
+    api_key = 'api_key'
+    client = RPClient(endpoint='http://endpoint', project='project',
+                      api_key=api_key)
+
+    assert warn.call_count == 0
+    assert client.api_key == api_key
+
+
+@mock.patch('reportportal_client.client.warnings.warn')
+def test_empty_api_key_argument(warn):
+    api_key = ''
+    client = RPClient(endpoint='http://endpoint', project='project',
+                      api_key=api_key)
+
+    assert warn.call_count == 1
+    assert client.api_key == api_key
