@@ -147,7 +147,7 @@ class RPClient(object):
         if self.api_key:
             session.headers['Authorization'] = 'Bearer {0}'.format(
                 self.api_key)
-        return session
+        self.session = session
 
     def __init_log_manager(self):
         self._log_manager = LogManager(
