@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.3.5]
 ### Added
 - `__getstate__` and `__setstate__` methods in `RPClient` class to make it possible to pickle it, by @HardNorth
 ### Changed
