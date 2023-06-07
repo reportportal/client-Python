@@ -105,7 +105,6 @@ class RPClient(object):
         self._item_stack = []
         self.mode = mode
         self._skip_analytics = getenv('AGENT_NO_ANALYTICS')
-        self.started = False
 
         self.api_key = api_key
         if not self.api_key:
@@ -323,7 +322,6 @@ class RPClient(object):
     def start(self):
         """Start the client."""
         self._log_manager.start()
-        self.started = True
 
     def start_launch(self,
                      name,
@@ -460,7 +458,6 @@ class RPClient(object):
     def terminate(self, *args, **kwargs):
         """Call this to terminate the client."""
         self._log_manager.stop()
-        self.started = False
 
     def update_test_item(self, item_uuid, attributes=None, description=None):
         """Update existing test item at the Report Portal.
@@ -526,7 +523,3 @@ class RPClient(object):
         self.__init_session()
         # Restore '_log_manager' field
         self.__init_log_manager()
-
-        # Start client if it was started
-        if self.started:
-            self.start()
