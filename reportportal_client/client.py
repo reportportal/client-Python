@@ -304,7 +304,7 @@ class RPClient(object):
         :return: HTTP response in dictionary
         """
         url = uri_join(self.base_url_v1, 'settings')
-        response = HttpRequest(self.session.get, url=url, json={},
+        response = HttpRequest(self.session.get, url=url,
                                verify_ssl=self.verify_ssl).make()
         return response.json if response else None
 
