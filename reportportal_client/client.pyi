@@ -1,18 +1,10 @@
 from typing import Any, Dict, List, Optional, Text, Tuple, Union
 
 from requests import Session
-from urllib3 import Retry
 
 from reportportal_client.core.rp_issues import Issue as Issue
 from reportportal_client.logs.log_manager import LogManager as LogManager
 from reportportal_client.steps import StepReporter
-
-
-def current() -> RPClient: ...
-
-
-def _init_session(token: Text, retries: Optional[int],
-                  max_pool_size: int) -> Session: ...
 
 
 class RPClient:
@@ -27,7 +19,7 @@ class RPClient:
     log_batch_size: int = ...
     log_batch_payload_size: int = ...
     project: Text = ...
-    token: Text = ...
+    api_key: Text = ...
     verify_ssl: bool = ...
     retries: int = ...
     max_pool_size: int = ...
@@ -42,7 +34,8 @@ class RPClient:
     def __init__(
             self,
             endpoint: Text,
-            project: Text, token: Text,
+            project: Text,
+            api_key: Text,
             log_batch_size: int = ...,
             is_skipped_an_issue: bool = ...,
             verify_ssl: bool = ...,
@@ -53,6 +46,10 @@ class RPClient:
             log_batch_payload_size: int = ...,
             mode: str = ...
     ) -> None: ...
+
+    def __init_session(self) -> None: ...
+
+    def __init_log_manager(self) -> None: ...
 
     def finish_launch(self,
                       end_time: Text,

@@ -21,7 +21,7 @@ from reportportal_client.steps import StepReporter
 
 @fixture
 def rp_client():
-    client = RPClient('http://endpoint', 'project', 'token')
+    client = RPClient('http://endpoint', 'project', 'api_key')
     client.session = mock.Mock()
     client.step_reporter = StepReporter(client)
     return client
