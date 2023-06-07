@@ -510,6 +510,11 @@ class RPClient(object):
         return cloned
 
     def __getstate__(self):
+        """Control object pickling and return object fields as Dictionary.
+
+        :returns: object state dictionary
+        :rtype: dict
+        """
         state = self.__dict__.copy()
         # Don't pickle 'session' field, since it contains unpickling 'socket'
         del state['session']
@@ -518,6 +523,10 @@ class RPClient(object):
         return state
 
     def __setstate__(self, state):
+        """Control object pickling, receives object state as Dictionary.
+
+        :param dict state: object state dictionary
+        """
         self.__dict__.update(state)
         # Restore 'session' field
         self.__init_session()
