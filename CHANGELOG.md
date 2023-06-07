@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 ### Added
+- `__getstate__` and `__setstate__` methods in `RPClient` class to make it possible to pickle it, by @HardNorth
+### Changed
+- `token` field of `RPClient` class was renamed to `api_key` to maintain common convention, by @HardNorth
+### Fixed
+- Issue [#214](https://github.com/reportportal/client-Python/issues/214): HTTP RFC compliance fix for getting project settings, by @hanikhan
+
+## [5.3.4]
+### Added
 - Check for parent `RPClient` object in thread before logging, by @HardNorth
 
 ## [5.3.3]

@@ -28,6 +28,6 @@ def response():
 @fixture
 def rp_client():
     """Prepare instance of the RPClient for testing."""
-    client = RPClient('http://endpoint', 'project', 'token')
+    client = RPClient('http://endpoint', 'project', 'api_key')
     client.session = mock.Mock()
     return client

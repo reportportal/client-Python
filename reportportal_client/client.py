@@ -14,6 +14,7 @@
 #  limitations under the License
 
 import logging
+import warnings
 from os import getenv
 
 import requests
@@ -51,7 +52,7 @@ class RPClient(object):
     def __init__(self,
                  endpoint,
                  project,
-                 token,
+                 api_key=None,
                  log_batch_size=20,
                  is_skipped_an_issue=True,
                  verify_ssl=True,
@@ -61,12 +62,12 @@ class RPClient(object):
                  http_timeout=(10, 10),
                  log_batch_payload_size=MAX_LOG_BATCH_PAYLOAD_SIZE,
                  mode='DEFAULT',
-                 **_):
+                 **kwargs):
         """Initialize required attributes.
 
         :param endpoint:               Endpoint of the report portal service
         :param project:                Project name to report to
-        :param token:                  Authorization token
+        :param api_key:                Authorization API key
         :param log_batch_size:         Option to set the maximum number of
                                        logs that can be processed in one batch
         :param is_skipped_an_issue:    Option to mark skipped tests as not
@@ -96,33 +97,62 @@ class RPClient(object):
         self.launch_id = launch_id
         self.log_batch_size = log_batch_size
         self.log_batch_payload_size = log_batch_payload_size
-        self.token = token
         self.verify_ssl = verify_ssl
         self.retries = retries
         self.max_pool_size = max_pool_size
         self.http_timeout = http_timeout
-        self.session = requests.Session()
         self.step_reporter = StepReporter(self)
         self._item_stack = []
         self.mode = mode
         self._skip_analytics = getenv('AGENT_NO_ANALYTICS')
 
+        self.api_key = api_key
+        if not self.api_key:
+            if 'token' in kwargs:
+                warnings.warn(
+                    message="Argument `token` is deprecated since 5.3.5 and "
+                            "will be subject for removing in the next major "
+                            "version. Use `api_key` argument instead.",
+                    category=DeprecationWarning,
+                    stacklevel=2
+                )
+                self.api_key = kwargs['token']
+
+            if not self.api_key:
+                warnings.warn(
+                    message="Argument `api_key` is `None` or empty string, "
+                            "that's not supposed to happen because Report "
+                            "Portal is usually requires an authorization key. "
+                            "Please check your code.",
+                    category=RuntimeWarning,
+                    stacklevel=2
+                )
+
+        self.__init_session()
+        self.__init_log_manager()
+
+    def __init_session(self):
         retry_strategy = Retry(
-            total=retries,
+            total=self.retries,
             backoff_factor=0.1,
             status_forcelist=[429, 500, 502, 503, 504]
-        ) if retries else DEFAULT_RETRIES
-        self.session.mount('https://', HTTPAdapter(
-            max_retries=retry_strategy, pool_maxsize=max_pool_size))
+        ) if self.retries else DEFAULT_RETRIES
+        session = requests.Session()
+        session.mount('https://', HTTPAdapter(
+            max_retries=retry_strategy, pool_maxsize=self.max_pool_size))
         # noinspection HttpUrlsUsage
-        self.session.mount('http://', HTTPAdapter(
-            max_retries=retry_strategy, pool_maxsize=max_pool_size))
-        self.session.headers['Authorization'] = 'bearer {0}'.format(self.token)
+        session.mount('http://', HTTPAdapter(
+            max_retries=retry_strategy, pool_maxsize=self.max_pool_size))
+        if self.api_key:
+            session.headers['Authorization'] = 'Bearer {0}'.format(
+                self.api_key)
+        self.session = session
 
+    def __init_log_manager(self):
         self._log_manager = LogManager(
             self.endpoint, self.session, self.api_v2, self.launch_id,
-            self.project, max_entry_number=log_batch_size,
-            max_payload_size=log_batch_payload_size,
+            self.project, max_entry_number=self.log_batch_size,
+            max_payload_size=self.log_batch_payload_size,
             verify_ssl=self.verify_ssl)
 
     def finish_launch(self,
@@ -274,7 +304,7 @@ class RPClient(object):
         :return: HTTP response in dictionary
         """
         url = uri_join(self.base_url_v1, 'settings')
-        response = HttpRequest(self.session.get, url=url, json={},
+        response = HttpRequest(self.session.get, url=url,
                                verify_ssl=self.verify_ssl).make()
         return response.json if response else None
 
@@ -463,7 +493,7 @@ class RPClient(object):
         cloned = RPClient(
             endpoint=self.endpoint,
             project=self.project,
-            token=self.token,
+            api_key=self.api_key,
             log_batch_size=self.log_batch_size,
             is_skipped_an_issue=self.is_skipped_an_issue,
             verify_ssl=self.verify_ssl,
@@ -478,3 +508,27 @@ class RPClient(object):
         if current_item:
             cloned._item_stack.append(current_item)
         return cloned
+
+    def __getstate__(self):
+        """Control object pickling and return object fields as Dictionary.
+
+        :returns: object state dictionary
+        :rtype: dict
+        """
+        state = self.__dict__.copy()
+        # Don't pickle 'session' field, since it contains unpickling 'socket'
+        del state['session']
+        # Don't pickle '_log_manager' field, since it uses 'session' field
+        del state['_log_manager']
+        return state
+
+    def __setstate__(self, state):
+        """Control object pickling, receives object state as Dictionary.
+
+        :param dict state: object state dictionary
+        """
+        self.__dict__.update(state)
+        # Restore 'session' field
+        self.__init_session()
+        # Restore '_log_manager' field
+        self.__init_log_manager()
