@@ -514,16 +514,19 @@ class RPClient(object):
 
     def __getstate__(self):
         state = self.__dict__.copy()
-        # Don't pickle session, since it contains unpickling 'socket'
+        # Don't pickle 'session' field, since it contains unpickling 'socket'
         del state['session']
+        # Don't pickle '_log_manager' field, since it uses 'session' field
         del state['_log_manager']
         return state
 
     def __setstate__(self, state):
         self.__dict__.update(state)
-        # Restore session field
+        # Restore 'session' field
         self.__init_session()
+        # Restore '_log_manager' field
         self.__init_log_manager()
 
+        # Start client if it was started
         if self.started:
             self.start()
