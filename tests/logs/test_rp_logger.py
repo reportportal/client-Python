@@ -78,4 +78,7 @@ def test_stacklevel_record_make(logger_handler):
     logger.error('test_log', exc_info=RuntimeError('test'),
                  stack_info=inspect.stack(), stacklevel=2)
     record = verify_record(logger_handler)
-    assert record.stack_info.endswith('return func(*newargs, **newkeywargs)')
+    if sys.version_info < (3, 11):
+        assert record.stack_info.endswith('return func(*newargs, **newkeywargs)')
+    else:
+        assert record.stack_info.endswith("logger.error('test_log', exc_info=RuntimeError('test'),")
