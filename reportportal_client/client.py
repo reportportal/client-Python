@@ -21,8 +21,8 @@ from typing import Union, Tuple, List, Dict, Any, Optional
 import requests
 from requests.adapters import HTTPAdapter, Retry, DEFAULT_RETRIES
 
-from core.rp_issues import Issue
 from ._local import set_current
+from .core.rp_issues import Issue
 from .core.rp_requests import (
     HttpRequest,
     ItemStartRequest,
