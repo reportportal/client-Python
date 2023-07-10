@@ -207,3 +207,13 @@ def test_launch_uuid_print():
     client._skip_analytics = True
     client.start_launch('Test Launch', timestamp())
     assert 'Report Portal Launch UUID: ' in str_io.getvalue()
+
+
+def test_no_launch_uuid_print():
+    str_io = StringIO()
+    client = RPClient(endpoint='http://endpoint', project='project',
+                      api_key='test', launch_uuid_print=False, print_output=str_io)
+    client.session = mock.Mock()
+    client._skip_analytics = True
+    client.start_launch('Test Launch', timestamp())
+    assert 'Report Portal Launch UUID: ' not in str_io.getvalue()
