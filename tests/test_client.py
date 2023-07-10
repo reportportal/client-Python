@@ -10,7 +10,6 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License
-import sys
 from io import StringIO
 
 import pytest
@@ -18,8 +17,8 @@ from requests import Response
 from requests.exceptions import ReadTimeout
 from six.moves import mock
 
-from reportportal_client.helpers import timestamp
 from reportportal_client import RPClient
+from reportportal_client.helpers import timestamp
 
 
 def connection_error(*args, **kwargs):
