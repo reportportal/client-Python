@@ -14,13 +14,16 @@
 #  limitations under the License
 
 import logging
+import sys
 import warnings
 from os import getenv
+from typing import Union, Tuple, List, Dict, Any, Optional, TextIO
 
 import requests
 from requests.adapters import HTTPAdapter, Retry, DEFAULT_RETRIES
 
 from ._local import set_current
+from .core.rp_issues import Issue
 from .core.rp_requests import (
     HttpRequest,
     ItemStartRequest,
@@ -38,7 +41,7 @@ logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
 
-class RPClient(object):
+class RPClient:
     """Report portal client.
 
     The class is supposed to use by Report Portal agents: both custom and
@@ -49,20 +52,48 @@ class RPClient(object):
     thread to avoid request/response messing and other issues.
     """
 
-    def __init__(self,
-                 endpoint,
-                 project,
-                 api_key=None,
-                 log_batch_size=20,
-                 is_skipped_an_issue=True,
-                 verify_ssl=True,
-                 retries=None,
-                 max_pool_size=50,
-                 launch_id=None,
-                 http_timeout=(10, 10),
-                 log_batch_payload_size=MAX_LOG_BATCH_PAYLOAD_SIZE,
-                 mode='DEFAULT',
-                 **kwargs):
+    _log_manager: LogManager = ...
+    api_v1: str = ...
+    api_v2: str = ...
+    base_url_v1: str = ...
+    base_url_v2: str = ...
+    endpoint: str = ...
+    is_skipped_an_issue: bool = ...
+    launch_id: str = ...
+    log_batch_size: int = ...
+    log_batch_payload_size: int = ...
+    project: str = ...
+    api_key: str = ...
+    verify_ssl: Union[bool, str] = ...
+    retries: int = ...
+    max_pool_size: int = ...
+    http_timeout: Union[float, Tuple[float, float]] = ...
+    session: requests.Session = ...
+    step_reporter: StepReporter = ...
+    mode: str = ...
+    launch_uuid_print: Optional[bool] = ...
+    print_output: Optional[TextIO] = ...
+    _skip_analytics: str = ...
+    _item_stack: List[str] = ...
+
+    def __init__(
+            self,
+            endpoint: str,
+            project: str,
+            api_key: str = None,
+            log_batch_size: int = 20,
+            is_skipped_an_issue: bool = True,
+            verify_ssl: bool = True,
+            retries: int = None,
+            max_pool_size: int = 50,
+            launch_id: str = None,
+            http_timeout: Union[float, Tuple[float, float]] = (10, 10),
+            log_batch_payload_size: int = MAX_LOG_BATCH_PAYLOAD_SIZE,
+            mode: str = 'DEFAULT',
+            launch_uuid_print: bool = False,
+            print_output: Optional[TextIO] = None,
+            **kwargs: Any
+    ) -> None:
         """Initialize required attributes.
 
         :param endpoint:               Endpoint of the report portal service
@@ -105,14 +136,16 @@ class RPClient(object):
         self._item_stack = []
         self.mode = mode
         self._skip_analytics = getenv('AGENT_NO_ANALYTICS')
+        self.launch_uuid_print = launch_uuid_print
+        self.print_output = print_output or sys.stdout
 
         self.api_key = api_key
         if not self.api_key:
             if 'token' in kwargs:
                 warnings.warn(
-                    message="Argument `token` is deprecated since 5.3.5 and "
-                            "will be subject for removing in the next major "
-                            "version. Use `api_key` argument instead.",
+                    message='Argument `token` is deprecated since 5.3.5 and '
+                            'will be subject for removing in the next major '
+                            'version. Use `api_key` argument instead.',
                     category=DeprecationWarning,
                     stacklevel=2
                 )
@@ -120,10 +153,10 @@ class RPClient(object):
 
             if not self.api_key:
                 warnings.warn(
-                    message="Argument `api_key` is `None` or empty string, "
-                            "that's not supposed to happen because Report "
-                            "Portal is usually requires an authorization key. "
-                            "Please check your code.",
+                    message='Argument `api_key` is `None` or empty string, '
+                            'that is not supposed to happen because Report '
+                            'Portal is usually requires an authorization key. '
+                            'Please check your code.',
                     category=RuntimeWarning,
                     stacklevel=2
                 )
@@ -131,7 +164,7 @@ class RPClient(object):
         self.__init_session()
         self.__init_log_manager()
 
-    def __init_session(self):
+    def __init_session(self) -> None:
         retry_strategy = Retry(
             total=self.retries,
             backoff_factor=0.1,
@@ -148,7 +181,7 @@ class RPClient(object):
                 self.api_key)
         self.session = session
 
-    def __init_log_manager(self):
+    def __init_log_manager(self) -> None:
         self._log_manager = LogManager(
             self.endpoint, self.session, self.api_v2, self.launch_id,
             self.project, max_entry_number=self.log_batch_size,
@@ -156,10 +189,10 @@ class RPClient(object):
             verify_ssl=self.verify_ssl)
 
     def finish_launch(self,
-                      end_time,
-                      status=None,
-                      attributes=None,
-                      **kwargs):
+                      end_time: str,
+                      status: str = None,
+                      attributes: Optional[Union[List, Dict]] = None,
+                      **kwargs: Any) -> Optional[str]:
         """Finish launch.
 
         :param end_time:    Launch end time
@@ -169,7 +202,7 @@ class RPClient(object):
         :param attributes:  Launch attributes
         """
         if self.launch_id is NOT_FOUND or not self.launch_id:
-            logger.warning("Attempt to finish non-existent launch")
+            logger.warning('Attempt to finish non-existent launch')
             return
         url = uri_join(self.base_url_v2, 'launch', self.launch_id, 'finish')
         request_payload = LaunchFinishRequest(
@@ -188,14 +221,14 @@ class RPClient(object):
         return response.message
 
     def finish_test_item(self,
-                         item_id,
-                         end_time,
-                         status=None,
-                         issue=None,
-                         attributes=None,
-                         description=None,
-                         retry=False,
-                         **kwargs):
+                         item_id: str,
+                         end_time: str,
+                         status: str = None,
+                         issue: Optional[Issue] = None,
+                         attributes: Optional[Union[List, Dict]] = None,
+                         description: str = None,
+                         retry: bool = False,
+                         **kwargs: Any) -> Optional[str]:
         """Finish suite/case/step/nested step item.
 
         :param item_id:     ID of the test item
@@ -212,7 +245,7 @@ class RPClient(object):
                            "True" or "False"
         """
         if item_id is NOT_FOUND or not item_id:
-            logger.warning("Attempt to finish non-existent item")
+            logger.warning('Attempt to finish non-existent item')
             return
         url = uri_join(self.base_url_v2, 'item', item_id)
         request_payload = ItemFinishRequest(
@@ -234,7 +267,7 @@ class RPClient(object):
         logger.debug('response message: %s', response.message)
         return response.message
 
-    def get_item_id_by_uuid(self, uuid):
+    def get_item_id_by_uuid(self, uuid: str) -> Optional[str]:
         """Get test item ID by the given UUID.
 
         :param uuid: UUID returned on the item start
@@ -245,7 +278,7 @@ class RPClient(object):
                                verify_ssl=self.verify_ssl).make()
         return response.id if response else None
 
-    def get_launch_info(self):
+    def get_launch_info(self) -> Optional[Dict]:
         """Get the current launch information.
 
         :return dict: Launch information in dictionary
@@ -268,7 +301,7 @@ class RPClient(object):
             launch_info = {}
         return launch_info
 
-    def get_launch_ui_id(self):
+    def get_launch_ui_id(self) -> Optional[Dict]:
         """Get UI ID of the current launch.
 
         :return: UI ID of the given launch. None if UI ID has not been found.
@@ -276,7 +309,7 @@ class RPClient(object):
         launch_info = self.get_launch_info()
         return launch_info.get('id') if launch_info else None
 
-    def get_launch_ui_url(self):
+    def get_launch_ui_url(self) -> Optional[str]:
         """Get UI URL of the current launch.
 
         :return: launch URL or all launches URL.
@@ -289,7 +322,7 @@ class RPClient(object):
         if not mode:
             mode = self.mode
 
-        launch_type = "launches" if mode.upper() == 'DEFAULT' else 'userdebug'
+        launch_type = 'launches' if mode.upper() == 'DEFAULT' else 'userdebug'
 
         path = 'ui/#{project_name}/{launch_type}/all/{launch_id}'.format(
             project_name=self.project.lower(), launch_type=launch_type,
@@ -298,7 +331,7 @@ class RPClient(object):
         logger.debug('get_launch_ui_url - ID: %s', self.launch_id)
         return url
 
-    def get_project_settings(self):
+    def get_project_settings(self) -> Optional[Dict]:
         """Get project settings.
 
         :return: HTTP response in dictionary
@@ -308,7 +341,8 @@ class RPClient(object):
                                verify_ssl=self.verify_ssl).make()
         return response.json if response else None
 
-    def log(self, time, message, level=None, attachment=None, item_id=None):
+    def log(self, time: str, message: str, level: Optional[Union[int, str]] = None,
+            attachment: Optional[Dict] = None, item_id: Optional[str] = None) -> None:
         """Send log message to the Report Portal.
 
         :param time:       Time in UTC
@@ -319,18 +353,18 @@ class RPClient(object):
         """
         self._log_manager.log(time, message, level, attachment, item_id)
 
-    def start(self):
+    def start(self) -> None:
         """Start the client."""
         self._log_manager.start()
 
     def start_launch(self,
-                     name,
-                     start_time,
-                     description=None,
-                     attributes=None,
-                     rerun=False,
-                     rerun_of=None,
-                     **kwargs):
+                     name: str,
+                     start_time: str,
+                     description: Optional[str] = None,
+                     attributes: Optional[Union[List, Dict]] = None,
+                     rerun: bool = False,
+                     rerun_of: Optional[str] = None,
+                     **kwargs) -> Optional[str]:
         """Start a new launch with the given parameters.
 
         :param name:        Launch name
@@ -346,12 +380,16 @@ class RPClient(object):
         # We are moving 'mode' param to the constructor, next code for the
         # transition period only.
         my_kwargs = dict(kwargs)
-        if 'mode' in my_kwargs.keys():
-            mode = my_kwargs['mode']
+        mode = my_kwargs.get('mode')
+        if 'mode' in my_kwargs:
+            warnings.warn(
+                message='Argument `mode` is deprecated since 5.2.5 and will be subject for removing in the '
+                        'next major version. Use `mode` argument in the class constructor instead.',
+                category=DeprecationWarning,
+                stacklevel=2
+            )
             del my_kwargs['mode']
-            if not mode:
-                mode = self.mode
-        else:
+        if not mode:
             mode = self.mode
 
         request_payload = LaunchStartRequest(
@@ -383,21 +421,23 @@ class RPClient(object):
 
         self._log_manager.launch_id = self.launch_id = response.id
         logger.debug('start_launch - ID: %s', self.launch_id)
+        if self.launch_uuid_print and self.print_output:
+            print(f'Report Portal Launch UUID: {self.launch_id}', file=self.print_output)
         return self.launch_id
 
     def start_test_item(self,
-                        name,
-                        start_time,
-                        item_type,
-                        description=None,
-                        attributes=None,
-                        parameters=None,
-                        parent_item_id=None,
-                        has_stats=True,
-                        code_ref=None,
-                        retry=False,
-                        test_case_id=None,
-                        **kwargs):
+                        name: str,
+                        start_time: str,
+                        item_type: str,
+                        description: Optional[str] = None,
+                        attributes: Optional[List[Dict]] = None,
+                        parameters: Optional[Dict] = None,
+                        parent_item_id: Optional[str] = None,
+                        has_stats: bool = True,
+                        code_ref: Optional[str] = None,
+                        retry: bool = False,
+                        test_case_id: Optional[str] = None,
+                        **_: Any) -> Optional[str]:
         """Start case/step/nested step item.
 
         :param name:           Name of the test item
@@ -419,8 +459,7 @@ class RPClient(object):
         :param test_case_id: A unique ID of the current step
         """
         if parent_item_id is NOT_FOUND:
-            logger.warning("Attempt to start item for non-existent parent "
-                           "item")
+            logger.warning('Attempt to start item for non-existent parent item.')
             return
         if parent_item_id:
             url = uri_join(self.base_url_v2, 'item', parent_item_id)
@@ -455,11 +494,12 @@ class RPClient(object):
                            str(response.json))
         return item_id
 
-    def terminate(self, *args, **kwargs):
+    def terminate(self, *_: Any, **__: Any) -> None:
         """Call this to terminate the client."""
         self._log_manager.stop()
 
-    def update_test_item(self, item_uuid, attributes=None, description=None):
+    def update_test_item(self, item_uuid: str, attributes: Optional[Union[List, Dict]] = None,
+                         description: Optional[str] = None) -> Optional[str]:
         """Update existing test item at the Report Portal.
 
         :param str item_uuid:   Test item UUID returned on the item start
@@ -480,11 +520,11 @@ class RPClient(object):
         logger.debug('update_test_item - Item: %s', item_id)
         return response.message
 
-    def current_item(self):
+    def current_item(self) -> Optional[str]:
         """Retrieve the last item reported by the client."""
         return self._item_stack[-1] if len(self._item_stack) > 0 else None
 
-    def clone(self):
+    def clone(self) -> 'RPClient':
         """Clone the client object, set current Item ID as cloned item ID.
 
         :returns: Cloned client object
@@ -509,7 +549,7 @@ class RPClient(object):
             cloned._item_stack.append(current_item)
         return cloned
 
-    def __getstate__(self):
+    def __getstate__(self) -> Dict[str, Any]:
         """Control object pickling and return object fields as Dictionary.
 
         :returns: object state dictionary
@@ -522,7 +562,7 @@ class RPClient(object):
         del state['_log_manager']
         return state
 
-    def __setstate__(self, state):
+    def __setstate__(self, state: Dict[str, Any]) -> None:
         """Control object pickling, receives object state as Dictionary.
 
         :param dict state: object state dictionary

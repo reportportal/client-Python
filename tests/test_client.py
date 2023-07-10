@@ -10,14 +10,15 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License
+from io import StringIO
 
 import pytest
 from requests import Response
 from requests.exceptions import ReadTimeout
 from six.moves import mock
 
-from reportportal_client.helpers import timestamp
 from reportportal_client import RPClient
+from reportportal_client.helpers import timestamp
 
 
 def connection_error(*args, **kwargs):
@@ -196,3 +197,45 @@ def test_empty_api_key_argument(warn):
 
     assert warn.call_count == 1
     assert client.api_key == api_key
+
+
+def test_launch_uuid_print():
+    str_io = StringIO()
+    client = RPClient(endpoint='http://endpoint', project='project',
+                      api_key='test', launch_uuid_print=True, print_output=str_io)
+    client.session = mock.Mock()
+    client._skip_analytics = True
+    client.start_launch('Test Launch', timestamp())
+    assert 'Report Portal Launch UUID: ' in str_io.getvalue()
+
+
+def test_no_launch_uuid_print():
+    str_io = StringIO()
+    client = RPClient(endpoint='http://endpoint', project='project',
+                      api_key='test', launch_uuid_print=False, print_output=str_io)
+    client.session = mock.Mock()
+    client._skip_analytics = True
+    client.start_launch('Test Launch', timestamp())
+    assert 'Report Portal Launch UUID: ' not in str_io.getvalue()
+
+
+@mock.patch('reportportal_client.client.sys.stdout', new_callable=StringIO)
+def test_launch_uuid_print_default_io(mock_stdout):
+    client = RPClient(endpoint='http://endpoint', project='project',
+                      api_key='test', launch_uuid_print=True)
+    client.session = mock.Mock()
+    client._skip_analytics = True
+    client.start_launch('Test Launch', timestamp())
+
+    assert 'Report Portal Launch UUID: ' in mock_stdout.getvalue()
+
+
+@mock.patch('reportportal_client.client.sys.stdout', new_callable=StringIO)
+def test_launch_uuid_print_default_print(mock_stdout):
+    client = RPClient(endpoint='http://endpoint', project='project',
+                      api_key='test')
+    client.session = mock.Mock()
+    client._skip_analytics = True
+    client.start_launch('Test Launch', timestamp())
+
+    assert 'Report Portal Launch UUID: ' not in mock_stdout.getvalue()

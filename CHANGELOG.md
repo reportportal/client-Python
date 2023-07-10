@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 ### Added
+- `launch_uuid_print` and `print_output` arguments in `RPClient` class constructor, by @HardNorth
+### Removed
+- Python 2.7, 3.6 support, by @HardNorth
+
+## [5.3.5]
+### Added
 - `__getstate__` and `__setstate__` methods in `RPClient` class to make it possible to pickle it, by @HardNorth
 ### Changed
 - `token` field of `RPClient` class was renamed to `api_key` to maintain common convention, by @HardNorth
