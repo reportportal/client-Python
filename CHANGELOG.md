@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.4.0]
 ### Added
 - `launch_uuid_print` and `print_output` arguments in `RPClient` class constructor, by @HardNorth
 ### Removed
