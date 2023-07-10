@@ -91,7 +91,7 @@ class RPClient:
             log_batch_payload_size: int = MAX_LOG_BATCH_PAYLOAD_SIZE,
             mode: str = 'DEFAULT',
             launch_uuid_print: bool = False,
-            print_output: TextIO = sys.stdout,
+            print_output: Optional[TextIO] = None,
             **kwargs: Any
     ) -> None:
         """Initialize required attributes.
@@ -137,7 +137,7 @@ class RPClient:
         self.mode = mode
         self._skip_analytics = getenv('AGENT_NO_ANALYTICS')
         self.launch_uuid_print = launch_uuid_print
-        self.print_output = print_output
+        self.print_output = print_output or sys.stdout
 
         self.api_key = api_key
         if not self.api_key:
