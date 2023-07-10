@@ -10,6 +10,7 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License
+from io import StringIO
 
 import pytest
 from requests import Response
@@ -196,3 +197,13 @@ def test_empty_api_key_argument(warn):
 
     assert warn.call_count == 1
     assert client.api_key == api_key
+
+
+def test_launch_uuid_print():
+    str_io = StringIO()
+    client = RPClient(endpoint='http://endpoint', project='project',
+                      api_key='test', launch_uuid_print=True, print_output=str_io)
+    client.session = mock.Mock()
+    client._skip_analytics = True
+    client.start_launch('Test Launch', timestamp())
+    assert 'Report Portal Launch UUID: ' in str_io.getvalue()

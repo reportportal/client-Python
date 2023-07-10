@@ -14,9 +14,10 @@
 #  limitations under the License
 
 import logging
+import sys
 import warnings
 from os import getenv
-from typing import Union, Tuple, List, Dict, Any, Optional
+from typing import Union, Tuple, List, Dict, Any, Optional, TextIO
 
 import requests
 from requests.adapters import HTTPAdapter, Retry, DEFAULT_RETRIES
@@ -70,6 +71,8 @@ class RPClient:
     session: requests.Session = ...
     step_reporter: StepReporter = ...
     mode: str = ...
+    launch_uuid_print: Optional[bool] = ...
+    print_output: Optional[TextIO] = ...
     _skip_analytics: str = ...
     _item_stack: List[str] = ...
 
@@ -87,6 +90,8 @@ class RPClient:
             http_timeout: Union[float, Tuple[float, float]] = (10, 10),
             log_batch_payload_size: int = MAX_LOG_BATCH_PAYLOAD_SIZE,
             mode: str = 'DEFAULT',
+            launch_uuid_print: bool = False,
+            print_output: TextIO = sys.stdout,
             **kwargs: Any
     ) -> None:
         """Initialize required attributes.
@@ -131,6 +136,8 @@ class RPClient:
         self._item_stack = []
         self.mode = mode
         self._skip_analytics = getenv('AGENT_NO_ANALYTICS')
+        self.launch_uuid_print = launch_uuid_print
+        self.print_output = print_output
 
         self.api_key = api_key
         if not self.api_key:
@@ -414,6 +421,8 @@ class RPClient:
 
         self._log_manager.launch_id = self.launch_id = response.id
         logger.debug('start_launch - ID: %s', self.launch_id)
+        if self.launch_uuid_print and self.print_output:
+            print(f'Report Portal Launch UUID: {self.launch_id}', file=self.print_output)
         return self.launch_id
 
     def start_test_item(self,
