@@ -3,6 +3,8 @@
 ## [Unreleased]
 ### Added
 - `launch_uuid_print` and `print_output` arguments in `RPClient` class constructor, by @HardNorth
+### Removed
+- Python 2.7, 3.6 support, by @HardNorth
 
 ## [5.3.5]
 ### Added
