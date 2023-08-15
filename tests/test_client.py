@@ -150,8 +150,8 @@ def test_clone():
               'http_timeout': (30, 30),
               'log_batch_payload_size': 1000000, 'mode': 'DEBUG'}
     client = RPClient(*args, **kwargs)
-    client._item_stack.append('test-321')
-    client._item_stack.append('test-322')
+    client._add_current_item('test-321')
+    client._add_current_item('test-322')
     cloned = client.clone()
     assert cloned is not None and client is not cloned
     assert cloned.endpoint == args[0] and cloned.project == args[1]
@@ -165,7 +165,7 @@ def test_clone():
                'launch_id'] and cloned.http_timeout == kwargs[
                'http_timeout'] and cloned.log_batch_payload_size == kwargs[
                'log_batch_payload_size'] and cloned.mode == kwargs['mode']
-    assert len(cloned._item_stack) == 1 \
+    assert cloned._item_stack.qsize() == 1 \
            and client.current_item() == cloned.current_item()
 
 
