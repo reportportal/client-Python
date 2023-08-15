@@ -17,6 +17,7 @@ import logging
 import sys
 import warnings
 from os import getenv
+from queue import LifoQueue
 from typing import Union, Tuple, List, Dict, Any, Optional, TextIO
 
 import requests
@@ -39,6 +40,13 @@ from .steps import StepReporter
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
+
+
+class _LifoQueue(LifoQueue):
+    def last(self):
+        with self.mutex:
+            if self._qsize():
+                return self.queue[-1]
 
 
 class RPClient:
@@ -74,7 +82,7 @@ class RPClient:
     launch_uuid_print: Optional[bool] = ...
     print_output: Optional[TextIO] = ...
     _skip_analytics: str = ...
-    _item_stack: List[str] = ...
+    _item_stack: _LifoQueue = ...
 
     def __init__(
             self,
@@ -133,7 +141,7 @@ class RPClient:
         self.max_pool_size = max_pool_size
         self.http_timeout = http_timeout
         self.step_reporter = StepReporter(self)
-        self._item_stack = []
+        self._item_stack = _LifoQueue()
         self.mode = mode
         self._skip_analytics = getenv('AGENT_NO_ANALYTICS')
         self.launch_uuid_print = launch_uuid_print
@@ -262,7 +270,7 @@ class RPClient:
                                verify_ssl=self.verify_ssl).make()
         if not response:
             return
-        self._item_stack.pop() if len(self._item_stack) > 0 else None
+        self._remove_current_item()
         logger.debug('finish_test_item - ID: %s', item_id)
         logger.debug('response message: %s', response.message)
         return response.message
@@ -488,7 +496,7 @@ class RPClient:
         item_id = response.id
         if item_id is not NOT_FOUND:
             logger.debug('start_test_item - ID: %s', item_id)
-            self._item_stack.append(item_id)
+            self._add_current_item(item_id)
         else:
             logger.warning('start_test_item - invalid response: %s',
                            str(response.json))
@@ -520,9 +528,17 @@ class RPClient:
         logger.debug('update_test_item - Item: %s', item_id)
         return response.message
 
+    def _add_current_item(self, item: str) -> None:
+        """Add the last item from the self._items queue."""
+        self._item_stack.put(item)
+
+    def _remove_current_item(self) -> str:
+        """Remove the last item from the self._items queue."""
+        return self._item_stack.get()
+
     def current_item(self) -> Optional[str]:
         """Retrieve the last item reported by the client."""
-        return self._item_stack[-1] if len(self._item_stack) > 0 else None
+        return self._item_stack.last()
 
     def clone(self) -> 'RPClient':
         """Clone the client object, set current Item ID as cloned item ID.
@@ -546,7 +562,7 @@ class RPClient:
         )
         current_item = self.current_item()
         if current_item:
-            cloned._item_stack.append(current_item)
+            cloned._add_current_item(current_item)
         return cloned
 
     def __getstate__(self) -> Dict[str, Any]:

@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Changed
+- `RPClient` internal item stack implementation changed to `LifoQueue` to maintain concurrency better, by @HardNorth
 
 ## [5.4.0]
 ### Added
