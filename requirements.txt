@@ -1,4 +1,3 @@
 aenum
-delayed_assert
 requests>=2.27.1
 six>=1.16.0
