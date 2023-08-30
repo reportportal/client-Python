@@ -21,10 +21,10 @@ from typing import Union, Tuple, List, Dict, Any, Optional, TextIO
 
 import aiohttp
 
-from .core.rp_issues import Issue
-from .logs.log_manager import LogManager, MAX_LOG_BATCH_PAYLOAD_SIZE
-from .static.defines import NOT_FOUND
-from .steps import StepReporter
+from reportportal_client.core.rp_issues import Issue
+from reportportal_client.logs.log_manager import LogManager, MAX_LOG_BATCH_PAYLOAD_SIZE
+from reportportal_client.static.defines import NOT_FOUND
+from reportportal_client.steps import StepReporter
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
@@ -37,7 +37,7 @@ class _LifoQueue(LifoQueue):
                 return self.queue[-1]
 
 
-class _RPClient:
+class _RPClientAsync:
     _log_manager: LogManager = ...
     api_v1: str = ...
     api_v2: str = ...
@@ -129,7 +129,7 @@ class _RPClient:
                            attributes: Optional[Union[List, Dict]] = None,
                            rerun: bool = False,
                            rerun_of: Optional[str] = None,
-                           **kwargs) -> Optional[Union[asyncio.Future, str]]:
+                           **kwargs) -> Optional[str]:
         pass
 
     async def start_test_item(self,
@@ -145,7 +145,7 @@ class _RPClient:
                               code_ref: Optional[str] = None,
                               retry: bool = False,
                               test_case_id: Optional[str] = None,
-                              **_: Any) -> Optional[Union[asyncio.Future, str]]:
+                              **_: Any) -> Optional[str]:
         parent = parent_item_id
         if parent_item_id and asyncio.isfuture(parent_item_id):
             parent = await parent_item_id
@@ -167,13 +167,13 @@ class _RPClient:
         """Retrieve the last item reported by the client."""
         return self._item_stack.last()
 
-    def clone(self) -> '_RPClient':
+    def clone(self) -> '_RPClientAsync':
         """Clone the client object, set current Item ID as cloned item ID.
 
         :returns: Cloned client object
-        :rtype: _RPClient
+        :rtype: _RPClientAsync
         """
-        cloned = _RPClient(
+        cloned = _RPClientAsync(
             endpoint=self.endpoint,
             project=self.project,
             api_key=self.api_key,
@@ -193,7 +193,7 @@ class _RPClient:
         return cloned
 
 
-class RPClientAsync(_RPClient):
+class RPClientAsync(_RPClientAsync):
 
     async def start_test_item(self,
                               name: str,
@@ -208,7 +208,7 @@ class RPClientAsync(_RPClient):
                               code_ref: Optional[str] = None,
                               retry: bool = False,
                               test_case_id: Optional[str] = None,
-                              **kwargs: Any) -> Optional[Union[asyncio.Future, str]]:
+                              **kwargs: Any) -> Optional[str]:
         item_id = await super().start_test_item(name, start_time, item_type, description=description,
                                                 attributes=attributes, parameters=parameters,
                                                 parent_item_id=parent_item_id, has_stats=has_stats,
@@ -235,7 +235,7 @@ class RPClientAsync(_RPClient):
         return result
 
 
-class RPClientSync(_RPClient):
+class RPClientSync(_RPClientAsync):
     loop: asyncio.AbstractEventLoop
     thread: threading.Thread
 
@@ -280,7 +280,7 @@ class RPClientSync(_RPClient):
                         code_ref: Optional[str] = None,
                         retry: bool = False,
                         test_case_id: Optional[str] = None,
-                        **kwargs: Any) -> Optional[Union[asyncio.Future, str]]:
+                        **kwargs: Any) -> Optional[asyncio.Future]:
         item_id_coro = super().start_test_item(name, start_time, item_type, description=description,
                                                attributes=attributes, parameters=parameters,
                                                parent_item_id=parent_item_id, has_stats=has_stats,

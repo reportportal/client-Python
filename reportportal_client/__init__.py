@@ -14,10 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from ._local import current
-from .logs import RPLogger, RPLogHandler
-from .client import RPClient
-from .steps import step
+# noinspection PyProtectedMember
+from reportportal_client._local import current
+from reportportal_client.logs import RPLogger, RPLogHandler
+from reportportal_client.client import RPClient
+from reportportal_client.steps import step
 
 __all__ = [
     'current',
