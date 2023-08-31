@@ -55,7 +55,7 @@ class RPMessage(object):
 class RPResponse:
     """Class representing RP API response."""
 
-    __slots__ = ['_data', '_resp']
+    __slots__ = ['_resp']
 
     def __init__(self, data):
         """Initialize instance attributes.
