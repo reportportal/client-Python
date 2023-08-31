@@ -384,31 +384,14 @@ class RPClient:
                             re-run. Should be used with the 'rerun' option.
         """
         url = uri_join(self.base_url_v2, 'launch')
-
-        # We are moving 'mode' param to the constructor, next code for the
-        # transition period only.
-        my_kwargs = dict(kwargs)
-        mode = my_kwargs.get('mode')
-        if 'mode' in my_kwargs:
-            warnings.warn(
-                message='Argument `mode` is deprecated since 5.2.5 and will be subject for removing in the '
-                        'next major version. Use `mode` argument in the class constructor instead.',
-                category=DeprecationWarning,
-                stacklevel=2
-            )
-            del my_kwargs['mode']
-        if not mode:
-            mode = self.mode
-
         request_payload = LaunchStartRequest(
             name=name,
             start_time=start_time,
             attributes=attributes,
             description=description,
-            mode=mode,
+            mode=self.mode,
             rerun=rerun,
-            rerun_of=rerun_of or kwargs.get('rerunOf'),
-            **my_kwargs
+            rerun_of=rerun_of or kwargs.get('rerunOf')
         ).payload
         response = HttpRequest(self.session.post,
                                url=url,
