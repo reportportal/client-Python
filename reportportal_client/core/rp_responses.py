@@ -26,7 +26,7 @@ from reportportal_client.static.defines import NOT_FOUND
 logger = logging.getLogger(__name__)
 
 
-class RPMessage(object):
+class RPMessage:
     """Model for the message returned by RP API."""
 
     __slots__ = ['message', 'error_code']
