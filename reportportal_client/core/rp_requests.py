@@ -18,13 +18,14 @@ https://github.com/reportportal/documentation/blob/master/src/md/src/DevGuides/r
 #  See the License for the specific language governing permissions and
 #  limitations under the License
 
-import json
+import json as json_converter
 import logging
-from typing import Callable, Text, Optional, Union, Dict, List, ByteString, IO, Tuple
+from typing import Callable, Text, Optional, Union, List, ByteString, IO, Tuple
 
 from reportportal_client import helpers
 from reportportal_client.core.rp_file import RPFile
 from reportportal_client.core.rp_issues import Issue
+from reportportal_client.core.rp_responses import RPResponse
 from reportportal_client.helpers import dict_to_payload
 from reportportal_client.static.abstract import (
     AbstractBaseClass,
@@ -35,7 +36,6 @@ from reportportal_client.static.defines import (
     LOW_PRIORITY,
     RP_LOG_LEVELS, Priority
 )
-from reportportal_client.core.rp_responses import RPResponse
 
 logger = logging.getLogger(__name__)
 
@@ -44,20 +44,20 @@ class HttpRequest:
     """This model stores attributes related to RP HTTP requests."""
 
     session_method: Callable
-    url: Text
-    files: Optional[Dict]
-    data: Optional[Union[Dict, List[Union[tuple, ByteString]], IO]]
-    json: Optional[Dict]
+    url: str
+    files: Optional[dict]
+    data: Optional[Union[dict, List[Union[tuple, ByteString]], IO]]
+    json: Optional[dict]
     verify_ssl: Optional[bool]
     http_timeout: Union[float, Tuple[float, float]]
     name: Optional[Text]
 
     def __init__(self,
                  session_method: Callable,
-                 url: Text,
-                 data: Optional[Union[Dict, List[Union[tuple, ByteString, IO]]]] = None,
-                 json_data: Optional[Dict] = None,
-                 files_data: Optional[Dict] = None,
+                 url: str,
+                 data: Optional[Union[dict, List[Union[tuple, ByteString, IO]]]] = None,
+                 json: Optional[dict] = None,
+                 files: Optional[dict] = None,
                  verify_ssl: Optional[bool] = None,
                  http_timeout: Union[float, Tuple[float, float]] = (10, 10),
                  name: Optional[Text] = None) -> None:
@@ -67,7 +67,7 @@ class HttpRequest:
         :param url:            Request URL
         :param data:           Dictionary, list of tuples, bytes, or file-like
                                object to send in the body of the request
-        :param json_data:           JSON to be sent in the body of the request
+        :param json:           JSON to be sent in the body of the request
         :param verify_ssl:     Is SSL certificate verification required
         :param http_timeout:   a float in seconds for connect and read
                                timeout. Use a Tuple to specific connect and
@@ -75,8 +75,8 @@ class HttpRequest:
         :param name:           request name
         """
         self.data = data
-        self.files = files_data
-        self.json = json_data
+        self.files = files
+        self.json = json
         self.session_method = session_method
         self.url = url
         self.verify_ssl = verify_ssl
@@ -174,7 +174,7 @@ class RPRequestBase(metaclass=AbstractBaseClass):
         self._response = value
 
     @abstractmethod
-    def payload(self) -> Dict:
+    def payload(self) -> dict:
         """Abstract interface for getting HTTP request payload."""
         raise NotImplementedError('Payload interface is not implemented!')
 
@@ -184,21 +184,21 @@ class LaunchStartRequest(RPRequestBase):
 
     https://github.com/reportportal/documentation/blob/master/src/md/src/DevGuides/reporting.md#start-launch
     """
-    attributes: Optional[Union[List, Dict]]
-    description: Text
-    mode: Text
-    name: Text
+    attributes: Optional[Union[list, dict]]
+    description: str
+    mode: str
+    name: str
     rerun: bool
-    rerun_of: Text
-    start_time: Text
-    uuid: Text
+    rerun_of: str
+    start_time: str
+    uuid: str
 
     def __init__(self,
-                 name: Text,
-                 start_time: Text,
-                 attributes: Optional[Union[List, Dict]] = None,
+                 name: str,
+                 start_time: str,
+                 attributes: Optional[Union[list, dict]] = None,
                  description: Optional[Text] = None,
-                 mode: Text = 'default',
+                 mode: str = 'default',
                  rerun: bool = False,
                  rerun_of: Optional[Text] = None) -> None:
         """Initialize instance attributes.
@@ -222,7 +222,7 @@ class LaunchStartRequest(RPRequestBase):
         self.start_time = start_time
 
     @property
-    def payload(self) -> Dict:
+    def payload(self) -> dict:
         """Get HTTP payload for the request."""
         if self.attributes and isinstance(self.attributes, dict):
             self.attributes = dict_to_payload(self.attributes)
@@ -244,9 +244,9 @@ class LaunchFinishRequest(RPRequestBase):
     """
 
     def __init__(self,
-                 end_time: Text,
+                 end_time: str,
                  status: Optional[Text] = None,
-                 attributes: Optional[Union[List, Dict]] = None,
+                 attributes: Optional[Union[list, dict]] = None,
                  description: Optional[Text] = None) -> None:
         """Initialize instance attributes.
 
@@ -265,7 +265,7 @@ class LaunchFinishRequest(RPRequestBase):
         self.status = status
 
     @property
-    def payload(self) -> Dict:
+    def payload(self) -> dict:
         """Get HTTP payload for the request."""
         if self.attributes and isinstance(self.attributes, dict):
             self.attributes = dict_to_payload(self.attributes)
@@ -282,28 +282,28 @@ class ItemStartRequest(RPRequestBase):
 
     https://github.com/reportportal/documentation/blob/master/src/md/src/DevGuides/reporting.md#start-rootsuite-item
     """
-    attributes: Optional[Union[List, Dict]]
+    attributes: Optional[Union[list, dict]]
     code_ref: Optional[Text]
     description: Optional[Text]
     has_stats: bool
-    launch_uuid: Text
-    name: Text
-    parameters: Optional[Union[List, Dict]]
+    launch_uuid: str
+    name: str
+    parameters: Optional[Union[list, dict]]
     retry: bool
-    start_time: Text
+    start_time: str
     test_case_id: Optional[Text]
-    type_: Text
+    type_: str
 
     def __init__(self,
-                 name: Text,
-                 start_time: Text,
-                 type_: Text,
-                 launch_uuid: Text,
-                 attributes: Optional[Union[List, Dict]] = None,
+                 name: str,
+                 start_time: str,
+                 type_: str,
+                 launch_uuid: str,
+                 attributes: Optional[Union[list, dict]] = None,
                  code_ref: Optional[Text] = None,
                  description: Optional[Text] = None,
                  has_stats: bool = True,
-                 parameters: Optional[Union[List, Dict]] = None,
+                 parameters: Optional[Union[list, dict]] = None,
                  retry: bool = False,
                  test_case_id: Optional[Text] = None) -> None:
         """Initialize instance attributes.
@@ -340,7 +340,7 @@ class ItemStartRequest(RPRequestBase):
         self.type_ = type_
 
     @property
-    def payload(self) -> Dict:
+    def payload(self) -> dict:
         """Get HTTP payload for the request."""
         if self.attributes and isinstance(self.attributes, dict):
             self.attributes = dict_to_payload(self.attributes)
@@ -366,20 +366,20 @@ class ItemFinishRequest(RPRequestBase):
 
     https://github.com/reportportal/documentation/blob/master/src/md/src/DevGuides/reporting.md#finish-child-item
     """
-    attributes: Optional[Union[List, Dict]]
-    description: Text
-    end_time: Text
+    attributes: Optional[Union[list, dict]]
+    description: str
+    end_time: str
     is_skipped_an_issue: bool
     issue: Issue
-    launch_uuid: Text
-    status: Text
+    launch_uuid: str
+    status: str
     retry: bool
 
     def __init__(self,
-                 end_time: Text,
-                 launch_uuid: Text,
-                 status: Text,
-                 attributes: Optional[Union[List, Dict]] = None,
+                 end_time: str,
+                 launch_uuid: str,
+                 status: str,
+                 attributes: Optional[Union[list, dict]] = None,
                  description: Optional[str] = None,
                  is_skipped_an_issue: bool = True,
                  issue: Optional[Issue] = None,
@@ -412,7 +412,7 @@ class ItemFinishRequest(RPRequestBase):
         self.retry = retry
 
     @property
-    def payload(self) -> Dict:
+    def payload(self) -> dict:
         """Get HTTP payload for the request."""
         if self.attributes and isinstance(self.attributes, dict):
             self.attributes = dict_to_payload(self.attributes)
@@ -439,18 +439,18 @@ class RPRequestLog(RPRequestBase):
     https://github.com/reportportal/documentation/blob/master/src/md/src/DevGuides/reporting.md#save-single-log-without-attachment
     """
     file: Optional[RPFile]
-    launch_uuid: Text
-    level: Text
+    launch_uuid: str
+    level: str
     message: Optional[Text]
-    time: Text
+    time: str
     item_uuid: Optional[Text]
 
     def __init__(self,
-                 launch_uuid: Text,
-                 time: Text,
+                 launch_uuid: str,
+                 time: str,
                  file: Optional[RPFile] = None,
                  item_uuid: Optional[Text] = None,
-                 level: Text = RP_LOG_LEVELS[40000],
+                 level: str = RP_LOG_LEVELS[40000],
                  message: Optional[Text] = None) -> None:
         """Initialize instance attributes.
 
@@ -472,14 +472,14 @@ class RPRequestLog(RPRequestBase):
         self.item_uuid = item_uuid
         self.priority = LOW_PRIORITY
 
-    def __file(self) -> Dict:
+    def __file(self) -> dict:
         """Form file payload part of the payload."""
         if not self.file:
             return {}
         return {'file': {'name': self.file.name}}
 
     @property
-    def payload(self) -> Dict:
+    def payload(self) -> dict:
         """Get HTTP payload for the request."""
         payload = {
             'launchUuid': self.launch_uuid,
@@ -504,7 +504,7 @@ class RPLogBatch(RPRequestBase):
 
     https://github.com/reportportal/documentation/blob/master/src/md/src/DevGuides/reporting.md#batch-save-logs
     """
-    default_content: Text = ...
+    default_content: str = ...
     log_reqs: List[RPRequestLog] = ...
 
     def __init__(self, log_reqs: List[RPRequestLog]) -> None:
@@ -552,7 +552,7 @@ class RPLogBatch(RPRequestBase):
         body = [(
             'json_request_part', (
                 None,
-                json.dumps([log.payload for log in self.log_reqs]),
+                json_converter.dumps([log.payload for log in self.log_reqs]),
                 'application/json'
             )
         )]
