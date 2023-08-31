@@ -24,7 +24,10 @@ setup(
     packages=find_packages(exclude=('tests', 'tests.*')),
     package_data={
         'reportportal_client': TYPE_STUBS,
-        'reportportal_client.steps': TYPE_STUBS
+        'reportportal_client.steps': TYPE_STUBS,
+        'reportportal_client.core': TYPE_STUBS,
+        'reportportal_client.logs': TYPE_STUBS,
+        'reportportal_client.services': TYPE_STUBS,
     },
     version=__version__,
     description='Python client for Report Portal v5.',
