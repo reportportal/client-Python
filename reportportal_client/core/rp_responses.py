@@ -19,6 +19,7 @@ https://github.com/reportportal/documentation/blob/master/src/md/src/DevGuides/r
 #  limitations under the License
 
 import logging
+from functools import lru_cache
 
 from reportportal_client.static.defines import NOT_FOUND
 
@@ -51,7 +52,7 @@ class RPMessage(object):
         return self.message is NOT_FOUND
 
 
-class RPResponse(object):
+class RPResponse:
     """Class representing RP API response."""
 
     __slots__ = ['_data', '_resp']
@@ -61,7 +62,6 @@ class RPResponse(object):
 
         :param data: requests.Response object
         """
-        self._data = self._get_json(data)
         self._resp = data
 
     @staticmethod
@@ -83,25 +83,13 @@ class RPResponse(object):
         """Check if response to API has been successful."""
         return self._resp.ok
 
-    def _iter_messages(self):
-        """Generate RPMessage for each response."""
-        data = self.json.get('responses', [self.json])
-        for chunk in data:
-            message = RPMessage(chunk)
-            if not message.is_empty:
-                yield message
-
     @property
+    @lru_cache()
     def json(self):
         """Get the response in dictionary."""
-        return self._data
+        return self._get_json(self._resp)
 
     @property
     def message(self):
         """Get value of the 'message' key."""
         return self.json.get('message', NOT_FOUND)
-
-    @property
-    def messages(self):
-        """Get list of messages received."""
-        return tuple(self._iter_messages())

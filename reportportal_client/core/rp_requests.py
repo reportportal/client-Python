@@ -18,9 +18,13 @@ https://github.com/reportportal/documentation/blob/master/src/md/src/DevGuides/r
 #  See the License for the specific language governing permissions and
 #  limitations under the License
 
+import asyncio
 import json as json_converter
 import logging
-from typing import Callable, Text, Optional, Union, List, ByteString, IO, Tuple
+import ssl
+from typing import Callable, Text, Optional, Union, List, Tuple, Any, TypeVar
+
+import aiohttp
 
 from reportportal_client import helpers
 from reportportal_client.core.rp_file import RPFile
@@ -38,26 +42,36 @@ from reportportal_client.static.defines import (
 )
 
 logger = logging.getLogger(__name__)
+T = TypeVar("T")
+
+
+async def await_if_necessary(obj: Optional[Any]) -> Any:
+    if obj:
+        if asyncio.isfuture(obj) or asyncio.iscoroutine(obj):
+            return await obj
+        elif asyncio.iscoroutinefunction(obj):
+            return await obj()
+    return obj
 
 
 class HttpRequest:
     """This model stores attributes related to RP HTTP requests."""
 
     session_method: Callable
-    url: str
-    files: Optional[dict]
-    data: Optional[Union[dict, List[Union[tuple, ByteString]], IO]]
-    json: Optional[dict]
-    verify_ssl: Optional[bool]
+    url: Any
+    files: Optional[Any]
+    data: Optional[Any]
+    json: Optional[Any]
+    verify_ssl: Optional[Union[bool, str]]
     http_timeout: Union[float, Tuple[float, float]]
-    name: Optional[Text]
+    name: Optional[str]
 
     def __init__(self,
                  session_method: Callable,
-                 url: str,
-                 data: Optional[Union[dict, List[Union[tuple, ByteString, IO]]]] = None,
-                 json: Optional[dict] = None,
-                 files: Optional[dict] = None,
+                 url: Any,
+                 data: Optional[Any] = None,
+                 json: Optional[Any] = None,
+                 files: Optional[Any] = None,
                  verify_ssl: Optional[bool] = None,
                  http_timeout: Union[float, Tuple[float, float]] = (10, 10),
                  name: Optional[Text] = None) -> None:
@@ -86,11 +100,8 @@ class HttpRequest:
     def make(self):
         """Make HTTP request to the Report Portal API."""
         try:
-            return RPResponse(self.session_method(
-                self.url, data=self.data, json=self.json,
-                files=self.files, verify=self.verify_ssl,
-                timeout=self.http_timeout)
-            )
+            return RPResponse(self.session_method(self.url, data=self.data, json=self.json, files=self.files,
+                                                  verify=self.verify_ssl, timeout=self.http_timeout))
             # https://github.com/reportportal/client-Python/issues/39
         except (KeyError, IOError, ValueError, TypeError) as exc:
             logger.warning(
@@ -110,11 +121,29 @@ class AsyncHttpRequest(HttpRequest):
 
     async def make(self):
         """Make HTTP request to the Report Portal API."""
+        ssl_config = self.verify_ssl
+        if ssl_config and type(ssl_config) == str:
+            ssl_context = ssl.create_default_context()
+            ssl_context.load_cert_chain(ssl_config)
+            ssl_config = ssl_context
+
+        timeout_config = self.http_timeout
+        if not timeout_config or not type(timeout_config) == tuple:
+            timeout_config = (timeout_config, timeout_config)
+
+        data = self.data
+        if self.files:
+            data = self.files
+
         try:
-            return RPResponse(self.session_method(
-                self.url, data=self.data, json=self.json,
-                files=self.files, verify=self.verify_ssl,
-                timeout=self.http_timeout)
+            return RPResponse(
+                await self.session_method(
+                    await await_if_necessary(self.url),
+                    data=data,
+                    json=self.json,
+                    ssl=ssl_config,
+                    timeout=aiohttp.ClientTimeout(connect=timeout_config[0], sock_read=timeout_config[1])
+                )
             )
             # https://github.com/reportportal/client-Python/issues/39
         except (KeyError, IOError, ValueError, TypeError) as exc:
