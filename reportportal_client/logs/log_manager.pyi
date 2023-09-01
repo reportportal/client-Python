@@ -18,9 +18,7 @@ from typing import Dict, List, Optional, Text
 from requests import Session
 from six.moves import queue
 
-from reportportal_client.core.rp_requests import (
-    RPRequestLog as RPRequestLog
-)
+from reportportal_client.core.rp_requests import RPRequestLog
 from reportportal_client.core.worker import APIWorker as APIWorker
 
 logger: Logger
