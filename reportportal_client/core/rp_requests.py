@@ -22,6 +22,7 @@ import asyncio
 import json as json_converter
 import logging
 import ssl
+from dataclasses import dataclass
 from typing import Callable, Text, Optional, Union, List, Tuple, Any, TypeVar
 
 import aiohttp
@@ -66,7 +67,6 @@ class HttpRequest:
     http_timeout: Union[float, Tuple[float, float]]
     name: Optional[str]
     _priority: Priority
-    _response: Optional[RPResponse]
 
     def __init__(self,
                  session_method: Callable,
@@ -99,7 +99,6 @@ class HttpRequest:
         self.http_timeout = http_timeout
         self.name = name
         self._priority = DEFAULT_PRIORITY
-        self._response = None
 
     def __lt__(self, other) -> bool:
         """Priority protocol for the PriorityQueue."""
@@ -115,21 +114,11 @@ class HttpRequest:
         """Set the priority of the request."""
         self._priority = value
 
-    @property
-    def response(self) -> Optional[RPResponse]:
-        """Get the response object for the request."""
-        if not self._response:
-            return self.make()
-        return self._response
-
     def make(self):
         """Make HTTP request to the Report Portal API."""
         try:
-            self._response = RPResponse(
-                self.session_method(self.url, data=self.data, json=self.json, files=self.files,
-                                    verify=self.verify_ssl, timeout=self.http_timeout))
-            return self._response
-            # https://github.com/reportportal/client-Python/issues/39
+            return RPResponse(self.session_method(self.url, data=self.data, json=self.json, files=self.files,
+                                                  verify=self.verify_ssl, timeout=self.http_timeout))
         except (KeyError, IOError, ValueError, TypeError) as exc:
             logger.warning(
                 "Report Portal %s request failed",
@@ -141,10 +130,8 @@ class HttpRequest:
 class AsyncHttpRequest(HttpRequest):
     """This model stores attributes related to RP HTTP requests."""
 
-    def __init__(self, session_method: Callable, url: str, data=None, json=None,
-                 files=None, verify_ssl=True, http_timeout=(10, 10),
-                 name=None) -> None:
-        super().__init__(session_method, url, data, json, files, verify_ssl, http_timeout, name)
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
 
     async def make(self):
         """Make HTTP request to the Report Portal API."""
@@ -154,25 +141,21 @@ class AsyncHttpRequest(HttpRequest):
             ssl_context.load_cert_chain(ssl_config)
             ssl_config = ssl_context
 
-        timeout_config = self.http_timeout
-        if not timeout_config or not type(timeout_config) == tuple:
-            timeout_config = (timeout_config, timeout_config)
+        timeout = None
+        if self.http_timeout:
+            if type(self.http_timeout) == tuple:
+                connect_timeout, read_timeout = self.http_timeout
+            else:
+                connect_timeout, read_timeout = self.http_timeout, self.http_timeout
+            timeout = aiohttp.ClientTimeout(connect=connect_timeout, sock_read=read_timeout)
 
         data = self.data
         if self.files:
             data = self.files
 
         try:
-            return RPResponse(
-                await self.session_method(
-                    await await_if_necessary(self.url),
-                    data=data,
-                    json=self.json,
-                    ssl=ssl_config,
-                    timeout=aiohttp.ClientTimeout(connect=timeout_config[0], sock_read=timeout_config[1])
-                )
-            )
-            # https://github.com/reportportal/client-Python/issues/39
+            return RPResponse(await self.session_method(await await_if_necessary(self.url), data=data,
+                                                        json=self.json, ssl=ssl_config, timeout=timeout))
         except (KeyError, IOError, ValueError, TypeError) as exc:
             logger.warning(
                 "Report Portal %s request failed",
@@ -192,57 +175,29 @@ class RPRequestBase(metaclass=AbstractBaseClass):
         raise NotImplementedError('Payload interface is not implemented!')
 
 
+@dataclass(frozen=True)
 class LaunchStartRequest(RPRequestBase):
     """RP start launch request model.
 
     https://github.com/reportportal/documentation/blob/master/src/md/src/DevGuides/reporting.md#start-launch
     """
-    attributes: Optional[Union[list, dict]]
-    description: str
-    mode: str
     name: str
-    rerun: bool
-    rerun_of: str
     start_time: str
-    uuid: str
-
-    def __init__(self,
-                 name: str,
-                 start_time: str,
-                 attributes: Optional[Union[list, dict]] = None,
-                 description: Optional[Text] = None,
-                 mode: str = 'default',
-                 rerun: bool = False,
-                 rerun_of: Optional[Text] = None,
-                 uuid: str = None) -> None:
-        """Initialize instance attributes.
-
-        :param name:        Name of the launch
-        :param start_time:	Launch start time
-        :param attributes:  Launch attributes
-        :param description: Description of the launch
-        :param mode:        Launch mode. Allowable values 'default' or 'debug'
-        :param rerun:       Rerun mode. Allowable values 'True' of 'False'
-        :param rerun_of:    Rerun mode. Specifies launch to be re-runned. Uses
-                            with the 'rerun' attribute.
-        """
-        super().__init__()
-        self.attributes = attributes
-        self.description = description
-        self.mode = mode
-        self.name = name
-        self.rerun = rerun
-        self.rerun_of = rerun_of
-        self.start_time = start_time
-        self.uuid = uuid
+    attributes: Optional[Union[list, dict]] = None
+    description: Optional[str] = None
+    mode: str = 'default'
+    rerun: bool = False
+    rerun_of: str = None
+    uuid: str = None
 
     @property
     def payload(self) -> dict:
         """Get HTTP payload for the request."""
+        my_attributes = None
         if self.attributes and isinstance(self.attributes, dict):
-            self.attributes = dict_to_payload(self.attributes)
+            my_attributes = dict_to_payload(self.attributes)
         result = {
-            'attributes': self.attributes,
+            'attributes': my_attributes,
             'description': self.description,
             'mode': self.mode,
             'name': self.name,
@@ -255,46 +210,33 @@ class LaunchStartRequest(RPRequestBase):
         return result
 
 
+@dataclass(frozen=True)
 class LaunchFinishRequest(RPRequestBase):
     """RP finish launch request model.
 
     https://github.com/reportportal/documentation/blob/master/src/md/src/DevGuides/reporting.md#finish-launch
     """
 
-    def __init__(self,
-                 end_time: str,
-                 status: Optional[Text] = None,
-                 attributes: Optional[Union[list, dict]] = None,
-                 description: Optional[Text] = None) -> None:
-        """Initialize instance attributes.
-
-        :param end_time:    Launch end time
-        :param status:      Launch status. Allowable values: "passed",
-                            "failed", "stopped", "skipped", "interrupted",
-                            "cancelled"
-        :param attributes:  Launch attributes(tags). Pairs of key and value.
-                            Overrides attributes on start
-        :param description: Launch description. Overrides description on start
-        """
-        super().__init__()
-        self.attributes = attributes
-        self.description = description
-        self.end_time = end_time
-        self.status = status
+    end_time: str
+    status: Optional[Text] = None
+    attributes: Optional[Union[list, dict]] = None
+    description: Optional[str] = None
 
     @property
     def payload(self) -> dict:
         """Get HTTP payload for the request."""
+        my_attributes = None
         if self.attributes and isinstance(self.attributes, dict):
-            self.attributes = dict_to_payload(self.attributes)
+            my_attributes = dict_to_payload(self.attributes)
         return {
-            'attributes': self.attributes,
+            'attributes': my_attributes,
             'description': self.description,
             'endTime': self.end_time,
             'status': self.status
         }
 
 
+@dataclass(frozen=True)
 class ItemStartRequest(RPRequestBase):
     """RP start test item request model.
 
@@ -304,7 +246,7 @@ class ItemStartRequest(RPRequestBase):
     code_ref: Optional[Text]
     description: Optional[Text]
     has_stats: bool
-    launch_uuid: str
+    launch_uuid: Any
     name: str
     parameters: Optional[Union[list, dict]]
     retry: bool
@@ -312,73 +254,48 @@ class ItemStartRequest(RPRequestBase):
     test_case_id: Optional[Text]
     type_: str
 
-    def __init__(self,
-                 name: str,
-                 start_time: str,
-                 type_: str,
-                 launch_uuid: str,
-                 attributes: Optional[Union[list, dict]] = None,
-                 code_ref: Optional[Text] = None,
-                 description: Optional[Text] = None,
-                 has_stats: bool = True,
-                 parameters: Optional[Union[list, dict]] = None,
-                 retry: bool = False,
-                 test_case_id: Optional[Text] = None) -> None:
-        """Initialize instance attributes.
-
-        :param name:        Name of the test item
-        :param start_time:  Test item start time
-        :param type_:       Type of the test item. Allowable values: "suite",
-                            "story", "test", "scenario", "step",
-                            "before_class", "before_groups", "before_method",
-                            "before_suite", "before_test", "after_class",
-                            "after_groups", "after_method", "after_suite",
-                            "after_test"
-        :param launch_uuid: Parent launch UUID
-        :param attributes:  Test item attributes
-        :param code_ref:    Physical location of the test item
-        :param description: Test item description
-        :param has_stats:   Set to False if test item is nested step
-        :param parameters:  Set of parameters (for parametrized test items)
-        :param retry:       Used to report retry of the test. Allowable values:
-                            "True" or "False"
-        :param test_case_id:Test case ID from integrated TMS
-        """
-        super().__init__()
-        self.attributes = attributes
-        self.code_ref = code_ref
-        self.description = description
-        self.has_stats = has_stats
-        self.launch_uuid = launch_uuid
-        self.name = name
-        self.parameters = parameters
-        self.retry = retry
-        self.start_time = start_time
-        self.test_case_id = test_case_id
-        self.type_ = type_
+    @staticmethod
+    def create_request(**kwargs) -> dict:
+        request = {
+            'codeRef': kwargs.get('code_ref'),
+            'description': kwargs.get('description'),
+            'hasStats': kwargs.get('has_stats'),
+            'name': kwargs['name'],
+            'retry': kwargs.get('retry'),
+            'startTime': kwargs['start_time'],
+            'testCaseId': kwargs.get('test_case_id'),
+            'type': kwargs['type'],
+            'launchUuid': kwargs['launch_uuid']
+        }
+        if 'attributes' in kwargs:
+            request['attributes'] = dict_to_payload(kwargs['attributes'])
+        if 'parameters' in kwargs:
+            request['parameters'] = dict_to_payload(kwargs['parameters'])
+        return request
 
     @property
     def payload(self) -> dict:
         """Get HTTP payload for the request."""
-        if self.attributes and isinstance(self.attributes, dict):
-            self.attributes = dict_to_payload(self.attributes)
-        if self.parameters:
-            self.parameters = dict_to_payload(self.parameters)
-        return {
-            'attributes': self.attributes,
-            'codeRef': self.code_ref,
-            'description': self.description,
-            'hasStats': self.has_stats,
-            'launchUuid': self.launch_uuid,
-            'name': self.name,
-            'parameters': self.parameters,
-            'retry': self.retry,
-            'startTime': self.start_time,
-            'testCaseId': self.test_case_id,
-            'type': self.type_
-        }
+        data = self.__dict__.copy()
+        data['type'] = data.pop('type_')
+        return ItemStartRequest.create_request(**data)
 
 
+class ItemStartRequestAsync(ItemStartRequest):
+
+    def __int__(self, *args, **kwargs) -> None:
+        super.__init__(*args, **kwargs)
+
+    @property
+    async def payload(self) -> dict:
+        """Get HTTP payload for the request."""
+        data = self.__dict__.copy()
+        data['type'] = data.pop('type_')
+        data['launch_uuid'] = await_if_necessary(data.pop('launch_uuid'))
+        return ItemStartRequest.create_request(**data)
+
+
+@dataclass(frozen=True)
 class ItemFinishRequest(RPRequestBase):
     """RP finish test item request model.
 
@@ -389,106 +306,64 @@ class ItemFinishRequest(RPRequestBase):
     end_time: str
     is_skipped_an_issue: bool
     issue: Issue
-    launch_uuid: str
+    launch_uuid: Any
     status: str
     retry: bool
 
-    def __init__(self,
-                 end_time: str,
-                 launch_uuid: str,
-                 status: str,
-                 attributes: Optional[Union[list, dict]] = None,
-                 description: Optional[str] = None,
-                 is_skipped_an_issue: bool = True,
-                 issue: Optional[Issue] = None,
-                 retry: bool = False) -> None:
-        """Initialize instance attributes.
+    @staticmethod
+    def create_request(**kwargs) -> dict:
+        request = {
+            'description': kwargs.get('description'),
+            'endTime': kwargs['end_time'],
+            'launchUuid': kwargs['launch_uuid'],
+            'status': kwargs.get('status'),
+            'retry': kwargs.get('retry')
+        }
+        if 'attributes' in kwargs:
+            request['attributes'] = dict_to_payload(kwargs['attributes'])
 
-        :param end_time:            Test item end time
-        :param launch_uuid:         Parent launch UUID
-        :param status:              Test status. Allowable values: "passed",
-                                    "failed", "stopped", "skipped",
-                                    "interrupted", "cancelled".
-        :param attributes:          Test item attributes(tags). Pairs of key
-                                    and value. Overrides attributes on start
-        :param description:         Test item description. Overrides
-                                    description from start request.
-        :param is_skipped_an_issue: Option to mark skipped tests as not
-                                    'To Investigate' items in UI
-        :param issue:               Issue of the current test item
-        :param retry:               Used to report retry of the test.
-                                    Allowable values: "True" or "False"
-        """
-        super().__init__()
-        self.attributes = attributes
-        self.description = description
-        self.end_time = end_time
-        self.is_skipped_an_issue = is_skipped_an_issue
-        self.issue = issue  # type: Issue
-        self.launch_uuid = launch_uuid
-        self.status = status
-        self.retry = retry
+        if kwargs.get('issue') is None and (
+                kwargs.get('status') is not None and kwargs.get('status').lower() == 'skipped'
+        ) and not kwargs.get('is_skipped_an_issue'):
+            issue_payload = {'issue_type': 'NOT_ISSUE'}
+        elif kwargs.get('issue') is not None:
+            issue_payload = kwargs.get('issue').payload
+        else:
+            issue_payload = None
+        request['issue'] = issue_payload
+        return request
 
     @property
     def payload(self) -> dict:
         """Get HTTP payload for the request."""
-        if self.attributes and isinstance(self.attributes, dict):
-            self.attributes = dict_to_payload(self.attributes)
-        if self.issue is None and (
-                self.status is not None and self.status.lower() == 'skipped'
-        ) and not self.is_skipped_an_issue:
-            issue_payload = {'issue_type': 'NOT_ISSUE'}
-        else:
-            issue_payload = None
-        return {
-            'attributes': self.attributes,
-            'description': self.description,
-            'endTime': self.end_time,
-            'issue': getattr(self.issue, 'payload', issue_payload),
-            'launchUuid': self.launch_uuid,
-            'status': self.status,
-            'retry': self.retry
-        }
+        return ItemFinishRequest.create_request(**self.__dict__)
 
 
+class ItemFinishRequestAsync(ItemFinishRequest):
+
+    def __int__(self, *args, **kwargs) -> None:
+        super.__init__(*args, **kwargs)
+
+    @property
+    async def payload(self) -> dict:
+        """Get HTTP payload for the request."""
+        data = self.__dict__.copy()
+        data['launch_uuid'] = await_if_necessary(data.pop('launch_uuid'))
+        return ItemFinishRequest.create_request(**data)
+
+
+@dataclass(frozen=True)
 class RPRequestLog(RPRequestBase):
     """RP log save request model.
 
     https://github.com/reportportal/documentation/blob/master/src/md/src/DevGuides/reporting.md#save-single-log-without-attachment
     """
-    file: Optional[RPFile]
     launch_uuid: str
-    level: str
-    message: Optional[Text]
     time: str
-    item_uuid: Optional[Text]
-
-    def __init__(self,
-                 launch_uuid: str,
-                 time: str,
-                 file: Optional[RPFile] = None,
-                 item_uuid: Optional[Text] = None,
-                 level: str = RP_LOG_LEVELS[40000],
-                 message: Optional[Text] = None) -> None:
-        """Initialize instance attributes.
-
-        :param launch_uuid: Launch UUID
-        :param time:        Log time
-        :param file:        Object of the RPFile
-        :param item_uuid:   Test item UUID
-        :param level:       Log level. Allowable values: error(40000),
-                            warn(30000), info(20000), debug(10000),
-                            trace(5000), fatal(50000), unknown(60000)
-        :param message:     Log message
-        """
-        super().__init__()
-        self.file = file  # type: RPFile
-        self.launch_uuid = launch_uuid
-        self.level = level
-        self.message = message
-        self.time = time
-        self.item_uuid = item_uuid
-        self.priority = LOW_PRIORITY
+    file: Optional[RPFile] = None
+    item_uuid: Optional[Text] = None
+    level: str = RP_LOG_LEVELS[40000]
+    message: Optional[Text] = None
 
     def __file(self) -> dict:
         """Form file payload part of the payload."""
