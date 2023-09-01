@@ -50,6 +50,7 @@ jobs:
           pip install tox tox-gh-actions
 
       - name: Test with tox
+        timeout-minutes: 10
         run: tox
 
       - name: Upload coverage to Codecov
