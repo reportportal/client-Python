@@ -86,12 +86,13 @@ class APIWorker(object):
                 self._stop_immediately()
             else:
                 self._stop()
+        self._queue.task_done()
 
     def _request_process(self, request):
         """Send request to RP and update response attribute of the request."""
         logger.debug('[%s] Processing {%s} request', self.name, request)
         try:
-            request.response = request.http_request.make()
+            request.make()
         except Exception as err:
             logger.exception('[%s] Unknown exception has occurred. '
                              'Skipping it.', err)
@@ -127,11 +128,7 @@ class APIWorker(object):
         This method process everything in worker's queue first, ignoring
         commands and terminates thread only after.
         """
-        request = self._command_get()
-        while request is not None:
-            if not isinstance(request, ControlCommand):
-                self._request_process(request)
-            request = self._command_get()
+        self._queue.join()
         self._stop_immediately()
 
     def _stop_immediately(self):

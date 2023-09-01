@@ -19,7 +19,7 @@ from typing import Any, Optional, Text, Union
 
 from aenum import Enum
 
-from reportportal_client.core.rp_requests import RPRequestBase as RPRequest
+from reportportal_client.core.rp_requests import RPRequestBase as RPRequest, HttpRequest
 from static.defines import Priority
 
 logger: Logger
@@ -53,7 +53,7 @@ class APIWorker:
 
     def _command_process(self, cmd: Optional[ControlCommand]) -> None: ...
 
-    def _request_process(self, request: Optional[RPRequest]) -> None: ...
+    def _request_process(self, request: Optional[HttpRequest]) -> None: ...
 
     def _monitor(self) -> None: ...
 
@@ -63,7 +63,7 @@ class APIWorker:
 
     def is_alive(self) -> bool: ...
 
-    def send(self, cmd: Union[ControlCommand, RPRequest]) -> Any: ...
+    def send(self, cmd: Union[ControlCommand, HttpRequest]) -> Any: ...
 
     def start(self) -> None: ...
 

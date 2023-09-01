@@ -65,6 +65,8 @@ class HttpRequest:
     verify_ssl: Optional[Union[bool, str]]
     http_timeout: Union[float, Tuple[float, float]]
     name: Optional[str]
+    _priority: Priority
+    _response: Optional[RPResponse]
 
     def __init__(self,
                  session_method: Callable,
@@ -96,12 +98,37 @@ class HttpRequest:
         self.verify_ssl = verify_ssl
         self.http_timeout = http_timeout
         self.name = name
+        self._priority = DEFAULT_PRIORITY
+        self._response = None
+
+    def __lt__(self, other) -> bool:
+        """Priority protocol for the PriorityQueue."""
+        return self.priority < other.priority
+
+    @property
+    def priority(self) -> Priority:
+        """Get the priority of the request."""
+        return self._priority
+
+    @priority.setter
+    def priority(self, value: Priority) -> None:
+        """Set the priority of the request."""
+        self._priority = value
+
+    @property
+    def response(self) -> Optional[RPResponse]:
+        """Get the response object for the request."""
+        if not self._response:
+            return self.make()
+        return self._response
 
     def make(self):
         """Make HTTP request to the Report Portal API."""
         try:
-            return RPResponse(self.session_method(self.url, data=self.data, json=self.json, files=self.files,
-                                                  verify=self.verify_ssl, timeout=self.http_timeout))
+            self._response = RPResponse(
+                self.session_method(self.url, data=self.data, json=self.json, files=self.files,
+                                    verify=self.verify_ssl, timeout=self.http_timeout))
+            return self._response
             # https://github.com/reportportal/client-Python/issues/39
         except (KeyError, IOError, ValueError, TypeError) as exc:
             logger.warning(
@@ -158,49 +185,6 @@ class RPRequestBase(metaclass=AbstractBaseClass):
     """Base class for the rest of the RP request models."""
 
     __metaclass__ = AbstractBaseClass
-    _http_request: Optional[HttpRequest] = ...
-    _priority: Priority = ...
-    _response: Optional[RPResponse] = ...
-
-    def __init__(self) -> None:
-        """Initialize instance attributes."""
-        self._http_request = None
-        self._priority = DEFAULT_PRIORITY
-        self._response = None
-
-    def __lt__(self, other) -> bool:
-        """Priority protocol for the PriorityQueue."""
-        return self.priority < other.priority
-
-    @property
-    def http_request(self) -> HttpRequest:
-        """Get the HttpRequest object of the request."""
-        return self._http_request
-
-    @http_request.setter
-    def http_request(self, value: HttpRequest) -> None:
-        """Set the HttpRequest object of the request."""
-        self._http_request = value
-
-    @property
-    def priority(self) -> Priority:
-        """Get the priority of the request."""
-        return self._priority
-
-    @priority.setter
-    def priority(self, value: Priority) -> None:
-        """Set the priority of the request."""
-        self._priority = value
-
-    @property
-    def response(self) -> Optional[RPResponse]:
-        """Get the response object for the request."""
-        return self._response
-
-    @response.setter
-    def response(self, value: RPResponse) -> None:
-        """Set the response object for the request."""
-        self._response = value
 
     @abstractmethod
     def payload(self) -> dict:
@@ -229,7 +213,8 @@ class LaunchStartRequest(RPRequestBase):
                  description: Optional[Text] = None,
                  mode: str = 'default',
                  rerun: bool = False,
-                 rerun_of: Optional[Text] = None) -> None:
+                 rerun_of: Optional[Text] = None,
+                 uuid: str = None) -> None:
         """Initialize instance attributes.
 
         :param name:        Name of the launch
@@ -249,13 +234,14 @@ class LaunchStartRequest(RPRequestBase):
         self.rerun = rerun
         self.rerun_of = rerun_of
         self.start_time = start_time
+        self.uuid = uuid
 
     @property
     def payload(self) -> dict:
         """Get HTTP payload for the request."""
         if self.attributes and isinstance(self.attributes, dict):
             self.attributes = dict_to_payload(self.attributes)
-        return {
+        result = {
             'attributes': self.attributes,
             'description': self.description,
             'mode': self.mode,
@@ -264,6 +250,9 @@ class LaunchStartRequest(RPRequestBase):
             'rerunOf': self.rerun_of,
             'startTime': self.start_time
         }
+        if self.uuid:
+            result['uuid'] = self.uuid
+        return result
 
 
 class LaunchFinishRequest(RPRequestBase):

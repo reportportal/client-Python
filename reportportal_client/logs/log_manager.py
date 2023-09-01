@@ -79,8 +79,7 @@ class LogManager(object):
         http_request = HttpRequest(
             self.session.post, self._log_endpoint, files=batch.payload,
             verify_ssl=self.verify_ssl)
-        batch.http_request = http_request
-        self._worker.send(batch)
+        self._worker.send(http_request)
         self._batch = []
         self._payload_size = helpers.TYPICAL_MULTIPART_FOOTER_LENGTH
 
