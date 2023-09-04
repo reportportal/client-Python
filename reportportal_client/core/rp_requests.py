@@ -26,6 +26,7 @@ from dataclasses import dataclass
 from typing import Callable, Text, Optional, Union, List, Tuple, Any, TypeVar
 
 import aiohttp
+from aiohttp import MultipartWriter, Payload
 
 from reportportal_client import helpers
 from reportportal_client.core.rp_file import RPFile
@@ -480,19 +481,12 @@ class RPLogBatchAsync(RPLogBatch):
     def __int__(self, *args, **kwargs) -> None:
         super.__init__(*args, **kwargs)
 
-    async def __get_request_part(self) -> List[Tuple[str, tuple]]:
+    async def __get_request_part(self) -> str:
         coroutines = [log.payload for log in self.log_reqs]
-        body = [(
-            'json_request_part', (
-                None,
-                json_converter.dumps(await asyncio.gather(*coroutines)),
-                'application/json'
-            )
-        )]
-        return body
+        return json_converter.dumps(await asyncio.gather(*coroutines))
 
     @property
-    async def payload(self) -> List[Tuple[str, tuple]]:
+    async def payload(self) -> MultipartWriter:
         r"""Get HTTP payload for the request.
 
         Example:
@@ -510,6 +504,11 @@ class RPLogBatchAsync(RPLogBatch):
            '<html lang="utf-8">\n<body><p>Paragraph</p></body></html>',
            'text/html'))]
         """
-        body = await self.__get_request_part()
-        body.extend(self.__get_files())
-        return body
+        json_payload = Payload(await self.__get_request_part(), content_type='application/json')
+        json_payload.set_content_disposition('form-data', name='json_request_part')
+        mpwriter = MultipartWriter('form-data')
+        mpwriter.append_payload(json_payload)
+        for _, file in self.__get_files():
+            file_payload = Payload(file[1], content_type=file[2], filename=file[0])
+            mpwriter.append_payload(file_payload)
+        return mpwriter

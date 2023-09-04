@@ -124,7 +124,6 @@ class RPClient:
                                        be processed in one batch
         """
         set_current(self)
-        self._batch_logs = []
         self.api_v1, self.api_v2 = 'v1', 'v2'
         self.endpoint = endpoint
         self.project = project

@@ -23,6 +23,9 @@ from six.moves.urllib.parse import urlparse
 from reportportal_client._local import current, set_current
 from reportportal_client.helpers import timestamp
 
+MAX_LOG_BATCH_SIZE = 20
+MAX_LOG_BATCH_PAYLOAD_SIZE = 65000000
+
 
 class RPLogger(logging.getLoggerClass()):
     """RPLogger class for low-level logging in tests."""

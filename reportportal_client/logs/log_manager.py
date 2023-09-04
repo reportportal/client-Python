@@ -26,12 +26,10 @@ from reportportal_client.core.rp_requests import (
     RPRequestLog
 )
 from reportportal_client.core.worker import APIWorker
+from reportportal_client.logs import MAX_LOG_BATCH_SIZE, MAX_LOG_BATCH_PAYLOAD_SIZE
 from reportportal_client.static.defines import NOT_FOUND
 
 logger = logging.getLogger(__name__)
-
-MAX_LOG_BATCH_SIZE = 20
-MAX_LOG_BATCH_PAYLOAD_SIZE = 65000000
 
 
 class LogManager(object):

@@ -13,13 +13,15 @@
 
 from typing import Text, Optional, Dict, Any, Callable, Union
 
+# noinspection PyProtectedMember
+from reportportal_client.aio.client import _RPClientAsync
 from reportportal_client.client import RPClient
 
 
 class StepReporter:
     client: RPClient = ...
 
-    def __init__(self, rp_client: RPClient) -> None: ...
+    def __init__(self, rp_client: Union[RPClient, _RPClientAsync]) -> None: ...
 
     def start_nested_step(self,
                           name: Text,

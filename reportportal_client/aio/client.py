@@ -15,14 +15,20 @@
 
 import asyncio
 import logging
+import sys
 import threading
+import warnings
+from os import getenv
 from queue import LifoQueue
 from typing import Union, Tuple, List, Dict, Any, Optional, TextIO
 
 import aiohttp
 
+from helpers import uri_join
+# noinspection PyProtectedMember
+from reportportal_client._local import set_current
 from reportportal_client.core.rp_issues import Issue
-from reportportal_client.logs.log_manager import LogManager, MAX_LOG_BATCH_PAYLOAD_SIZE
+from reportportal_client.logs import MAX_LOG_BATCH_PAYLOAD_SIZE
 from reportportal_client.static.defines import NOT_FOUND
 from reportportal_client.steps import StepReporter
 
@@ -38,9 +44,8 @@ class _LifoQueue(LifoQueue):
 
 
 class _RPClientAsync:
-    _log_manager: LogManager = ...
-    api_v1: str = ...
-    api_v2: str = ...
+    api_v1: str
+    api_v2: str
     base_url_v1: str = ...
     base_url_v2: str = ...
     endpoint: str = ...
@@ -82,6 +87,59 @@ class _RPClientAsync:
             **kwargs: Any
     ) -> None:
         self._item_stack = _LifoQueue()
+        set_current(self)
+        self.api_v1, self.api_v2 = 'v1', 'v2'
+        self.endpoint = endpoint
+        self.project = project
+        self.base_url_v1 = uri_join(
+            self.endpoint, 'api/{}'.format(self.api_v1), self.project)
+        self.base_url_v2 = uri_join(
+            self.endpoint, 'api/{}'.format(self.api_v2), self.project)
+        self.is_skipped_an_issue = is_skipped_an_issue
+        self.launch_id = launch_id
+        self.log_batch_size = log_batch_size
+        self.log_batch_payload_size = log_batch_payload_size
+        self.verify_ssl = verify_ssl
+        self.retries = retries
+        self.max_pool_size = max_pool_size
+        self.http_timeout = http_timeout
+        self.step_reporter = StepReporter(self)
+        self._item_stack = _LifoQueue()
+        self.mode = mode
+        self._skip_analytics = getenv('AGENT_NO_ANALYTICS')
+        self.launch_uuid_print = launch_uuid_print
+        self.print_output = print_output or sys.stdout
+
+        self.api_key = api_key
+        if not self.api_key:
+            if 'token' in kwargs:
+                warnings.warn(
+                    message='Argument `token` is deprecated since 5.3.5 and '
+                            'will be subject for removing in the next major '
+                            'version. Use `api_key` argument instead.',
+                    category=DeprecationWarning,
+                    stacklevel=2
+                )
+                self.api_key = kwargs['token']
+
+            if not self.api_key:
+                warnings.warn(
+                    message='Argument `api_key` is `None` or empty string, '
+                            'that is not supposed to happen because Report '
+                            'Portal is usually requires an authorization key. '
+                            'Please check your code.',
+                    category=RuntimeWarning,
+                    stacklevel=2
+                )
+
+        self.__init_session()
+
+    def __init_session(self) -> None:
+        headers = {}
+        if self.api_key:
+            headers['Authorization'] = f'Bearer {self.api_key}'
+        session = aiohttp.ClientSession(headers=headers)
+        self.session = session
 
     async def finish_launch(self,
                             end_time: str,

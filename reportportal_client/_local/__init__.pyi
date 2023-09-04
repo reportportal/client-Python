@@ -11,12 +11,14 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License
 
-from typing import Optional
+from typing import Optional, Union
 
+# noinspection PyProtectedMember
+from reportportal_client.aio.client import _RPClientAsync
 from reportportal_client.client import RPClient
 
 
 def current() -> Optional[RPClient]: ...
 
 
-def set_current(client: Optional[RPClient]) -> None: ...
+def set_current(client: Optional[Union[RPClient, _RPClientAsync]]) -> None: ...
