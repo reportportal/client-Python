@@ -291,7 +291,7 @@ class ItemStartRequestAsync(ItemStartRequest):
         """Get HTTP payload for the request."""
         data = self.__dict__.copy()
         data['type'] = data.pop('type_')
-        data['launch_uuid'] = await_if_necessary(data.pop('launch_uuid'))
+        data['launch_uuid'] = await await_if_necessary(data.pop('launch_uuid'))
         return ItemStartRequest.create_request(**data)
 
 
@@ -348,7 +348,7 @@ class ItemFinishRequestAsync(ItemFinishRequest):
     async def payload(self) -> dict:
         """Get HTTP payload for the request."""
         data = self.__dict__.copy()
-        data['launch_uuid'] = await_if_necessary(data.pop('launch_uuid'))
+        data['launch_uuid'] = await await_if_necessary(data.pop('launch_uuid'))
         return ItemFinishRequest.create_request(**data)
 
 
@@ -358,31 +358,31 @@ class RPRequestLog(RPRequestBase):
 
     https://github.com/reportportal/documentation/blob/master/src/md/src/DevGuides/reporting.md#save-single-log-without-attachment
     """
-    launch_uuid: str
+    launch_uuid: Any
     time: str
     file: Optional[RPFile] = None
-    item_uuid: Optional[Text] = None
+    item_uuid: Optional[Any] = None
     level: str = RP_LOG_LEVELS[40000]
-    message: Optional[Text] = None
+    message: Optional[str] = None
 
-    def __file(self) -> dict:
-        """Form file payload part of the payload."""
-        if not self.file:
-            return {}
-        return {'file': {'name': self.file.name}}
+    @staticmethod
+    def create_request(**kwargs) -> dict:
+        request = {
+            'launchUuid': kwargs['launch_uuid'],
+            'level': kwargs['level'],
+            'message': kwargs.get('message'),
+            'time': kwargs['time'],
+            'itemUuid': kwargs.get('item_uuid'),
+            'file': kwargs.get('file')
+        }
+        if 'file' in kwargs and kwargs['file']:
+            request['file'] = {'name': kwargs['file'].name}
+        return request
 
     @property
     def payload(self) -> dict:
         """Get HTTP payload for the request."""
-        payload = {
-            'launchUuid': self.launch_uuid,
-            'level': self.level,
-            'message': self.message,
-            'time': self.time,
-            'itemUuid': self.item_uuid
-        }
-        payload.update(self.__file())
-        return payload
+        return RPRequestLog.create_request(**self.__dict__)
 
     @property
     def multipart_size(self) -> int:
@@ -392,15 +392,32 @@ class RPRequestLog(RPRequestBase):
         return size
 
 
+class RPRequestLogAsync(RPRequestLog):
+
+    def __int__(self, *args, **kwargs) -> None:
+        super.__init__(*args, **kwargs)
+
+    @property
+    async def payload(self) -> dict:
+        """Get HTTP payload for the request."""
+        data = self.__dict__.copy()
+        uuids = await asyncio.gather(await_if_necessary(data.pop('launch_uuid')),
+                                     await_if_necessary(data.pop('item_uuid')))
+        data['launch_uuid'] = uuids[0]
+        data['item_uuid'] = uuids[1]
+        return RPRequestLog.create_request(**data)
+
+
 class RPLogBatch(RPRequestBase):
     """RP log save batches with attachments request model.
 
     https://github.com/reportportal/documentation/blob/master/src/md/src/DevGuides/reporting.md#batch-save-logs
     """
-    default_content: str = ...
-    log_reqs: List[RPRequestLog] = ...
+    default_content: str
+    log_reqs: List[Union[RPRequestLog, RPRequestLogAsync]]
+    priority: Priority
 
-    def __init__(self, log_reqs: List[RPRequestLog]) -> None:
+    def __init__(self, log_reqs: List[Union[RPRequestLog, RPRequestLogAsync]]) -> None:
         """Initialize instance attributes.
 
         :param log_reqs:
@@ -425,7 +442,18 @@ class RPLogBatch(RPRequestBase):
         return files
 
     def __get_request_part(self) -> List[Tuple[str, tuple]]:
-        r"""Form JSON body for the request.
+        body = [(
+            'json_request_part', (
+                None,
+                json_converter.dumps([log.payload for log in self.log_reqs]),
+                'application/json'
+            )
+        )]
+        return body
+
+    @property
+    def payload(self) -> List[Tuple[str, tuple]]:
+        r"""Get HTTP payload for the request.
 
         Example:
         [('json_request_part',
@@ -442,17 +470,46 @@ class RPLogBatch(RPRequestBase):
            '<html lang="utf-8">\n<body><p>Paragraph</p></body></html>',
            'text/html'))]
         """
-        body = [(
-            'json_request_part', (
-                None,
-                json_converter.dumps([log.payload for log in self.log_reqs]),
-                'application/json'
-            )
-        )]
+        body = self.__get_request_part()
         body.extend(self.__get_files())
         return body
 
+
+class RPLogBatchAsync(RPLogBatch):
+
+    def __int__(self, *args, **kwargs) -> None:
+        super.__init__(*args, **kwargs)
+
+    async def __get_request_part(self) -> List[Tuple[str, tuple]]:
+        coroutines = [log.payload for log in self.log_reqs]
+        body = [(
+            'json_request_part', (
+                None,
+                json_converter.dumps(await asyncio.gather(*coroutines)),
+                'application/json'
+            )
+        )]
+        return body
+
     @property
-    def payload(self) -> List[Tuple[str, tuple]]:
-        """Get HTTP payload for the request."""
-        return self.__get_request_part()
+    async def payload(self) -> List[Tuple[str, tuple]]:
+        r"""Get HTTP payload for the request.
+
+        Example:
+        [('json_request_part',
+          (None,
+           '[{"launchUuid": "bf6edb74-b092-4b32-993a-29967904a5b4",
+              "time": "1588936537081",
+              "message": "Html report",
+              "level": "INFO",
+              "itemUuid": "d9dc2514-2c78-4c4f-9369-ee4bca4c78f8",
+              "file": {"name": "Detailed report"}}]',
+           'application/json')),
+         ('file',
+          ('Detailed report',
+           '<html lang="utf-8">\n<body><p>Paragraph</p></body></html>',
+           'text/html'))]
+        """
+        body = await self.__get_request_part()
+        body.extend(self.__get_files())
+        return body
