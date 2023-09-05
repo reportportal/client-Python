@@ -25,18 +25,18 @@ from typing import Union, Tuple, List, Dict, Any, Optional, TextIO
 
 import aiohttp
 
+# noinspection PyProtectedMember
+from reportportal_client._local import set_current
+from reportportal_client.core.rp_issues import Issue
+from reportportal_client.core.rp_requests import (LaunchStartRequest, AsyncHttpRequest, AsyncItemStartRequest,
+                                                  AsyncItemFinishRequest, LaunchFinishRequest)
+from reportportal_client.helpers import uri_join, verify_value_length, await_if_necessary, agent_name_version
+from reportportal_client.logs import MAX_LOG_BATCH_PAYLOAD_SIZE
+from reportportal_client.services.statistics import async_send_event
 from reportportal_client.static.abstract import (
     AbstractBaseClass,
     abstractmethod
 )
-# noinspection PyProtectedMember
-from reportportal_client._local import set_current
-from reportportal_client.core.rp_issues import Issue
-from reportportal_client.core.rp_requests import LaunchStartRequest, AsyncHttpRequest, AsyncItemStartRequest, \
-    AsyncItemFinishRequest, LaunchFinishRequest
-from reportportal_client.helpers import uri_join, verify_value_length, await_if_necessary
-from reportportal_client.logs import MAX_LOG_BATCH_PAYLOAD_SIZE
-from reportportal_client.services.statistics import async_send_event
 from reportportal_client.static.defines import NOT_FOUND
 from reportportal_client.steps import StepReporter
 
@@ -218,19 +218,12 @@ class _AsyncRPClient(metaclass=AbstractBaseClass):
 
         stat_coro = None
         if not self._skip_analytics:
-            agent_name, agent_version = None, None
+            stat_coro = async_send_event('start_launch', *agent_name_version(attributes))
 
-            agent_attribute = [a for a in attributes if
-                               a.get('key') == 'agent'] if attributes else []
-            if len(agent_attribute) > 0 and agent_attribute[0].get('value'):
-                agent_name, agent_version = agent_attribute[0]['value'].split(
-                    '|')
-            stat_coro = async_send_event('start_launch', agent_name, agent_version)
-
-        if not stat_coro:
-            response = await launch_coro
-        else:
+        if stat_coro:
             response = (await asyncio.gather(launch_coro, stat_coro))[0]
+        else:
+            response = await launch_coro
 
         if not response:
             return

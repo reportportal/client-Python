@@ -23,20 +23,21 @@ from typing import Union, Tuple, List, Dict, Any, Optional, TextIO
 import requests
 from requests.adapters import HTTPAdapter, Retry, DEFAULT_RETRIES
 
-from ._local import set_current
-from .core.rp_issues import Issue
-from .core.rp_requests import (
+# noinspection PyProtectedMember
+from reportportal_client._local import set_current
+from reportportal_client.core.rp_issues import Issue
+from reportportal_client.core.rp_requests import (
     HttpRequest,
     ItemStartRequest,
     ItemFinishRequest,
     LaunchStartRequest,
     LaunchFinishRequest
 )
-from .helpers import uri_join, verify_value_length
-from .logs.log_manager import LogManager, MAX_LOG_BATCH_PAYLOAD_SIZE
-from .services.statistics import send_event
-from .static.defines import NOT_FOUND
-from .steps import StepReporter
+from reportportal_client.helpers import uri_join, verify_value_length, agent_name_version
+from reportportal_client.logs.log_manager import LogManager, MAX_LOG_BATCH_PAYLOAD_SIZE
+from reportportal_client.services.statistics import send_event
+from reportportal_client.static.defines import NOT_FOUND
+from reportportal_client.steps import StepReporter
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
@@ -400,14 +401,7 @@ class RPClient:
             return
 
         if not self._skip_analytics:
-            agent_name, agent_version = None, None
-
-            agent_attribute = [a for a in attributes if
-                               a.get('key') == 'agent'] if attributes else []
-            if len(agent_attribute) > 0 and agent_attribute[0].get('value'):
-                agent_name, agent_version = agent_attribute[0]['value'].split(
-                    '|')
-            send_event('start_launch', agent_name, agent_version)
+            send_event('start_launch', *agent_name_version(attributes))
 
         self._log_manager.launch_id = self.launch_id = response.id
         logger.debug('start_launch - ID: %s', self.launch_id)

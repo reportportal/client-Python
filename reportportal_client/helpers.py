@@ -18,7 +18,7 @@ import logging
 import time
 import uuid
 from platform import machine, processor, system
-from typing import Optional, Any, List, Dict, Callable
+from typing import Optional, Any, List, Dict, Callable, Tuple, Union
 
 from pkg_resources import DistributionNotFound, get_distribution
 
@@ -222,6 +222,14 @@ def calculate_file_part_size(file: RPFile) -> int:
     size = len(TYPICAL_FILE_PART_HEADER.format(file.name, file.content_type))
     size += len(file.content)
     return size
+
+
+def agent_name_version(attributes: Optional[Union[List, Dict]] = None) -> Tuple[Optional[str], Optional[str]]:
+    agent_name, agent_version = None, None
+    agent_attribute = [a for a in attributes if a.get('key') == 'agent'] if attributes else []
+    if len(agent_attribute) > 0 and agent_attribute[0].get('value'):
+        agent_name, agent_version = agent_attribute[0]['value'].split('|')
+    return agent_name, agent_version
 
 
 async def await_if_necessary(obj: Optional[Any]) -> Any:
