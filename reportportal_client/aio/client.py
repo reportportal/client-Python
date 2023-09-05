@@ -366,7 +366,7 @@ class _RPClientAsync:
         return self._item_stack.last()
 
 
-class RPClientAsync(_RPClientAsync):
+class AsyncRPClient(_RPClientAsync):
     launch_id: Optional[str]
     use_own_launch: bool
 
@@ -445,13 +445,13 @@ class RPClientAsync(_RPClientAsync):
         return await super().finish_launch(self.launch_id, end_time, status=status, attributes=attributes,
                                            **kwargs)
 
-    def clone(self) -> 'RPClientAsync':
+    def clone(self) -> 'AsyncRPClient':
         """Clone the client object, set current Item ID as cloned item ID.
 
         :returns: Cloned client object
-        :rtype: RPClientAsync
+        :rtype: AsyncRPClient
         """
-        cloned = RPClientAsync(
+        cloned = AsyncRPClient(
             endpoint=self.endpoint,
             project=self.project,
             api_key=self.api_key,
@@ -471,7 +471,7 @@ class RPClientAsync(_RPClientAsync):
         return cloned
 
 
-class RPClientSync(_RPClientAsync):
+class SyncRPClient(_RPClientAsync):
     loop: asyncio.AbstractEventLoop
     thread: threading.Thread
     self_loop: bool
@@ -578,13 +578,13 @@ class RPClientSync(_RPClientAsync):
         result_task = self.loop.create_task(result_coro)
         return result_task
 
-    def clone(self) -> 'RPClientSync':
+    def clone(self) -> 'SyncRPClient':
         """Clone the client object, set current Item ID as cloned item ID.
 
         :returns: Cloned client object
-        :rtype: RPClientSync
+        :rtype: SyncRPClient
         """
-        cloned = RPClientSync(
+        cloned = SyncRPClient(
             endpoint=self.endpoint,
             project=self.project,
             api_key=self.api_key,
