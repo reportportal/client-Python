@@ -565,6 +565,7 @@ class RPClientSync(_RPClientAsync):
         super()._remove_current_item()
         return result_task
 
+    # TODO: implement loop task finish wait
     def finish_launch(self,
                       end_time: str,
                       status: str = None,
