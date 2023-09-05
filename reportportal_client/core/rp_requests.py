@@ -30,7 +30,7 @@ from reportportal_client import helpers
 from reportportal_client.core.rp_file import RPFile
 from reportportal_client.core.rp_issues import Issue
 from reportportal_client.core.rp_responses import RPResponse
-from reportportal_client.helpers import dict_to_payload
+from reportportal_client.helpers import dict_to_payload, await_if_necessary
 from reportportal_client.static.abstract import (
     AbstractBaseClass,
     abstractmethod
@@ -43,15 +43,6 @@ from reportportal_client.static.defines import (
 
 logger = logging.getLogger(__name__)
 T = TypeVar("T")
-
-
-async def await_if_necessary(obj: Optional[Any]) -> Any:
-    if obj:
-        if asyncio.isfuture(obj) or asyncio.iscoroutine(obj):
-            return await obj
-        elif asyncio.iscoroutinefunction(obj):
-            return await obj()
-    return obj
 
 
 class HttpRequest:
@@ -135,7 +126,6 @@ class AsyncHttpRequest(HttpRequest):
                  url: Any,
                  data: Optional[Any] = None,
                  json: Optional[Any] = None,
-                 http_timeout: Union[float, Tuple[float, float]] = (10, 10),
                  name: Optional[Text] = None) -> None:
         """Initialize instance attributes.
 

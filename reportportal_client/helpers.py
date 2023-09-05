@@ -11,39 +11,29 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import asyncio
 import inspect
 import json
 import logging
 import time
 import uuid
 from platform import machine, processor, system
+from typing import Optional, Any, List, Dict, Callable
 
-import six
 from pkg_resources import DistributionNotFound, get_distribution
 
-from .static.defines import ATTRIBUTE_LENGTH_LIMIT
+from reportportal_client.core.rp_file import RPFile
+from reportportal_client.static.defines import ATTRIBUTE_LENGTH_LIMIT
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 
-def generate_uuid():
+def generate_uuid() -> str:
     """Generate UUID."""
     return str(uuid.uuid4())
 
 
-def convert_string(value):
-    """Support and convert strings in py2 and py3.
-
-    :param value:   input string
-    :return value:  converted string
-    """
-    if isinstance(value, six.text_type):
-        # Don't try to encode 'unicode' in Python 2.
-        return value
-    return str(value)
-
-
-def dict_to_payload(dictionary):
+def dict_to_payload(dictionary: dict) -> List[dict]:
     """Convert incoming dictionary to the list of dictionaries.
 
     This function transforms the given dictionary of tags/attributes into
@@ -55,12 +45,12 @@ def dict_to_payload(dictionary):
     """
     hidden = dictionary.pop('system', False)
     return [
-        {'key': key, 'value': convert_string(value), 'system': hidden}
+        {'key': key, 'value': str(value), 'system': hidden}
         for key, value in sorted(dictionary.items())
     ]
 
 
-def gen_attributes(rp_attributes):
+def gen_attributes(rp_attributes: List[str]) -> List[Dict[str, str]]:
     """Generate list of attributes for the API request.
 
     Example of input list:
@@ -89,7 +79,7 @@ def gen_attributes(rp_attributes):
     return attrs
 
 
-def get_launch_sys_attrs():
+def get_launch_sys_attrs() -> Dict[str]:
     """Generate attributes for the launch containing system information.
 
     :return: dict {'os': 'Windows',
@@ -104,7 +94,7 @@ def get_launch_sys_attrs():
     }
 
 
-def get_package_version(package_name):
+def get_package_version(package_name) -> str:
     """Get version of the given package.
 
     :param package_name: Name of the package
@@ -117,11 +107,11 @@ def get_package_version(package_name):
     return package_version
 
 
-def verify_value_length(attributes):
+def verify_value_length(attributes: List[dict]) -> List[dict]:
     """Verify length of the attribute value.
 
     The length of the attribute value should have size from '1' to '128'.
-    Otherwise HTTP response will return an error.
+    Otherwise, HTTP response will return an error.
     Example of the input list:
     [{'key': 'tag_name', 'value': 'tag_value1'}, {'value': 'tag_value2'}]
     :param attributes: List of attributes(tags)
@@ -141,12 +131,12 @@ def verify_value_length(attributes):
     return attributes
 
 
-def timestamp():
+def timestamp() -> str:
     """Return string representation of the current time in milliseconds."""
     return str(int(time.time() * 1000))
 
 
-def uri_join(*uri_parts):
+def uri_join(*uri_parts: str) -> str:
     """Join uri parts.
 
     Avoiding usage of urlparse.urljoin and os.path.join
@@ -160,7 +150,7 @@ def uri_join(*uri_parts):
     return '/'.join(str(s).strip('/').strip('\\') for s in uri_parts)
 
 
-def get_function_params(func, args, kwargs):
+def get_function_params(func: Callable, args: tuple, kwargs: Dict[str, Any]) -> Dict[str, Any]:
     """Extract argument names from the function and combine them with values.
 
     :param func: the function to get arg names
@@ -168,11 +158,7 @@ def get_function_params(func, args, kwargs):
     :param kwargs: function's kwargs
     :return: a dictionary of values
     """
-    if six.PY2:
-        # Use deprecated method for python 2.7 compatibility
-        arg_spec = inspect.getargspec(func)
-    else:
-        arg_spec = inspect.getfullargspec(func)
+    arg_spec = inspect.getfullargspec(func)
     result = dict()
     for i, arg_name in enumerate(arg_spec.args):
         if i >= len(args):
@@ -183,36 +169,36 @@ def get_function_params(func, args, kwargs):
     return result if len(result.items()) > 0 else None
 
 
-TYPICAL_MULTIPART_BOUNDARY = '--972dbca3abacfd01fb4aea0571532b52'
+TYPICAL_MULTIPART_BOUNDARY: str = '--972dbca3abacfd01fb4aea0571532b52'
 
-TYPICAL_JSON_PART_HEADER = TYPICAL_MULTIPART_BOUNDARY + '''\r
+TYPICAL_JSON_PART_HEADER: str = TYPICAL_MULTIPART_BOUNDARY + '''\r
 Content-Disposition: form-data; name="json_request_part"\r
 Content-Type: application/json\r
 \r
 '''
 
-TYPICAL_FILE_PART_HEADER = TYPICAL_MULTIPART_BOUNDARY + '''\r
+TYPICAL_FILE_PART_HEADER: str = TYPICAL_MULTIPART_BOUNDARY + '''\r
 Content-Disposition: form-data; name="file"; filename="{0}"\r
 Content-Type: {1}\r
 \r
 '''
 
-TYPICAL_JSON_PART_HEADER_LENGTH = len(TYPICAL_JSON_PART_HEADER)
+TYPICAL_JSON_PART_HEADER_LENGTH: int = len(TYPICAL_JSON_PART_HEADER)
 
-TYPICAL_MULTIPART_FOOTER = '\r\n' + TYPICAL_MULTIPART_BOUNDARY + '--'
+TYPICAL_MULTIPART_FOOTER: str = '\r\n' + TYPICAL_MULTIPART_BOUNDARY + '--'
 
-TYPICAL_MULTIPART_FOOTER_LENGTH = len(TYPICAL_MULTIPART_FOOTER)
+TYPICAL_MULTIPART_FOOTER_LENGTH: int = len(TYPICAL_MULTIPART_FOOTER)
 
-TYPICAL_JSON_ARRAY = '[]'
+TYPICAL_JSON_ARRAY: str = '[]'
 
-TYPICAL_JSON_ARRAY_LENGTH = len(TYPICAL_JSON_ARRAY)
+TYPICAL_JSON_ARRAY_LENGTH: int = len(TYPICAL_JSON_ARRAY)
 
-TYPICAL_JSON_ARRAY_ELEMENT = ','
+TYPICAL_JSON_ARRAY_ELEMENT: str = ','
 
-TYPICAL_JSON_ARRAY_ELEMENT_LENGTH = len(TYPICAL_JSON_ARRAY_ELEMENT)
+TYPICAL_JSON_ARRAY_ELEMENT_LENGTH: int = len(TYPICAL_JSON_ARRAY_ELEMENT)
 
 
-def calculate_json_part_size(json_dict):
+def calculate_json_part_size(json_dict: dict) -> int:
     """Predict a JSON part size of Multipart request.
 
     :param json_dict: a dictionary representing the JSON
@@ -225,7 +211,7 @@ def calculate_json_part_size(json_dict):
     return size
 
 
-def calculate_file_part_size(file):
+def calculate_file_part_size(file: RPFile) -> int:
     """Predict a file part size of Multipart request.
 
     :param file: RPFile class instance
@@ -236,3 +222,12 @@ def calculate_file_part_size(file):
     size = len(TYPICAL_FILE_PART_HEADER.format(file.name, file.content_type))
     size += len(file.content)
     return size
+
+
+async def await_if_necessary(obj: Optional[Any]) -> Any:
+    if obj:
+        if asyncio.isfuture(obj) or asyncio.iscoroutine(obj):
+            return await obj
+        elif asyncio.iscoroutinefunction(obj):
+            return await obj()
+    return obj
