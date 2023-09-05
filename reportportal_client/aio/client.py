@@ -15,6 +15,7 @@
 
 import asyncio
 import logging
+import ssl
 import sys
 import threading
 import warnings
@@ -24,11 +25,14 @@ from typing import Union, Tuple, List, Dict, Any, Optional, TextIO
 
 import aiohttp
 
-from helpers import uri_join
+from core.rp_requests import LaunchStartRequest, AsyncHttpRequest, AsyncItemStartRequest, \
+    AsyncItemFinishRequest, LaunchFinishRequest
+from helpers import uri_join, verify_value_length
 # noinspection PyProtectedMember
 from reportportal_client._local import set_current
 from reportportal_client.core.rp_issues import Issue
 from reportportal_client.logs import MAX_LOG_BATCH_PAYLOAD_SIZE
+from reportportal_client.services.statistics import async_send_event
 from reportportal_client.static.defines import NOT_FOUND
 from reportportal_client.steps import StepReporter
 
@@ -43,29 +47,31 @@ class _LifoQueue(LifoQueue):
                 return self.queue[-1]
 
 
+# TODO: Correct url and launch id handling for sync and async classes
 class _RPClientAsync:
     api_v1: str
     api_v2: str
-    base_url_v1: str = ...
-    base_url_v2: str = ...
-    endpoint: str = ...
-    is_skipped_an_issue: bool = ...
-    launch_id: str = ...
-    log_batch_size: int = ...
-    log_batch_payload_size: int = ...
-    project: str = ...
-    api_key: str = ...
-    verify_ssl: Union[bool, str] = ...
-    retries: int = ...
-    max_pool_size: int = ...
-    http_timeout: Union[float, Tuple[float, float]] = ...
-    session: aiohttp.ClientSession = ...
-    step_reporter: StepReporter = ...
-    mode: str = ...
-    launch_uuid_print: Optional[bool] = ...
-    print_output: Optional[TextIO] = ...
-    _skip_analytics: str = ...
-    _item_stack: _LifoQueue = ...
+    base_url_v1: str
+    base_url_v2: str
+    endpoint: str
+    is_skipped_an_issue: bool
+    launch_id: asyncio.Future
+    use_own_launch: bool
+    log_batch_size: int
+    log_batch_payload_size: int
+    project: str
+    api_key: str
+    verify_ssl: Union[bool, str]
+    retries: int
+    max_pool_size: int
+    http_timeout: Union[float, Tuple[float, float]]
+    step_reporter: StepReporter
+    mode: str
+    launch_uuid_print: Optional[bool]
+    print_output: Optional[TextIO]
+    _skip_analytics: str
+    _item_stack: _LifoQueue
+    __session: aiohttp.ClientSession
 
     def __init__(
             self,
@@ -75,10 +81,10 @@ class _RPClientAsync:
             api_key: str = None,
             log_batch_size: int = 20,
             is_skipped_an_issue: bool = True,
-            verify_ssl: bool = True,
+            verify_ssl: Union[bool, str] = True,
             retries: int = None,
             max_pool_size: int = 50,
-            launch_id: str = None,
+            launch_id: Optional[asyncio.Future] = None,
             http_timeout: Union[float, Tuple[float, float]] = (10, 10),
             log_batch_payload_size: int = MAX_LOG_BATCH_PAYLOAD_SIZE,
             mode: str = 'DEFAULT',
@@ -96,7 +102,11 @@ class _RPClientAsync:
         self.base_url_v2 = uri_join(
             self.endpoint, 'api/{}'.format(self.api_v2), self.project)
         self.is_skipped_an_issue = is_skipped_an_issue
-        self.launch_id = launch_id
+        if launch_id:
+            self.launch_id = launch_id
+            self.use_own_launch = False
+        else:
+            self.use_own_launch = True
         self.log_batch_size = log_batch_size
         self.log_batch_payload_size = log_batch_payload_size
         self.verify_ssl = verify_ssl
@@ -132,24 +142,151 @@ class _RPClientAsync:
                     stacklevel=2
                 )
 
-        self.__init_session()
+    @property
+    def session(self) -> aiohttp.ClientSession:
+        # TODO: add retry handler
+        if self.__session:
+            return self.__session
 
-    def __init_session(self) -> None:
+        ssl_config = self.verify_ssl
+        if ssl_config and type(ssl_config) == str:
+            ssl_context = ssl.create_default_context()
+            ssl_context.load_cert_chain(ssl_config)
+            ssl_config = ssl_context
+        connector = aiohttp.TCPConnector(ssl=ssl_config, limit=self.max_pool_size)
+
+        timeout = None
+        if self.http_timeout:
+            if type(self.http_timeout) == tuple:
+                connect_timeout, read_timeout = self.http_timeout
+            else:
+                connect_timeout, read_timeout = self.http_timeout, self.http_timeout
+            timeout = aiohttp.ClientTimeout(connect=connect_timeout, sock_read=read_timeout)
+
         headers = {}
         if self.api_key:
             headers['Authorization'] = f'Bearer {self.api_key}'
-        session = aiohttp.ClientSession(headers=headers)
-        self.session = session
+        self.__session = aiohttp.ClientSession(self.endpoint, connector=connector, headers=headers,
+                                               timeout=timeout)
+        return self.__session
 
-    async def finish_launch(self,
-                            end_time: str,
-                            status: str = None,
-                            attributes: Optional[Union[List, Dict]] = None,
-                            **kwargs: Any) -> Optional[str]:
-        pass
+    async def __get_item_url(self, id_future: asyncio.Future) -> Optional[str]:
+        item_id = await id_future
+        if item_id is NOT_FOUND:
+            logger.warning('Attempt to make request for non-existent id.')
+            return
+        return uri_join(self.base_url_v2, 'item', item_id)
+
+    async def __get_launch_url(self) -> Optional[str]:
+        launch_id = await self.launch_id
+        if launch_id is NOT_FOUND:
+            logger.warning('Attempt to make request for non-existent launch.')
+            return
+        return uri_join(self.base_url_v2, 'launch', launch_id, 'finish')
+
+    async def start_launch(self,
+                           name: str,
+                           start_time: str,
+                           description: Optional[str] = None,
+                           attributes: Optional[Union[List, Dict]] = None,
+                           rerun: bool = False,
+                           rerun_of: Optional[str] = None,
+                           **kwargs) -> Optional[str]:
+        """Start a new launch with the given parameters.
+
+        :param name:        Launch name
+        :param start_time:  Launch start time
+        :param description: Launch description
+        :param attributes:  Launch attributes
+        :param rerun:       Start launch in rerun mode
+        :param rerun_of:    For rerun mode specifies which launch will be
+                            re-run. Should be used with the 'rerun' option.
+        """
+        if not self.use_own_launch:
+            return self.launch_id
+        url = uri_join(self.base_url_v2, 'launch')
+        request_payload = LaunchStartRequest(
+            name=name,
+            start_time=start_time,
+            attributes=attributes,
+            description=description,
+            mode=self.mode,
+            rerun=rerun,
+            rerun_of=rerun_of or kwargs.get('rerunOf')
+        ).payload
+
+        launch_coro = AsyncHttpRequest(self.session.post,
+                                       url=url,
+                                       json=request_payload).make()
+
+        stat_coro = None
+        if not self._skip_analytics:
+            agent_name, agent_version = None, None
+
+            agent_attribute = [a for a in attributes if
+                               a.get('key') == 'agent'] if attributes else []
+            if len(agent_attribute) > 0 and agent_attribute[0].get('value'):
+                agent_name, agent_version = agent_attribute[0]['value'].split(
+                    '|')
+            stat_coro = async_send_event('start_launch', agent_name, agent_version)
+
+        if not stat_coro:
+            response = await launch_coro
+        else:
+            response = (await asyncio.gather(launch_coro, stat_coro))[0]
+
+        if not response:
+            return
+
+        launch_id = response.id
+        logger.debug(f'start_launch - ID: %s', launch_id)
+        if self.launch_uuid_print and self.print_output:
+            print(f'Report Portal Launch UUID: {self.launch_id}', file=self.print_output)
+        return launch_id
+
+    async def start_test_item(self,
+                              name: str,
+                              start_time: str,
+                              item_type: str,
+                              *,
+                              description: Optional[str] = None,
+                              attributes: Optional[List[Dict]] = None,
+                              parameters: Optional[Dict] = None,
+                              parent_item_id: Optional[asyncio.Future] = None,
+                              has_stats: bool = True,
+                              code_ref: Optional[str] = None,
+                              retry: bool = False,
+                              test_case_id: Optional[str] = None,
+                              **_: Any) -> Optional[str]:
+        if parent_item_id:
+            url = self.__get_item_url(parent_item_id)
+        else:
+            url = uri_join(self.base_url_v2, 'item')
+        request_payload = AsyncItemStartRequest(
+            name,
+            start_time,
+            item_type,
+            self.launch_id,
+            attributes=verify_value_length(attributes),
+            code_ref=code_ref,
+            description=description,
+            has_stats=has_stats,
+            parameters=parameters,
+            retry=retry,
+            test_case_id=test_case_id
+        ).payload
+
+        response = await AsyncHttpRequest(self.session.post, url=url, json=request_payload).make()
+        if not response:
+            return
+        item_id = response.id
+        if item_id is NOT_FOUND:
+            logger.warning('start_test_item - invalid response: %s',
+                           str(response.json))
+        return item_id
 
     async def finish_test_item(self,
-                               item_id: Union[asyncio.Future, str],
+                               item_id: asyncio.Future,
                                end_time: str,
                                *,
                                status: str = None,
@@ -158,7 +295,45 @@ class _RPClientAsync:
                                description: str = None,
                                retry: bool = False,
                                **kwargs: Any) -> Optional[str]:
-        pass
+        url = self.__get_item_url(item_id)
+        request_payload = AsyncItemFinishRequest(
+            end_time,
+            self.launch_id,
+            status,
+            attributes=attributes,
+            description=description,
+            is_skipped_an_issue=self.is_skipped_an_issue,
+            issue=issue,
+            retry=retry
+        ).payload
+        response = await AsyncHttpRequest(self.session.put, url=url, json=request_payload).make()
+        if not response:
+            return
+        logger.debug('finish_test_item - ID: %s', item_id)
+        logger.debug('response message: %s', response.message)
+        return response.message
+
+    async def finish_launch(self,
+                            end_time: str,
+                            status: str = None,
+                            attributes: Optional[Union[List, Dict]] = None,
+                            **kwargs: Any) -> Optional[str]:
+        if not self.use_own_launch:
+            return ""
+        url = self.__get_launch_url()
+        request_payload = LaunchFinishRequest(
+            end_time,
+            status=status,
+            attributes=attributes,
+            description=kwargs.get('description')
+        ).payload
+        response = await AsyncHttpRequest(self.session.put, url=url, json=request_payload,
+                                          name='Finish Launch').make()
+        if not response:
+            return
+        logger.debug('finish_launch - ID: %s', self.launch_id)
+        logger.debug('response message: %s', response.message)
+        return response.message
 
     async def get_item_id_by_uuid(self, uuid: Union[asyncio.Future, str]) -> Optional[str]:
         pass
@@ -180,34 +355,6 @@ class _RPClientAsync:
                   item_id: Optional[Union[asyncio.Future, str]] = None) -> None:
         pass
 
-    async def start_launch(self,
-                           name: str,
-                           start_time: str,
-                           description: Optional[str] = None,
-                           attributes: Optional[Union[List, Dict]] = None,
-                           rerun: bool = False,
-                           rerun_of: Optional[str] = None,
-                           **kwargs) -> Optional[str]:
-        pass
-
-    async def start_test_item(self,
-                              name: str,
-                              start_time: str,
-                              item_type: str,
-                              *,
-                              description: Optional[str] = None,
-                              attributes: Optional[List[Dict]] = None,
-                              parameters: Optional[Dict] = None,
-                              parent_item_id: Optional[Union[asyncio.Future, str]] = None,
-                              has_stats: bool = True,
-                              code_ref: Optional[str] = None,
-                              retry: bool = False,
-                              test_case_id: Optional[str] = None,
-                              **_: Any) -> Optional[str]:
-        parent = parent_item_id
-        if parent_item_id and asyncio.isfuture(parent_item_id):
-            parent = await parent_item_id
-
     async def update_test_item(self, item_uuid: Union[asyncio.Future, str],
                                attributes: Optional[Union[List, Dict]] = None,
                                description: Optional[str] = None) -> Optional[str]:
@@ -225,33 +372,25 @@ class _RPClientAsync:
         """Retrieve the last item reported by the client."""
         return self._item_stack.last()
 
-    def clone(self) -> '_RPClientAsync':
-        """Clone the client object, set current Item ID as cloned item ID.
-
-        :returns: Cloned client object
-        :rtype: _RPClientAsync
-        """
-        cloned = _RPClientAsync(
-            endpoint=self.endpoint,
-            project=self.project,
-            api_key=self.api_key,
-            log_batch_size=self.log_batch_size,
-            is_skipped_an_issue=self.is_skipped_an_issue,
-            verify_ssl=self.verify_ssl,
-            retries=self.retries,
-            max_pool_size=self.max_pool_size,
-            launch_id=self.launch_id,
-            http_timeout=self.http_timeout,
-            log_batch_payload_size=self.log_batch_payload_size,
-            mode=self.mode
-        )
-        current_item = self.current_item()
-        if current_item:
-            cloned._add_current_item(current_item)
-        return cloned
-
 
 class RPClientAsync(_RPClientAsync):
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+
+    async def start_launch(self,
+                           name: str,
+                           start_time: str,
+                           description: Optional[str] = None,
+                           attributes: Optional[Union[List, Dict]] = None,
+                           rerun: bool = False,
+                           rerun_of: Optional[str] = None,
+                           **kwargs) -> Optional[str]:
+        launch_id = await super().start_launch(name=name, start_time=start_time, description=description,
+                                               attributes=attributes, rerun=rerun, rerun_of=rerun_of,
+                                               **kwargs)
+        self.launch_id = launch_id
+        return launch_id
 
     async def start_test_item(self,
                               name: str,
@@ -261,7 +400,7 @@ class RPClientAsync(_RPClientAsync):
                               description: Optional[str] = None,
                               attributes: Optional[List[Dict]] = None,
                               parameters: Optional[Dict] = None,
-                              parent_item_id: Optional[Union[asyncio.Future, str]] = None,
+                              parent_item_id: Optional[str] = None,
                               has_stats: bool = True,
                               code_ref: Optional[str] = None,
                               retry: bool = False,
@@ -273,6 +412,7 @@ class RPClientAsync(_RPClientAsync):
                                                 code_ref=code_ref, retry=retry, test_case_id=test_case_id,
                                                 **kwargs)
         if item_id and item_id is not NOT_FOUND:
+            logger.debug('start_test_item - ID: %s', item_id)
             super()._add_current_item(item_id)
         return item_id
 
@@ -292,38 +432,54 @@ class RPClientAsync(_RPClientAsync):
         super()._remove_current_item()
         return result
 
+    def clone(self) -> 'RPClientAsync':
+        """Clone the client object, set current Item ID as cloned item ID.
+
+        :returns: Cloned client object
+        :rtype: RPClientAsync
+        """
+        cloned = RPClientAsync(
+            endpoint=self.endpoint,
+            project=self.project,
+            api_key=self.api_key,
+            log_batch_size=self.log_batch_size,
+            is_skipped_an_issue=self.is_skipped_an_issue,
+            verify_ssl=self.verify_ssl,
+            retries=self.retries,
+            max_pool_size=self.max_pool_size,
+            launch_id=self.launch_id,
+            http_timeout=self.http_timeout,
+            log_batch_payload_size=self.log_batch_payload_size,
+            mode=self.mode
+        )
+        current_item = self.current_item()
+        if current_item:
+            cloned._add_current_item(current_item)
+        return cloned
+
 
 class RPClientSync(_RPClientAsync):
     loop: asyncio.AbstractEventLoop
     thread: threading.Thread
+    self_loop: bool
+    self_thread: bool
 
-    def __init__(
-            self,
-            endpoint: str,
-            project: str,
-            *,
-            api_key: str = None,
-            log_batch_size: int = 20,
-            is_skipped_an_issue: bool = True,
-            verify_ssl: bool = True,
-            retries: int = None,
-            max_pool_size: int = 50,
-            launch_id: str = None,
-            http_timeout: Union[float, Tuple[float, float]] = (10, 10),
-            log_batch_payload_size: int = MAX_LOG_BATCH_PAYLOAD_SIZE,
-            mode: str = 'DEFAULT',
-            launch_uuid_print: bool = False,
-            print_output: Optional[TextIO] = None,
-            **kwargs: Any
-    ) -> None:
-        super().__init__(endpoint, project, api_key=api_key, log_batch_size=log_batch_size,
-                         is_skipped_an_issue=is_skipped_an_issue, verify_ssl=verify_ssl, retries=retries,
-                         max_pool_size=max_pool_size, launch_id=launch_id, http_timeout=http_timeout,
-                         log_batch_payload_size=log_batch_payload_size, mode=mode,
-                         launch_uuid_print=launch_uuid_print, print_output=print_output, **kwargs)
-        self.loop = asyncio.new_event_loop()
-        self.thread = threading.Thread(target=self.loop.run_forever(), name='RP-Async-Client', daemon=True)
-        self.thread.start()
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        if 'loop' in kwargs and kwargs['loop']:
+            self.loop = kwargs['loop']
+            self.self_loop = False
+        else:
+            self.loop = asyncio.new_event_loop()
+            self.self_loop = True
+        if 'thread' in kwargs and kwargs['thread']:
+            self.thread = kwargs['thread']
+            self.self_thread = False
+        else:
+            self.thread = threading.Thread(target=self.loop.run_forever(), name='RP-Async-Client',
+                                           daemon=True)
+            self.thread.start()
+            self.self_thread = True
 
     def start_test_item(self,
                         name: str,
@@ -333,7 +489,7 @@ class RPClientSync(_RPClientAsync):
                         description: Optional[str] = None,
                         attributes: Optional[List[Dict]] = None,
                         parameters: Optional[Dict] = None,
-                        parent_item_id: Optional[Union[asyncio.Future, str]] = None,
+                        parent_item_id: Optional[asyncio.Future] = None,
                         has_stats: bool = True,
                         code_ref: Optional[str] = None,
                         retry: bool = False,
@@ -347,3 +503,30 @@ class RPClientSync(_RPClientAsync):
         item_id_task = self.loop.create_task(item_id_coro)
         super()._add_current_item(item_id_task)
         return item_id_task
+
+    def clone(self) -> 'RPClientSync':
+        """Clone the client object, set current Item ID as cloned item ID.
+
+        :returns: Cloned client object
+        :rtype: RPClientSync
+        """
+        cloned = RPClientSync(
+            endpoint=self.endpoint,
+            project=self.project,
+            api_key=self.api_key,
+            log_batch_size=self.log_batch_size,
+            is_skipped_an_issue=self.is_skipped_an_issue,
+            verify_ssl=self.verify_ssl,
+            retries=self.retries,
+            max_pool_size=self.max_pool_size,
+            launch_id=self.launch_id,
+            http_timeout=self.http_timeout,
+            log_batch_payload_size=self.log_batch_payload_size,
+            mode=self.mode,
+            loop=self.loop,
+            thread=self.thread
+        )
+        current_item = self.current_item()
+        if current_item:
+            cloned._add_current_item(current_item)
+        return cloned

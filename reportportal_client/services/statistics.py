@@ -15,19 +15,21 @@
 
 import logging
 from platform import python_version
+from typing import Optional
 
+import aiohttp
 import requests
 from pkg_resources import get_distribution
 
-from .client_id import get_client_id
-from .constants import CLIENT_INFO, ENDPOINT
+from reportportal_client.services.client_id import get_client_id
+from reportportal_client.services.constants import CLIENT_INFO, ENDPOINT
 
 logger = logging.getLogger(__name__)
 
 ID, KEY = CLIENT_INFO.split(':')
 
 
-def _get_client_info():
+def _get_client_info() -> tuple[str, str]:
     """Get name of the client and its version.
 
     :return: ('reportportal-client', '5.0.4')
@@ -36,7 +38,7 @@ def _get_client_info():
     return client.project_name, client.version
 
 
-def _get_platform_info():
+def _get_platform_info() -> str:
     """Get current platform basic info, e.g.: 'Python 3.6.1'.
 
     :return: str represents the current platform, e.g.: 'Python 3.6.1'
@@ -44,15 +46,7 @@ def _get_platform_info():
     return 'Python ' + python_version()
 
 
-def send_event(event_name, agent_name, agent_version):
-    """Send an event to statistics service.
-
-     Use client and agent versions with their names.
-
-    :param event_name: Event name to be used
-    :param agent_name: Name of the agent that uses the client
-    :param agent_version: Version of the agent
-    """
+def get_payload(event_name: str, agent_name: Optional[str], agent_version: Optional[str]) -> dict:
     client_name, client_version = _get_client_info()
     request_params = {
         'client_name': client_name,
@@ -67,20 +61,54 @@ def send_event(event_name, agent_name, agent_version):
     if agent_version:
         request_params['agent_version'] = agent_version
 
-    payload = {
+    return {
         'client_id': get_client_id(),
         'events': [{
             'name': event_name,
             'params': request_params
         }]
     }
+
+
+def send_event(event_name: str, agent_name: Optional[str], agent_version: Optional[str]) -> requests.Response:
+    """Send an event to statistics service.
+
+     Use client and agent versions with their names.
+
+    :param event_name: Event name to be used
+    :param agent_name: Name of the agent that uses the client
+    :param agent_version: Version of the agent
+    """
     headers = {'User-Agent': 'python-requests'}
     query_params = {
         'measurement_id': ID,
         'api_secret': KEY
     }
     try:
-        return requests.post(url=ENDPOINT, json=payload, headers=headers,
-                             params=query_params)
+        return requests.post(url=ENDPOINT, json=get_payload(event_name, agent_name, agent_version),
+                             headers=headers, params=query_params)
     except requests.exceptions.RequestException as err:
         logger.debug('Failed to send data to Statistics service: %s', str(err))
+
+
+async def async_send_event(event_name: str, agent_name: Optional[str],
+                           agent_version: Optional[str]) -> aiohttp.ClientResponse:
+    """Send an event to statistics service.
+
+     Use client and agent versions with their names.
+
+    :param event_name: Event name to be used
+    :param agent_name: Name of the agent that uses the client
+    :param agent_version: Version of the agent
+    """
+    headers = {'User-Agent': 'python-aiohttp'}
+    query_params = {
+        'measurement_id': ID,
+        'api_secret': KEY
+    }
+    async with aiohttp.ClientSession() as session:
+        result = await session.post(url=ENDPOINT, json=get_payload(event_name, agent_name, agent_version),
+                                    headers=headers, params=query_params)
+        if not result.ok:
+            logger.debug('Failed to send data to Statistics service: %s', result.reason)
+        return result
