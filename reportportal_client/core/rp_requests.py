@@ -108,8 +108,9 @@ class HttpRequest:
     def make(self):
         """Make HTTP request to the Report Portal API."""
         try:
-            return RPResponse(self.session_method(self.url, data=self.data, json=self.json, files=self.files,
-                                                  verify=self.verify_ssl, timeout=self.http_timeout))
+            return RPResponse(self.session_method(self.url, data=self.data, json=self.json,
+                                                  files=self.files, verify=self.verify_ssl,
+                                                  timeout=self.http_timeout))
         except (KeyError, IOError, ValueError, TypeError) as exc:
             logger.warning(
                 "Report Portal %s request failed",

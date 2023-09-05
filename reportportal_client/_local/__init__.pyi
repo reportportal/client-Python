@@ -14,11 +14,11 @@
 from typing import Optional, Union
 
 # noinspection PyProtectedMember
-from reportportal_client.aio.client import _RPClientAsync
+from reportportal_client.aio.client import _AsyncRPClient
 from reportportal_client.client import RPClient
 
 
 def current() -> Optional[RPClient]: ...
 
 
-def set_current(client: Optional[Union[RPClient, _RPClientAsync]]) -> None: ...
+def set_current(client: Optional[Union[RPClient, _AsyncRPClient]]) -> None: ...

@@ -19,7 +19,7 @@ __all__ = ["AbstractBaseClass", "abstractmethod"]
 
 
 class AbstractBaseClass(_ABCMeta):
-    """Metaclass fot pure Interfacing.
+    """Metaclass for pure Interfacing.
 
     Being set as __metaclass__, forbids direct object creation from this
     class, allowing only inheritance. I.e.
