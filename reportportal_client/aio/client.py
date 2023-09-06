@@ -33,10 +33,6 @@ from reportportal_client.core.rp_requests import (LaunchStartRequest, AsyncHttpR
 from reportportal_client.helpers import uri_join, verify_value_length, await_if_necessary, agent_name_version
 from reportportal_client.logs import MAX_LOG_BATCH_PAYLOAD_SIZE
 from reportportal_client.services.statistics import async_send_event
-from reportportal_client.static.abstract import (
-    AbstractBaseClass,
-    abstractmethod
-)
 from reportportal_client.static.defines import NOT_FOUND
 from reportportal_client.steps import StepReporter
 
@@ -51,9 +47,7 @@ class _LifoQueue(LifoQueue):
                 return self.queue[-1]
 
 
-class _AsyncRPClient(metaclass=AbstractBaseClass):
-    __metaclass__ = AbstractBaseClass
-
+class _AsyncRPClient:
     api_v1: str
     api_v2: str
     base_url_v1: str
@@ -73,7 +67,6 @@ class _AsyncRPClient(metaclass=AbstractBaseClass):
     launch_uuid_print: Optional[bool]
     print_output: Optional[TextIO]
     _skip_analytics: str
-    _item_stack: _LifoQueue
     __session: aiohttp.ClientSession
 
     def __init__(
@@ -95,7 +88,6 @@ class _AsyncRPClient(metaclass=AbstractBaseClass):
             print_output: Optional[TextIO] = None,
             **kwargs: Any
     ) -> None:
-        self._item_stack = _LifoQueue()
         set_current(self)
         self.api_v1, self.api_v2 = 'v1', 'v2'
         self.endpoint = endpoint
@@ -327,11 +319,48 @@ class _AsyncRPClient(metaclass=AbstractBaseClass):
         logger.debug('response message: %s', response.message)
         return response.message
 
-    async def get_item_id_by_uuid(self, uuid: Union[asyncio.Task, str]) -> Optional[str]:
-        pass
+    async def __get_item_uuid_url(self, item_uuid_future: Union[str, asyncio.Task]) -> Optional[str]:
+        item_uuid = await await_if_necessary(item_uuid_future)
+        if item_uuid is NOT_FOUND:
+            logger.warning('Attempt to make request for non-existent UUID.')
+            return
+        return uri_join(self.base_url_v1, 'item', 'uuid', item_uuid)
 
-    async def get_launch_info(self) -> Optional[Dict]:
-        pass
+    async def get_item_id_by_uuid(self, item_uuid_future: Union[str, asyncio.Task]) -> Optional[str]:
+        """Get test Item ID by the given Item UUID.
+
+        :param item_uuid_future: Str or asyncio.Task UUID returned on the Item start
+        :return:                 Test item ID
+        """
+        url = self.__get_item_uuid_url(item_uuid_future)
+        response = await AsyncHttpRequest(self.session.get, url=url).make()
+        return response.id if response else None
+
+    async def __get_launch_uuid_url(self, launch_uuid_future: Union[str, asyncio.Task]) -> Optional[str]:
+        launch_uuid = await await_if_necessary(launch_uuid_future)
+        if launch_uuid is NOT_FOUND:
+            logger.warning('Attempt to make request for non-existent Launch UUID.')
+            return
+        logger.debug('get_launch_info - ID: %s', launch_uuid)
+        return uri_join(self.base_url_v1, 'launch', 'uuid', launch_uuid)
+
+    async def get_launch_info(self, launch_uuid_future: Union[str, asyncio.Task]) -> Optional[Dict]:
+        """Get the launch information by Launch UUID.
+
+        :param launch_uuid_future: Str or asyncio.Task UUID returned on the Launch start
+        :return dict:              Launch information in dictionary
+        """
+        url = self.__get_launch_uuid_url(launch_uuid_future)
+        response = await AsyncHttpRequest(self.session.get, url=url).make()
+        if not response:
+            return
+        if response.is_success:
+            launch_info = response.json
+            logger.debug('get_launch_info - Launch info: %s', response.json)
+        else:
+            logger.warning('get_launch_info - Launch info: Failed to fetch launch ID from the API.')
+            launch_info = {}
+        return launch_info
 
     async def get_launch_ui_id(self) -> Optional[Dict]:
         pass
@@ -360,31 +389,41 @@ class _AsyncRPClient(metaclass=AbstractBaseClass):
                                description: Optional[str] = None) -> Optional[str]:
         pass
 
-    def _add_current_item(self, item: Union[asyncio.Task, str]) -> None:
-        """Add the last item from the self._items queue."""
-        self._item_stack.put(item)
-
-    def _remove_current_item(self) -> None:
-        """Remove the last item from the self._items queue."""
-        return self._item_stack.get()
-
-    def current_item(self) -> Union[asyncio.Task, str]:
-        """Retrieve the last item reported by the client."""
-        return self._item_stack.last()
-
-    @abstractmethod
     def clone(self) -> '_AsyncRPClient':
-        """Abstract interface for cloning the client."""
-        raise NotImplementedError('Clone interface is not implemented!')
+        """Clone the client object, set current Item ID as cloned item ID.
+
+        :returns: Cloned client object
+        :rtype: AsyncRPClient
+        """
+        cloned = _AsyncRPClient(
+            endpoint=self.endpoint,
+            project=self.project,
+            api_key=self.api_key,
+            log_batch_size=self.log_batch_size,
+            is_skipped_an_issue=self.is_skipped_an_issue,
+            verify_ssl=self.verify_ssl,
+            retries=self.retries,
+            max_pool_size=self.max_pool_size,
+            http_timeout=self.http_timeout,
+            log_batch_payload_size=self.log_batch_payload_size,
+            mode=self.mode
+        )
+        return cloned
 
 
-class AsyncRPClient(_AsyncRPClient):
+class AsyncRPClient:
+    __client: _AsyncRPClient
+    _item_stack: _LifoQueue
     launch_uuid: Optional[str]
     use_own_launch: bool
 
     def __init__(self, endpoint: str, project: str, *, launch_uuid: Optional[str] = None,
-                 **kwargs: Any) -> None:
-        super().__init__(endpoint, project, **kwargs)
+                 client: Optional[_AsyncRPClient] = None, **kwargs: Any) -> None:
+        self._item_stack = _LifoQueue()
+        if client:
+            self.__client = client
+        else:
+            self.__client = _AsyncRPClient(endpoint, project, **kwargs)
         if launch_uuid:
             self.launch_uuid = launch_uuid
             self.use_own_launch = False
@@ -401,9 +440,9 @@ class AsyncRPClient(_AsyncRPClient):
                            **kwargs) -> Optional[str]:
         if not self.use_own_launch:
             return self.launch_uuid
-        launch_uuid = await super().start_launch(name, start_time, description=description,
-                                                 attributes=attributes, rerun=rerun, rerun_of=rerun_of,
-                                                 **kwargs)
+        launch_uuid = await self.__client.start_launch(name, start_time, description=description,
+                                                       attributes=attributes, rerun=rerun, rerun_of=rerun_of,
+                                                       **kwargs)
         self.launch_uuid = launch_uuid
         return launch_uuid
 
@@ -421,14 +460,14 @@ class AsyncRPClient(_AsyncRPClient):
                               retry: bool = False,
                               test_case_id: Optional[str] = None,
                               **kwargs: Any) -> Optional[str]:
-        item_id = await super().start_test_item(self.launch_uuid, name, start_time, item_type,
-                                                description=description, attributes=attributes,
-                                                parameters=parameters, parent_item_id=parent_item_id,
-                                                has_stats=has_stats, code_ref=code_ref, retry=retry,
-                                                test_case_id=test_case_id, **kwargs)
+        item_id = await self.__client.start_test_item(self.launch_uuid, name, start_time, item_type,
+                                                      description=description, attributes=attributes,
+                                                      parameters=parameters, parent_item_id=parent_item_id,
+                                                      has_stats=has_stats, code_ref=code_ref, retry=retry,
+                                                      test_case_id=test_case_id, **kwargs)
         if item_id and item_id is not NOT_FOUND:
             logger.debug('start_test_item - ID: %s', item_id)
-            super()._add_current_item(item_id)
+            self._add_current_item(item_id)
         return item_id
 
     async def finish_test_item(self,
@@ -441,10 +480,11 @@ class AsyncRPClient(_AsyncRPClient):
                                description: str = None,
                                retry: bool = False,
                                **kwargs: Any) -> Optional[str]:
-        result = await super().finish_test_item(self.launch_uuid, item_id, end_time, status=status,
-                                                issue=issue, attributes=attributes, description=description,
-                                                retry=retry, **kwargs)
-        super()._remove_current_item()
+        result = await self.__client.finish_test_item(self.launch_uuid, item_id, end_time, status=status,
+                                                      issue=issue, attributes=attributes,
+                                                      description=description,
+                                                      retry=retry, **kwargs)
+        self._remove_current_item()
         return result
 
     async def finish_launch(self,
@@ -454,8 +494,26 @@ class AsyncRPClient(_AsyncRPClient):
                             **kwargs: Any) -> Optional[str]:
         if not self.use_own_launch:
             return ""
-        return await super().finish_launch(self.launch_uuid, end_time, status=status, attributes=attributes,
-                                           **kwargs)
+        return await self.__client.finish_launch(self.launch_uuid, end_time, status=status,
+                                                 attributes=attributes,
+                                                 **kwargs)
+
+    async def get_launch_info(self) -> Optional[Dict]:
+        if not self.launch_uuid:
+            return {}
+        return await self.__client.get_launch_info(self.launch_uuid)
+
+    def _add_current_item(self, item: str) -> None:
+        """Add the last item from the self._items queue."""
+        self._item_stack.put(item)
+
+    def _remove_current_item(self) -> str:
+        """Remove the last item from the self._items queue."""
+        return self._item_stack.get()
+
+    def current_item(self) -> str:
+        """Retrieve the last item reported by the client."""
+        return self._item_stack.last()
 
     def clone(self) -> 'AsyncRPClient':
         """Clone the client object, set current Item ID as cloned item ID.
@@ -463,19 +521,13 @@ class AsyncRPClient(_AsyncRPClient):
         :returns: Cloned client object
         :rtype: AsyncRPClient
         """
+        cloned_client = self.__client.clone()
+        # noinspection PyTypeChecker
         cloned = AsyncRPClient(
-            endpoint=self.endpoint,
-            project=self.project,
-            api_key=self.api_key,
-            log_batch_size=self.log_batch_size,
-            is_skipped_an_issue=self.is_skipped_an_issue,
-            verify_ssl=self.verify_ssl,
-            retries=self.retries,
-            max_pool_size=self.max_pool_size,
-            launch_uuid=self.launch_uuid,
-            http_timeout=self.http_timeout,
-            log_batch_payload_size=self.log_batch_payload_size,
-            mode=self.mode
+            endpoint=None,
+            project=None,
+            client=cloned_client,
+            launch_uuid=self.launch_uuid
         )
         current_item = self.current_item()
         if current_item:
@@ -483,7 +535,9 @@ class AsyncRPClient(_AsyncRPClient):
         return cloned
 
 
-class SyncRPClient(_AsyncRPClient):
+class SyncRPClient:
+    __client: _AsyncRPClient
+    _item_stack: _LifoQueue
     loop: asyncio.AbstractEventLoop
     thread: threading.Thread
     self_loop: bool
@@ -492,22 +546,27 @@ class SyncRPClient(_AsyncRPClient):
     use_own_launch: bool
 
     def __init__(self, endpoint: str, project: str, *, launch_uuid: Optional[asyncio.Task] = None,
-                 **kwargs: Any) -> None:
-        super().__init__(endpoint, project, **kwargs)
+                 client: Optional[_AsyncRPClient] = None, loop: Optional[asyncio.AbstractEventLoop] = None,
+                 thread: Optional[threading.Thread] = None, **kwargs: Any) -> None:
+        self._item_stack = _LifoQueue()
+        if client:
+            self.__client = client
+        else:
+            self.__client = _AsyncRPClient(endpoint, project, **kwargs)
         if launch_uuid:
             self.launch_uuid = launch_uuid
             self.use_own_launch = False
         else:
             self.use_own_launch = True
 
-        if 'loop' in kwargs and kwargs['loop']:
-            self.loop = kwargs['loop']
+        if loop:
+            self.loop = loop
             self.self_loop = False
         else:
             self.loop = asyncio.new_event_loop()
             self.self_loop = True
-        if 'thread' in kwargs and kwargs['thread']:
-            self.thread = kwargs['thread']
+        if thread:
+            self.thread = thread
             self.self_thread = False
         else:
             self.thread = threading.Thread(target=self.loop.run_forever(), name='RP-Async-Client',
@@ -528,9 +587,9 @@ class SyncRPClient(_AsyncRPClient):
                      **kwargs) -> asyncio.Task:
         if not self.use_own_launch:
             return self.launch_uuid
-        launch_uuid_coro = super().start_launch(name, start_time, description=description,
-                                                attributes=attributes, rerun=rerun, rerun_of=rerun_of,
-                                                **kwargs)
+        launch_uuid_coro = self.__client.start_launch(name, start_time, description=description,
+                                                      attributes=attributes, rerun=rerun, rerun_of=rerun_of,
+                                                      **kwargs)
         launch_uuid_task = self.loop.create_task(launch_uuid_coro)
         self.launch_uuid = launch_uuid_task
         return launch_uuid_task
@@ -550,13 +609,13 @@ class SyncRPClient(_AsyncRPClient):
                         test_case_id: Optional[str] = None,
                         **kwargs: Any) -> asyncio.Task:
 
-        item_id_coro = super().start_test_item(self.launch_uuid, name, start_time, item_type,
-                                               description=description, attributes=attributes,
-                                               parameters=parameters, parent_item_id=parent_item_id,
-                                               has_stats=has_stats, code_ref=code_ref, retry=retry,
-                                               test_case_id=test_case_id, **kwargs)
+        item_id_coro = self.__client.start_test_item(self.launch_uuid, name, start_time, item_type,
+                                                     description=description, attributes=attributes,
+                                                     parameters=parameters, parent_item_id=parent_item_id,
+                                                     has_stats=has_stats, code_ref=code_ref, retry=retry,
+                                                     test_case_id=test_case_id, **kwargs)
         item_id_task = self.loop.create_task(item_id_coro)
-        super()._add_current_item(item_id_task)
+        self._add_current_item(item_id_task)
         return item_id_task
 
     def finish_test_item(self,
@@ -569,11 +628,12 @@ class SyncRPClient(_AsyncRPClient):
                          description: str = None,
                          retry: bool = False,
                          **kwargs: Any) -> asyncio.Task:
-        result_coro = super().finish_test_item(self.launch_uuid, item_id, end_time, status=status,
-                                               issue=issue, attributes=attributes, description=description,
-                                               retry=retry, **kwargs)
+        result_coro = self.__client.finish_test_item(self.launch_uuid, item_id, end_time, status=status,
+                                                     issue=issue, attributes=attributes,
+                                                     description=description,
+                                                     retry=retry, **kwargs)
         result_task = self.loop.create_task(result_coro)
-        super()._remove_current_item()
+        self._remove_current_item()
         return result_task
 
     # TODO: implement loop task finish wait
@@ -584,10 +644,28 @@ class SyncRPClient(_AsyncRPClient):
                       **kwargs: Any) -> asyncio.Task:
         if not self.use_own_launch:
             return self.loop.create_task(self.__empty_line())
-        result_coro = super().finish_launch(self.launch_uuid, end_time, status=status, attributes=attributes,
-                                            **kwargs)
+        result_coro = self.__client.finish_launch(self.launch_uuid, end_time, status=status,
+                                                  attributes=attributes,
+                                                  **kwargs)
         result_task = self.loop.create_task(result_coro)
         return result_task
+
+    def get_item_id_by_uuid(self, item_uuid_future: asyncio.Task) -> asyncio.Task:
+        result_coro = self.__client.get_item_id_by_uuid(item_uuid_future)
+        result_task = self.loop.create_task(result_coro)
+        return result_task
+
+    def _add_current_item(self, item: asyncio.Task) -> None:
+        """Add the last item from the self._items queue."""
+        self._item_stack.put(item)
+
+    def _remove_current_item(self) -> asyncio.Task:
+        """Remove the last item from the self._items queue."""
+        return self._item_stack.get()
+
+    def current_item(self) -> asyncio.Task:
+        """Retrieve the last item reported by the client."""
+        return self._item_stack.last()
 
     def clone(self) -> 'SyncRPClient':
         """Clone the client object, set current Item ID as cloned item ID.
@@ -595,19 +673,13 @@ class SyncRPClient(_AsyncRPClient):
         :returns: Cloned client object
         :rtype: SyncRPClient
         """
+        cloned_client = self.__client.clone()
+        # noinspection PyTypeChecker
         cloned = SyncRPClient(
-            endpoint=self.endpoint,
-            project=self.project,
-            api_key=self.api_key,
-            log_batch_size=self.log_batch_size,
-            is_skipped_an_issue=self.is_skipped_an_issue,
-            verify_ssl=self.verify_ssl,
-            retries=self.retries,
-            max_pool_size=self.max_pool_size,
+            endpoint=None,
+            project=None,
             launch_uuid=self.launch_uuid,
-            http_timeout=self.http_timeout,
-            log_batch_payload_size=self.log_batch_payload_size,
-            mode=self.mode,
+            client=cloned_client,
             loop=self.loop,
             thread=self.thread
         )

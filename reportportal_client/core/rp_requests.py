@@ -105,7 +105,7 @@ class HttpRequest:
         """Set the priority of the request."""
         self._priority = value
 
-    def make(self):
+    def make(self) -> Optional[RPResponse]:
         """Make HTTP request to the Report Portal API."""
         try:
             return RPResponse(self.session_method(self.url, data=self.data, json=self.json,
@@ -139,15 +139,14 @@ class AsyncHttpRequest(HttpRequest):
         """
         super().__init__(session_method=session_method, url=url, data=data, json=json, name=name)
 
-    async def make(self):
+    async def make(self) -> Optional[RPResponse]:
         """Make HTTP request to the Report Portal API."""
         url = await_if_necessary(self.url)
         if not url:
             return
 
         try:
-            return RPResponse(await self.session_method(await await_if_necessary(self.url), data=self.data,
-                                                        json=self.json))
+            return RPResponse(await self.session_method(url, data=self.data, json=self.json))
         except (KeyError, IOError, ValueError, TypeError) as exc:
             logger.warning(
                 "Report Portal %s request failed",
