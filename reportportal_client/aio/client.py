@@ -33,6 +33,10 @@ from reportportal_client.core.rp_requests import (LaunchStartRequest, AsyncHttpR
 from reportportal_client.helpers import uri_join, verify_value_length, await_if_necessary, agent_name_version
 from reportportal_client.logs import MAX_LOG_BATCH_PAYLOAD_SIZE
 from reportportal_client.services.statistics import async_send_event
+from reportportal_client.static.abstract import (
+    AbstractBaseClass,
+    abstractmethod
+)
 from reportportal_client.static.defines import NOT_FOUND
 from reportportal_client.steps import StepReporter
 
@@ -411,7 +415,64 @@ class _AsyncRPClient:
         return cloned
 
 
-class AsyncRPClient:
+class RPClient(metaclass=AbstractBaseClass):
+    __metaclass__ = AbstractBaseClass
+
+    @abstractmethod
+    def start_launch(self,
+                     name: str,
+                     start_time: str,
+                     description: Optional[str] = None,
+                     attributes: Optional[Union[List, Dict]] = None,
+                     rerun: bool = False,
+                     rerun_of: Optional[str] = None,
+                     **kwargs) -> Union[Optional[str], asyncio.Task]:
+        raise NotImplementedError('"start_launch" method is not implemented!')
+
+    @abstractmethod
+    def start_test_item(self,
+                        name: str,
+                        start_time: str,
+                        item_type: str,
+                        *,
+                        description: Optional[str] = None,
+                        attributes: Optional[List[Dict]] = None,
+                        parameters: Optional[Dict] = None,
+                        parent_item_id: Union[Optional[str], asyncio.Task] = None,
+                        has_stats: bool = True,
+                        code_ref: Optional[str] = None,
+                        retry: bool = False,
+                        test_case_id: Optional[str] = None,
+                        **kwargs: Any) -> Union[Optional[str], asyncio.Task]:
+        raise NotImplementedError('"start_test_item" method is not implemented!')
+
+    @abstractmethod
+    def finish_test_item(self,
+                         item_id: Union[str, asyncio.Task],
+                         end_time: str,
+                         *,
+                         status: str = None,
+                         issue: Optional[Issue] = None,
+                         attributes: Optional[Union[List, Dict]] = None,
+                         description: str = None,
+                         retry: bool = False,
+                         **kwargs: Any) -> Union[Optional[str], asyncio.Task]:
+        raise NotImplementedError('"finish_test_item" method is not implemented!')
+
+    @abstractmethod
+    def finish_launch(self,
+                      end_time: str,
+                      status: str = None,
+                      attributes: Optional[Union[List, Dict]] = None,
+                      **kwargs: Any) -> Union[Optional[str], asyncio.Task]:
+        raise NotImplementedError('"finish_launch" method is not implemented!')
+
+    @abstractmethod
+    def get_launch_info(self) -> Union[Optional[dict], asyncio.Task]:
+        raise NotImplementedError('"get_launch_info" method is not implemented!')
+
+
+class AsyncRPClient(RPClient):
     __client: _AsyncRPClient
     _item_stack: _LifoQueue
     launch_uuid: Optional[str]
@@ -498,7 +559,7 @@ class AsyncRPClient:
                                                  attributes=attributes,
                                                  **kwargs)
 
-    async def get_launch_info(self) -> Optional[Dict]:
+    async def get_launch_info(self) -> Optional[dict]:
         if not self.launch_uuid:
             return {}
         return await self.__client.get_launch_info(self.launch_uuid)
@@ -535,7 +596,7 @@ class AsyncRPClient:
         return cloned
 
 
-class SyncRPClient:
+class SyncRPClient(RPClient):
     __client: _AsyncRPClient
     _item_stack: _LifoQueue
     loop: asyncio.AbstractEventLoop
@@ -647,6 +708,16 @@ class SyncRPClient:
         result_coro = self.__client.finish_launch(self.launch_uuid, end_time, status=status,
                                                   attributes=attributes,
                                                   **kwargs)
+        result_task = self.loop.create_task(result_coro)
+        return result_task
+
+    async def __empty_dict(self):
+        return {}
+
+    def get_launch_info(self) -> asyncio.Task:
+        if not self.launch_uuid:
+            return self.loop.create_task(self.__empty_dict())
+        result_coro = self.__client.get_launch_info(self.launch_uuid)
         result_task = self.loop.create_task(result_coro)
         return result_task
 
