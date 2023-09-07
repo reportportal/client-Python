@@ -19,75 +19,83 @@ https://github.com/reportportal/documentation/blob/master/src/md/src/DevGuides/r
 #  limitations under the License
 
 import logging
-from functools import lru_cache
+from typing import Any, Optional
+
+from aiohttp import ClientResponse
+from requests import Response
 
 from reportportal_client.static.defines import NOT_FOUND
 
 logger = logging.getLogger(__name__)
 
 
-class RPMessage:
-    """Model for the message returned by RP API."""
-
-    __slots__ = ['message', 'error_code']
-
-    def __init__(self, data):
-        """Initialize instance attributes.
-
-        :param data: Dictionary representation of the API response
-        """
-        self.error_code = data.get('error_code', NOT_FOUND)
-        self.message = data.get('message', NOT_FOUND)
-
-    def __str__(self):
-        """Change string representation of the class."""
-        if self.error_code is NOT_FOUND:
-            return self.message
-        return '{error_code}: {message}'.format(error_code=self.error_code,
-                                                message=self.message)
-
-    @property
-    def is_empty(self):
-        """Check if returned message is empty."""
-        return self.message is NOT_FOUND
-
-
 class RPResponse:
     """Class representing RP API response."""
+    _resp: Response
+    __json: Any
 
-    def __init__(self, data):
+    def __init__(self, data: Response) -> None:
         """Initialize instance attributes.
 
         :param data: requests.Response object
         """
         self._resp = data
-
-    @staticmethod
-    def _get_json(data):
-        """Get response in dictionary.
-
-        :param data: requests.Response object
-        :return:     dict
-        """
-        return data.json()
+        self.__json = None
 
     @property
-    def id(self):
+    def id(self) -> Optional[str]:
         """Get value of the 'id' key."""
         return self.json.get('id', NOT_FOUND)
 
     @property
-    def is_success(self):
+    def is_success(self) -> bool:
         """Check if response to API has been successful."""
         return self._resp.ok
 
     @property
-    @lru_cache()
-    def json(self):
+    def json(self) -> Any:
         """Get the response in dictionary."""
-        return self._get_json(self._resp)
+        if not self.__json:
+            self.__json = self._resp.json()
+        return self.__json
 
     @property
-    def message(self):
+    def message(self) -> Optional[str]:
         """Get value of the 'message' key."""
-        return self.json.get('message', NOT_FOUND)
+        return self.json.get('message')
+
+
+class AsyncRPResponse:
+    """Class representing RP API response."""
+    _resp: Response
+    __json: Any
+
+    def __init__(self, data: Response) -> None:
+        """Initialize instance attributes.
+
+        :param data: requests.Response object
+        """
+        self._resp = data
+        self.__json = None
+
+    @property
+    async def id(self) -> Optional[str]:
+        """Get value of the 'id' key."""
+        return (await self.json).get('id', NOT_FOUND)
+
+    @property
+    def is_success(self) -> bool:
+        """Check if response to API has been successful."""
+        return self._resp.ok
+
+    @property
+    async def json(self) -> Any:
+        """Get the response in dictionary."""
+        if not self.__json:
+            self.__json = await self._resp.json()
+        return self.__json
+
+    @property
+    async def message(self) -> Optional[str]:
+        """Get value of the 'message' key."""
+        return (await self.json).get('message')

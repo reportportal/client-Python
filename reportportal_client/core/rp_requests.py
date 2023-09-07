@@ -29,7 +29,7 @@ import aiohttp
 from reportportal_client import helpers
 from reportportal_client.core.rp_file import RPFile
 from reportportal_client.core.rp_issues import Issue
-from reportportal_client.core.rp_responses import RPResponse
+from reportportal_client.core.rp_responses import RPResponse, AsyncRPResponse
 from reportportal_client.helpers import dict_to_payload, await_if_necessary
 from reportportal_client.static.abstract import (
     AbstractBaseClass,
@@ -139,14 +139,14 @@ class AsyncHttpRequest(HttpRequest):
         """
         super().__init__(session_method=session_method, url=url, data=data, json=json, name=name)
 
-    async def make(self) -> Optional[RPResponse]:
+    async def make(self) -> Optional[AsyncRPResponse]:
         """Make HTTP request to the Report Portal API."""
         url = await await_if_necessary(self.url)
         if not url:
             return
 
         try:
-            return RPResponse(await self.session_method(url, data=self.data, json=self.json))
+            return AsyncRPResponse(await self.session_method(url, data=self.data, json=self.json))
         except (KeyError, IOError, ValueError, TypeError) as exc:
             logger.warning(
                 "Report Portal %s request failed",

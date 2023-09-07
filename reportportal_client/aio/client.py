@@ -221,7 +221,7 @@ class _AsyncRPClient:
         if not response:
             return
 
-        launch_uuid = response.id
+        launch_uuid = await response.id
         logger.debug(f'start_launch - ID: %s', launch_uuid)
         if self.launch_uuid_print and self.print_output:
             print(f'Report Portal Launch UUID: {launch_uuid}', file=self.print_output)
@@ -263,10 +263,11 @@ class _AsyncRPClient:
         response = await AsyncHttpRequest(self.session.post, url=url, json=request_payload).make()
         if not response:
             return
-        item_id = response.id
+        item_id = await response.id
         if item_id is NOT_FOUND:
-            logger.warning('start_test_item - invalid response: %s',
-                           str(response.json))
+            logger.warning('start_test_item - invalid response: %s', str(await response.json))
+        else:
+            logger.debug('start_test_item - ID: %s', item_id)
         return item_id
 
     async def finish_test_item(self,
@@ -294,9 +295,10 @@ class _AsyncRPClient:
         response = await AsyncHttpRequest(self.session.put, url=url, json=request_payload).make()
         if not response:
             return
-        logger.debug('finish_test_item - ID: %s', item_id)
-        logger.debug('response message: %s', response.message)
-        return response.message
+        message = await response.message
+        logger.debug('finish_test_item - ID: %s', await await_if_necessary(item_id))
+        logger.debug('response message: %s', message)
+        return message
 
     async def finish_launch(self,
                             launch_uuid: Union[str, asyncio.Task],
@@ -316,9 +318,10 @@ class _AsyncRPClient:
                                           name='Finish Launch').make()
         if not response:
             return
-        logger.debug('finish_launch - ID: %s', launch_uuid)
-        logger.debug('response message: %s', response.message)
-        return response.message
+        message = await response.message
+        logger.debug('finish_launch - ID: %s', await await_if_necessary(launch_uuid))
+        logger.debug('response message: %s', message)
+        return message
 
     async def update_test_item(self,
                                item_uuid: Union[str, asyncio.Task],
@@ -335,7 +338,7 @@ class _AsyncRPClient:
         if not response:
             return
         logger.debug('update_test_item - Item: %s', item_id)
-        return response.message
+        return await response.message
 
     async def __get_item_uuid_url(self, item_uuid_future: Union[str, asyncio.Task]) -> Optional[str]:
         item_uuid = await await_if_necessary(item_uuid_future)
