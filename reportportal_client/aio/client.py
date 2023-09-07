@@ -376,8 +376,8 @@ class _AsyncRPClient:
         if not response:
             return
         if response.is_success:
-            launch_info = response.json
-            logger.debug('get_launch_info - Launch info: %s', response.json)
+            launch_info = await response.json
+            logger.debug('get_launch_info - Launch info: %s', launch_info)
         else:
             logger.warning('get_launch_info - Launch info: Failed to fetch launch ID from the API.')
             launch_info = {}
@@ -409,7 +409,7 @@ class _AsyncRPClient:
     async def get_project_settings(self) -> Optional[Dict]:
         url = root_uri_join(self.base_url_v1, 'settings')
         response = await AsyncHttpRequest(self.session.get, url=url).make()
-        return response.json if response else None
+        return await response.json if response else None
 
     async def log(self,
                   launch_uuid: Union[str, asyncio.Task],
