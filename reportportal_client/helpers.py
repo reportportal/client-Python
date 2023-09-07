@@ -79,7 +79,7 @@ def gen_attributes(rp_attributes: List[str]) -> List[Dict[str, str]]:
     return attrs
 
 
-def get_launch_sys_attrs() -> Dict[str]:
+def get_launch_sys_attrs() -> Dict[str, str]:
     """Generate attributes for the launch containing system information.
 
     :return: dict {'os': 'Windows',
