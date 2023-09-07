@@ -309,7 +309,7 @@ class RPClient:
             launch_info = {}
         return launch_info
 
-    def get_launch_ui_id(self) -> Optional[Dict]:
+    def get_launch_ui_id(self) -> Optional[int]:
         """Get UI ID of the current launch.
 
         :return: UI ID of the given launch. None if UI ID has not been found.
