@@ -711,7 +711,7 @@ class ScheduledRPClient(RPClient):
             self.thread = thread
             self.self_thread = False
         else:
-            self.thread = threading.Thread(target=self.loop.run_forever(), name='RP-Async-Client',
+            self.thread = threading.Thread(target=self.loop.run_forever, name='RP-Async-Client',
                                            daemon=True)
             self.thread.start()
             self.self_thread = True
