@@ -141,7 +141,7 @@ class AsyncHttpRequest(HttpRequest):
 
     async def make(self) -> Optional[RPResponse]:
         """Make HTTP request to the Report Portal API."""
-        url = await_if_necessary(self.url)
+        url = await await_if_necessary(self.url)
         if not url:
             return
 

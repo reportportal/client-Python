@@ -30,7 +30,8 @@ from reportportal_client._local import set_current
 from reportportal_client.core.rp_issues import Issue
 from reportportal_client.core.rp_requests import (LaunchStartRequest, AsyncHttpRequest, AsyncItemStartRequest,
                                                   AsyncItemFinishRequest, LaunchFinishRequest)
-from reportportal_client.helpers import uri_join, verify_value_length, await_if_necessary, agent_name_version
+from reportportal_client.helpers import (root_uri_join, verify_value_length, await_if_necessary,
+                                         agent_name_version)
 from reportportal_client.logs import MAX_LOG_BATCH_PAYLOAD_SIZE
 from reportportal_client.services.statistics import async_send_event
 from reportportal_client.static.abstract import (
@@ -70,7 +71,7 @@ class _AsyncRPClient:
     launch_uuid_print: Optional[bool]
     print_output: Optional[TextIO]
     _skip_analytics: str
-    __session: aiohttp.ClientSession
+    __session: Optional[aiohttp.ClientSession]
 
     def __init__(
             self,
@@ -94,10 +95,8 @@ class _AsyncRPClient:
         self.api_v1, self.api_v2 = 'v1', 'v2'
         self.endpoint = endpoint
         self.project = project
-        self.base_url_v1 = uri_join(
-            self.endpoint, 'api/{}'.format(self.api_v1), self.project)
-        self.base_url_v2 = uri_join(
-            self.endpoint, 'api/{}'.format(self.api_v2), self.project)
+        self.base_url_v1 = root_uri_join(f'api/{self.api_v1}', self.project)
+        self.base_url_v2 = root_uri_join(f'api/{self.api_v2}', self.project)
         self.is_skipped_an_issue = is_skipped_an_issue
         self.log_batch_size = log_batch_size
         self.log_batch_payload_size = log_batch_payload_size
@@ -110,6 +109,7 @@ class _AsyncRPClient:
         self._skip_analytics = getenv('AGENT_NO_ANALYTICS')
         self.launch_uuid_print = launch_uuid_print
         self.print_output = print_output or sys.stdout
+        self.__session = None
 
         self.api_key = api_key
         if not self.api_key:
@@ -166,14 +166,14 @@ class _AsyncRPClient:
         if item_id is NOT_FOUND:
             logger.warning('Attempt to make request for non-existent id.')
             return
-        return uri_join(self.base_url_v2, 'item', item_id)
+        return root_uri_join(self.base_url_v2, 'item', item_id)
 
     async def __get_launch_url(self, launch_uuid_future: Union[str, asyncio.Task]) -> Optional[str]:
         launch_uuid = await await_if_necessary(launch_uuid_future)
         if launch_uuid is NOT_FOUND:
             logger.warning('Attempt to make request for non-existent launch.')
             return
-        return uri_join(self.base_url_v2, 'launch', launch_uuid, 'finish')
+        return root_uri_join(self.base_url_v2, 'launch', launch_uuid, 'finish')
 
     async def start_launch(self,
                            name: str,
@@ -194,7 +194,7 @@ class _AsyncRPClient:
         :param rerun_of:    For rerun mode specifies which launch will be
                             re-run. Should be used with the 'rerun' option.
         """
-        url = uri_join(self.base_url_v2, 'launch')
+        url = root_uri_join(self.base_url_v2, 'launch')
         request_payload = LaunchStartRequest(
             name=name,
             start_time=start_time,
@@ -245,7 +245,7 @@ class _AsyncRPClient:
         if parent_item_id:
             url = self.__get_item_url(parent_item_id)
         else:
-            url = uri_join(self.base_url_v2, 'item')
+            url = root_uri_join(self.base_url_v2, 'item')
         request_payload = AsyncItemStartRequest(
             name,
             start_time,
@@ -330,7 +330,7 @@ class _AsyncRPClient:
             'attributes': verify_value_length(attributes),
         }
         item_id = await self.get_item_id_by_uuid(item_uuid)
-        url = uri_join(self.base_url_v1, 'item', item_id, 'update')
+        url = root_uri_join(self.base_url_v1, 'item', item_id, 'update')
         response = await AsyncHttpRequest(self.session.put, url=url, json=data).make()
         if not response:
             return
@@ -342,7 +342,7 @@ class _AsyncRPClient:
         if item_uuid is NOT_FOUND:
             logger.warning('Attempt to make request for non-existent UUID.')
             return
-        return uri_join(self.base_url_v1, 'item', 'uuid', item_uuid)
+        return root_uri_join(self.base_url_v1, 'item', 'uuid', item_uuid)
 
     async def get_item_id_by_uuid(self, item_uuid_future: Union[str, asyncio.Task]) -> Optional[str]:
         """Get test Item ID by the given Item UUID.
@@ -360,7 +360,7 @@ class _AsyncRPClient:
             logger.warning('Attempt to make request for non-existent Launch UUID.')
             return
         logger.debug('get_launch_info - ID: %s', launch_uuid)
-        return uri_join(self.base_url_v1, 'launch', 'uuid', launch_uuid)
+        return root_uri_join(self.base_url_v1, 'launch', 'uuid', launch_uuid)
 
     async def get_launch_info(self, launch_uuid_future: Union[str, asyncio.Task]) -> Optional[Dict]:
         """Get the launch information by Launch UUID.
@@ -399,12 +399,12 @@ class _AsyncRPClient:
         path = 'ui/#{project_name}/{launch_type}/all/{launch_id}'.format(
             project_name=self.project.lower(), launch_type=launch_type,
             launch_id=ui_id)
-        url = uri_join(self.endpoint, path)
+        url = root_uri_join(self.endpoint, path)
         logger.debug('get_launch_ui_url - ID: %s', launch_uuid)
         return url
 
     async def get_project_settings(self) -> Optional[Dict]:
-        url = uri_join(self.base_url_v1, 'settings')
+        url = root_uri_join(self.base_url_v1, 'settings')
         response = await AsyncHttpRequest(self.session.get, url=url).make()
         return response.json if response else None
 

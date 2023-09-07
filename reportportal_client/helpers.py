@@ -150,6 +150,20 @@ def uri_join(*uri_parts: str) -> str:
     return '/'.join(str(s).strip('/').strip('\\') for s in uri_parts)
 
 
+def root_uri_join(*uri_parts: str) -> str:
+    """Join uri parts. Format it as path from server root.
+
+    Avoiding usage of urlparse.urljoin and os.path.join
+    as it does not clearly join parts.
+    Args:
+        *uri_parts: tuple of values for join, can contain back and forward
+                    slashes (will be stripped up).
+    Returns:
+        An uri string.
+    """
+    return '/' + uri_join(*uri_parts)
+
+
 def get_function_params(func: Callable, args: tuple, kwargs: Dict[str, Any]) -> Dict[str, Any]:
     """Extract argument names from the function and combine them with values.
 
