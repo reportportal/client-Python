@@ -258,9 +258,9 @@ class ItemStartRequest(RPRequestBase):
             'type': kwargs['type'],
             'launchUuid': kwargs['launch_uuid']
         }
-        if 'attributes' in kwargs:
+        if kwargs.get('attributes'):
             request['attributes'] = dict_to_payload(kwargs['attributes'])
-        if 'parameters' in kwargs:
+        if kwargs.get('parameters'):
             request['parameters'] = dict_to_payload(kwargs['parameters'])
         return request
 
@@ -310,7 +310,7 @@ class ItemFinishRequest(RPRequestBase):
             'status': kwargs.get('status'),
             'retry': kwargs.get('retry')
         }
-        if 'attributes' in kwargs:
+        if kwargs.get('attributes'):
             request['attributes'] = dict_to_payload(kwargs['attributes'])
 
         if kwargs.get('issue') is None and (
