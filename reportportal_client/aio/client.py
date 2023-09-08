@@ -808,7 +808,6 @@ class ScheduledRPClient(RPClient):
         self._remove_current_item()
         return result_task
 
-    # TODO: implement loop task finish wait
     def finish_launch(self,
                       end_time: str,
                       status: str = None,
@@ -884,6 +883,7 @@ class ScheduledRPClient(RPClient):
 
     def log(self, time: str, message: str, level: Optional[Union[int, str]] = None,
             attachment: Optional[Dict] = None, item_id: Optional[str] = None) -> None:
+        # TODO: implement logging
         return None
 
     def clone(self) -> 'ScheduledRPClient':
