@@ -730,9 +730,8 @@ class ScheduledRPClient(RPClient):
         launch_uuid_coro = self.__client.start_launch(name, start_time, description=description,
                                                       attributes=attributes, rerun=rerun, rerun_of=rerun_of,
                                                       **kwargs)
-        launch_uuid_task = self.create_task(launch_uuid_coro)
-        self.launch_uuid = launch_uuid_task
-        return launch_uuid_task
+        self.launch_uuid = self.create_task(launch_uuid_coro)
+        return self.launch_uuid
 
     def start_test_item(self,
                         name: str,
@@ -785,8 +784,7 @@ class ScheduledRPClient(RPClient):
         if not self.use_own_launch:
             return self.create_task(self.__empty_line())
         result_coro = self.__client.finish_launch(self.launch_uuid, end_time, status=status,
-                                                  attributes=attributes,
-                                                  **kwargs)
+                                                  attributes=attributes, **kwargs)
         result_task = self.create_task(result_coro)
         return result_task
 
