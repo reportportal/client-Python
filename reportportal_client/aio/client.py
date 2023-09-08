@@ -72,6 +72,7 @@ class _AsyncRPClient:
     print_output: Optional[TextIO]
     _skip_analytics: str
     __session: Optional[aiohttp.ClientSession]
+    __stat_task: Optional[asyncio.Task]
 
     def __init__(
             self,
@@ -104,12 +105,12 @@ class _AsyncRPClient:
         self.retries = retries
         self.max_pool_size = max_pool_size
         self.http_timeout = http_timeout
-        self._item_stack = _LifoQueue()
         self.mode = mode
         self._skip_analytics = getenv('AGENT_NO_ANALYTICS')
         self.launch_uuid_print = launch_uuid_print
         self.print_output = print_output or sys.stdout
         self.__session = None
+        self.__stat_task = None
 
         self.api_key = api_key
         if not self.api_key:
@@ -205,21 +206,13 @@ class _AsyncRPClient:
             rerun_of=rerun_of or kwargs.get('rerunOf')
         ).payload
 
-        launch_coro = AsyncHttpRequest(self.session.post,
-                                       url=url,
-                                       json=request_payload).make()
-
-        stat_coro = None
-        if not self._skip_analytics:
-            stat_coro = async_send_event('start_launch', *agent_name_version(attributes))
-
-        if stat_coro:
-            response = (await asyncio.gather(launch_coro, stat_coro))[0]
-        else:
-            response = await launch_coro
-
+        response = await AsyncHttpRequest(self.session.post, url=url, json=request_payload).make()
         if not response:
             return
+
+        if not self._skip_analytics:
+            stat_coro = async_send_event('start_launch', *agent_name_version(attributes))
+            self.__stat_task = asyncio.create_task(stat_coro, name='Statistics update')
 
         launch_uuid = await response.id
         logger.debug(f'start_launch - ID: %s', launch_uuid)
@@ -680,8 +673,8 @@ class AsyncRPClient(RPClient):
 class ScheduledRPClient(RPClient):
     __client: _AsyncRPClient
     _item_stack: _LifoQueue
-    loop: asyncio.AbstractEventLoop
-    thread: threading.Thread
+    __loop: Optional[asyncio.AbstractEventLoop]
+    __thread: Optional[threading.Thread]
     self_loop: bool
     self_thread: bool
     launch_uuid: Optional[asyncio.Task]
@@ -690,7 +683,7 @@ class ScheduledRPClient(RPClient):
 
     def __init__(self, endpoint: str, project: str, *, launch_uuid: Optional[asyncio.Task] = None,
                  client: Optional[_AsyncRPClient] = None, loop: Optional[asyncio.AbstractEventLoop] = None,
-                 thread: Optional[threading.Thread] = None, **kwargs: Any) -> None:
+                 **kwargs: Any) -> None:
         set_current(self)
         self.step_reporter = StepReporter(self)
         self._item_stack = _LifoQueue()
@@ -704,20 +697,22 @@ class ScheduledRPClient(RPClient):
         else:
             self.use_own_launch = True
 
+        self.__thread = None
         if loop:
-            self.loop = loop
+            self.__loop = loop
             self.self_loop = False
         else:
-            self.loop = asyncio.new_event_loop()
+            self.__loop = asyncio.new_event_loop()
             self.self_loop = True
-        if thread:
-            self.thread = thread
-            self.self_thread = False
-        else:
-            self.thread = threading.Thread(target=self.loop.run_forever, name='RP-Async-Client',
-                                           daemon=True)
-            self.thread.start()
-            self.self_thread = True
+
+    def create_task(self, coro: Any) -> asyncio.Task:
+        loop = self.__loop
+        result = loop.create_task(coro)
+        if not self.__thread and self.self_loop:
+            self.__thread = threading.Thread(target=loop.run_forever, name='RP-Async-Client',
+                                             daemon=True)
+            self.__thread.start()
+        return result
 
     async def __empty_line(self):
         return ""
@@ -735,7 +730,7 @@ class ScheduledRPClient(RPClient):
         launch_uuid_coro = self.__client.start_launch(name, start_time, description=description,
                                                       attributes=attributes, rerun=rerun, rerun_of=rerun_of,
                                                       **kwargs)
-        launch_uuid_task = self.loop.create_task(launch_uuid_coro)
+        launch_uuid_task = self.create_task(launch_uuid_coro)
         self.launch_uuid = launch_uuid_task
         return launch_uuid_task
 
@@ -759,7 +754,7 @@ class ScheduledRPClient(RPClient):
                                                      parameters=parameters, parent_item_id=parent_item_id,
                                                      has_stats=has_stats, code_ref=code_ref, retry=retry,
                                                      test_case_id=test_case_id, **kwargs)
-        item_id_task = self.loop.create_task(item_id_coro)
+        item_id_task = self.create_task(item_id_coro)
         self._add_current_item(item_id_task)
         return item_id_task
 
@@ -777,7 +772,7 @@ class ScheduledRPClient(RPClient):
                                                      issue=issue, attributes=attributes,
                                                      description=description,
                                                      retry=retry, **kwargs)
-        result_task = self.loop.create_task(result_coro)
+        result_task = self.create_task(result_coro)
         self._remove_current_item()
         return result_task
 
@@ -788,11 +783,11 @@ class ScheduledRPClient(RPClient):
                       attributes: Optional[Union[List, Dict]] = None,
                       **kwargs: Any) -> asyncio.Task:
         if not self.use_own_launch:
-            return self.loop.create_task(self.__empty_line())
+            return self.create_task(self.__empty_line())
         result_coro = self.__client.finish_launch(self.launch_uuid, end_time, status=status,
                                                   attributes=attributes,
                                                   **kwargs)
-        result_task = self.loop.create_task(result_coro)
+        result_task = self.create_task(result_coro)
         return result_task
 
     def update_test_item(self,
@@ -801,7 +796,7 @@ class ScheduledRPClient(RPClient):
                          description: Optional[str] = None) -> asyncio.Task:
         result_coro = self.__client.update_test_item(item_uuid, attributes=attributes,
                                                      description=description)
-        result_task = self.loop.create_task(result_coro)
+        result_task = self.create_task(result_coro)
         return result_task
 
     def _add_current_item(self, item: asyncio.Task) -> None:
@@ -824,33 +819,33 @@ class ScheduledRPClient(RPClient):
 
     def get_launch_info(self) -> asyncio.Task:
         if not self.launch_uuid:
-            return self.loop.create_task(self.__empty_dict())
+            return self.create_task(self.__empty_dict())
         result_coro = self.__client.get_launch_info(self.launch_uuid)
-        result_task = self.loop.create_task(result_coro)
+        result_task = self.create_task(result_coro)
         return result_task
 
     def get_item_id_by_uuid(self, item_uuid_future: asyncio.Task) -> asyncio.Task:
         result_coro = self.__client.get_item_id_by_uuid(item_uuid_future)
-        result_task = self.loop.create_task(result_coro)
+        result_task = self.create_task(result_coro)
         return result_task
 
     def get_launch_ui_id(self) -> asyncio.Task:
         if not self.launch_uuid:
-            return self.loop.create_task(self.__none_value())
+            return self.create_task(self.__none_value())
         result_coro = self.__client.get_launch_ui_id(self.launch_uuid)
-        result_task = self.loop.create_task(result_coro)
+        result_task = self.create_task(result_coro)
         return result_task
 
     def get_launch_ui_url(self) -> asyncio.Task:
         if not self.launch_uuid:
-            return self.loop.create_task(self.__none_value())
+            return self.create_task(self.__none_value())
         result_coro = self.__client.get_launch_ui_url(self.launch_uuid)
-        result_task = self.loop.create_task(result_coro)
+        result_task = self.create_task(result_coro)
         return result_task
 
     def get_project_settings(self) -> asyncio.Task:
         result_coro = self.__client.get_project_settings()
-        result_task = self.loop.create_task(result_coro)
+        result_task = self.create_task(result_coro)
         return result_task
 
     def log(self, time: str, message: str, level: Optional[Union[int, str]] = None,
@@ -870,8 +865,7 @@ class ScheduledRPClient(RPClient):
             project=None,
             launch_uuid=self.launch_uuid,
             client=cloned_client,
-            loop=self.loop,
-            thread=self.thread
+            loop=self.__loop
         )
         current_item = self.current_item()
         if current_item:
