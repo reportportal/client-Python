@@ -737,12 +737,13 @@ class ScheduledRPClient(RPClient):
         return result
 
     def finish_tasks(self):
+        sleep_time = sys.getswitchinterval()
         shutdown_start_time = time.time()
         for task in self.__task_list:
             task_start_time = time.time()
             while not task.done() and (time.time() - task_start_time < TASK_TIMEOUT) and (
                     time.time() - shutdown_start_time < SHUTDOWN_TIMEOUT):
-                time.sleep(0.001)
+                time.sleep(sleep_time)
             if time.time() - shutdown_start_time >= SHUTDOWN_TIMEOUT:
                 break
         self.__task_list = []
