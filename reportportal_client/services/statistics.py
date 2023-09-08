@@ -13,6 +13,8 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License
 
+import ssl
+import certifi
 import logging
 from platform import python_version
 from typing import Optional
@@ -106,9 +108,10 @@ async def async_send_event(event_name: str, agent_name: Optional[str],
         'measurement_id': ID,
         'api_secret': KEY
     }
+    sslcontext = ssl.create_default_context(cafile=certifi.where())
     async with aiohttp.ClientSession() as session:
         result = await session.post(url=ENDPOINT, json=get_payload(event_name, agent_name, agent_version),
-                                    headers=headers, params=query_params)
+                                    headers=headers, params=query_params, ssl=sslcontext)
         if not result.ok:
             logger.debug('Failed to send data to Statistics service: %s', result.reason)
         return result
