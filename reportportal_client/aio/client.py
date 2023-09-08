@@ -522,6 +522,12 @@ class RPClient(metaclass=AbstractBaseClass):
             attachment: Optional[Dict] = None, item_id: Optional[str] = None) -> None:
         raise NotImplementedError('"log" method is not implemented!')
 
+    def start(self) -> None:
+        pass  # For backward compatibility
+
+    def terminate(self, *_: Any, **__: Any) -> None:
+        pass  # For backward compatibility
+
 
 class AsyncRPClient(RPClient):
     __client: _AsyncRPClient
