@@ -14,6 +14,7 @@
 #  limitations under the License
 
 import asyncio
+import certifi
 import logging
 import ssl
 import sys
@@ -141,10 +142,13 @@ class _AsyncRPClient:
             return self.__session
 
         ssl_config = self.verify_ssl
-        if ssl_config and type(ssl_config) == str:
-            ssl_context = ssl.create_default_context()
-            ssl_context.load_cert_chain(ssl_config)
-            ssl_config = ssl_context
+        if ssl_config:
+            if type(ssl_config) == str:
+                sl_config = ssl.create_default_context()
+                sl_config.load_cert_chain(ssl_config)
+            else:
+                ssl_config = ssl.create_default_context(cafile=certifi.where())
+
         connector = aiohttp.TCPConnector(ssl=ssl_config, limit=self.max_pool_size)
 
         timeout = None
