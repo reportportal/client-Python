@@ -86,7 +86,6 @@ class APIWorker(object):
                 self._stop_immediately()
             else:
                 self._stop()
-        self._queue.task_done()
 
     def _request_process(self, request):
         """Send request to RP and update response attribute of the request."""
@@ -96,7 +95,6 @@ class APIWorker(object):
         except Exception as err:
             logger.exception('[%s] Unknown exception has occurred. '
                              'Skipping it.', err)
-        self._queue.task_done()
 
     def _monitor(self):
         """Monitor worker queues and process them.
@@ -128,7 +126,11 @@ class APIWorker(object):
         This method process everything in worker's queue first, ignoring
         commands and terminates thread only after.
         """
-        self._queue.join()
+        request = self._command_get()
+        while request is not None:
+            if not isinstance(request, ControlCommand):
+                self._request_process(request)
+            request = self._command_get()
         self._stop_immediately()
 
     def _stop_immediately(self):
