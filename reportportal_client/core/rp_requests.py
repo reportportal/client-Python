@@ -108,15 +108,10 @@ class HttpRequest:
     def make(self) -> Optional[RPResponse]:
         """Make HTTP request to the Report Portal API."""
         try:
-            return RPResponse(self.session_method(self.url, data=self.data, json=self.json,
-                                                  files=self.files, verify=self.verify_ssl,
-                                                  timeout=self.http_timeout))
+            return RPResponse(self.session_method(self.url, data=self.data, json=self.json, files=self.files,
+                                                  verify=self.verify_ssl, timeout=self.http_timeout))
         except (KeyError, IOError, ValueError, TypeError) as exc:
-            logger.warning(
-                "Report Portal %s request failed",
-                self.name,
-                exc_info=exc
-            )
+            logger.warning("Report Portal %s request failed", self.name, exc_info=exc)
 
 
 class AsyncHttpRequest(HttpRequest):
@@ -149,11 +144,7 @@ class AsyncHttpRequest(HttpRequest):
         try:
             return AsyncRPResponse(await self.session_method(url, data=data, json=json))
         except (KeyError, IOError, ValueError, TypeError) as exc:
-            logger.warning(
-                "Report Portal %s request failed",
-                self.name,
-                exc_info=exc
-            )
+            logger.warning("Report Portal %s request failed", self.name, exc_info=exc)
 
 
 class RPRequestBase(metaclass=AbstractBaseClass):
@@ -185,8 +176,8 @@ class LaunchStartRequest(RPRequestBase):
     @property
     def payload(self) -> dict:
         """Get HTTP payload for the request."""
-        my_attributes = None
-        if self.attributes and isinstance(self.attributes, dict):
+        my_attributes = self.attributes
+        if my_attributes and isinstance(self.attributes, dict):
             my_attributes = dict_to_payload(self.attributes)
         result = {
             'attributes': my_attributes,
@@ -217,8 +208,8 @@ class LaunchFinishRequest(RPRequestBase):
     @property
     def payload(self) -> dict:
         """Get HTTP payload for the request."""
-        my_attributes = None
-        if self.attributes and isinstance(self.attributes, dict):
+        my_attributes = self.attributes
+        if my_attributes and isinstance(self.attributes, dict):
             my_attributes = dict_to_payload(self.attributes)
         return {
             'attributes': my_attributes,
@@ -259,10 +250,14 @@ class ItemStartRequest(RPRequestBase):
             'type': kwargs['type'],
             'launchUuid': kwargs['launch_uuid']
         }
-        if kwargs.get('attributes'):
-            request['attributes'] = dict_to_payload(kwargs['attributes'])
-        if kwargs.get('parameters'):
-            request['parameters'] = dict_to_payload(kwargs['parameters'])
+        attributes = kwargs.get('attributes')
+        if attributes and isinstance(attributes, dict):
+            attributes = dict_to_payload(kwargs['attributes'])
+        request['attributes'] = attributes
+        parameters = kwargs.get('parameters')
+        if parameters and isinstance(parameters, dict):
+            parameters = dict_to_payload(kwargs['parameters'])
+        request['parameters'] = parameters
         return request
 
     @property
@@ -311,8 +306,10 @@ class ItemFinishRequest(RPRequestBase):
             'status': kwargs.get('status'),
             'retry': kwargs.get('retry')
         }
-        if kwargs.get('attributes'):
-            request['attributes'] = dict_to_payload(kwargs['attributes'])
+        attributes = kwargs.get('attributes')
+        if attributes and isinstance(attributes, dict):
+            attributes = dict_to_payload(kwargs['attributes'])
+        request['attributes'] = attributes
 
         if kwargs.get('issue') is None and (
                 kwargs.get('status') is not None and kwargs.get('status').lower() == 'skipped'
