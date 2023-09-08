@@ -19,6 +19,7 @@ import logging
 import ssl
 import sys
 import threading
+import time
 import warnings
 from os import getenv
 from queue import LifoQueue
@@ -44,6 +45,9 @@ from reportportal_client.steps import StepReporter
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
+
+TASK_TIMEOUT: int = 60
+SHUTDOWN_TIMEOUT: int = 120
 
 
 class _LifoQueue(LifoQueue):
@@ -685,6 +689,7 @@ class ScheduledRPClient(RPClient):
     _item_stack: _LifoQueue
     __loop: Optional[asyncio.AbstractEventLoop]
     __thread: Optional[threading.Thread]
+    __task_list: List[asyncio.Task]
     self_loop: bool
     self_thread: bool
     launch_uuid: Optional[asyncio.Task]
@@ -707,6 +712,7 @@ class ScheduledRPClient(RPClient):
         else:
             self.use_own_launch = True
 
+        self.__task_list = []
         self.__thread = None
         if loop:
             self.__loop = loop
@@ -718,11 +724,28 @@ class ScheduledRPClient(RPClient):
     def create_task(self, coro: Any) -> asyncio.Task:
         loop = self.__loop
         result = loop.create_task(coro)
+        self.__task_list.append(result)
         if not self.__thread and self.self_loop:
             self.__thread = threading.Thread(target=loop.run_forever, name='RP-Async-Client',
                                              daemon=True)
             self.__thread.start()
+        i = 0
+        for i, task in enumerate(self.__task_list):
+            if not task.done():
+                break
+        self.__task_list = self.__task_list[i:]
         return result
+
+    def finish_tasks(self):
+        shutdown_start_time = time.time()
+        for task in self.__task_list:
+            task_start_time = time.time()
+            while not task.done() and (time.time() - task_start_time < TASK_TIMEOUT) and (
+                    time.time() - shutdown_start_time < SHUTDOWN_TIMEOUT):
+                time.sleep(0.001)
+            if time.time() - shutdown_start_time >= SHUTDOWN_TIMEOUT:
+                break
+        self.__task_list = []
 
     async def __empty_line(self):
         return ""
@@ -796,6 +819,7 @@ class ScheduledRPClient(RPClient):
         result_coro = self.__client.finish_launch(self.launch_uuid, end_time, status=status,
                                                   attributes=attributes, **kwargs)
         result_task = self.create_task(result_coro)
+        self.finish_tasks()
         return result_task
 
     def update_test_item(self,
