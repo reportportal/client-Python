@@ -144,8 +144,8 @@ class AsyncHttpRequest(HttpRequest):
         url = await await_if_necessary(self.url)
         if not url:
             return
-        data = await_if_necessary(self.data)
-        json = await_if_necessary(self.json)
+        data = await await_if_necessary(self.data)
+        json = await await_if_necessary(self.json)
         try:
             return AsyncRPResponse(await self.session_method(url, data=data, json=json))
         except (KeyError, IOError, ValueError, TypeError) as exc:
