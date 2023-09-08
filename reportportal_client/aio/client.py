@@ -14,7 +14,6 @@
 #  limitations under the License
 
 import asyncio
-import certifi
 import logging
 import ssl
 import sys
@@ -26,6 +25,7 @@ from queue import LifoQueue
 from typing import Union, Tuple, List, Dict, Any, Optional, TextIO
 
 import aiohttp
+import certifi
 
 # noinspection PyProtectedMember
 from reportportal_client._local import set_current
@@ -814,10 +814,12 @@ class ScheduledRPClient(RPClient):
                       status: str = None,
                       attributes: Optional[Union[List, Dict]] = None,
                       **kwargs: Any) -> asyncio.Task:
-        if not self.use_own_launch:
-            return self.create_task(self.__empty_line())
-        result_coro = self.__client.finish_launch(self.launch_uuid, end_time, status=status,
-                                                  attributes=attributes, **kwargs)
+        if self.use_own_launch:
+            result_coro = self.__client.finish_launch(self.launch_uuid, end_time, status=status,
+                                                      attributes=attributes, **kwargs)
+        else:
+            result_coro = self.create_task(self.__empty_line())
+
         result_task = self.create_task(result_coro)
         self.finish_tasks()
         return result_task
