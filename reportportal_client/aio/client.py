@@ -46,6 +46,8 @@ from reportportal_client.steps import StepReporter
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
+TASK_RUN_NUM_THRESHOLD: int = 10
+TASK_RUN_INTERVAL: float = 1.0
 TASK_TIMEOUT: int = 60
 SHUTDOWN_TIMEOUT: int = 120
 
@@ -684,7 +686,7 @@ class AsyncRPClient(RPClient):
         return cloned
 
 
-class ScheduledRPClient(RPClient):
+class ThreadedRPClient(RPClient):
     __client: _AsyncRPClient
     _item_stack: _LifoQueue
     __loop: Optional[asyncio.AbstractEventLoop]
@@ -887,15 +889,15 @@ class ScheduledRPClient(RPClient):
         # TODO: implement logging
         return None
 
-    def clone(self) -> 'ScheduledRPClient':
+    def clone(self) -> 'ThreadedRPClient':
         """Clone the client object, set current Item ID as cloned item ID.
 
         :returns: Cloned client object
-        :rtype: ScheduledRPClient
+        :rtype: ThreadedRPClient
         """
         cloned_client = self.__client.clone()
         # noinspection PyTypeChecker
-        cloned = ScheduledRPClient(
+        cloned = ThreadedRPClient(
             endpoint=None,
             project=None,
             launch_uuid=self.launch_uuid,
@@ -911,9 +913,10 @@ class ScheduledRPClient(RPClient):
 class BatchedRPClient(RPClient):
     __client: _AsyncRPClient
     _item_stack: _LifoQueue
-    __loop: Optional[asyncio.AbstractEventLoop]
-    __thread: Optional[threading.Thread]
+    __loop: asyncio.AbstractEventLoop
     __task_list: List[asyncio.Task]
+    __task_mutex: threading.Lock
+    __last_run_time: float
     launch_uuid: Optional[asyncio.Task]
     use_own_launch: bool
     step_reporter: StepReporter
@@ -935,24 +938,44 @@ class BatchedRPClient(RPClient):
             self.use_own_launch = True
 
         self.__task_list = []
+        self.__task_mutex = threading.Lock()
+        self.__last_run_time = time.time()
         self.__loop = asyncio.new_event_loop()
 
-    def run_tasks(self) -> None:
-        tasks = self.__task_list
-        if len(tasks) <= 0:
-            return
-        self.__task_list = []
-        self.__loop.run_until_complete(asyncio.gather(*tasks))
+    @property
+    def loop(self):
+        return self.__loop
+
+    def __ready_to_run(self) -> bool:
+        current_time = time.time()
+        last_time = self.__last_run_time
+        if len(self.__task_list) <= 0:
+            return False
+        if len(self.__task_list) > TASK_RUN_NUM_THRESHOLD or current_time - last_time >= TASK_RUN_INTERVAL:
+            self.__last_run_time = current_time
+            return True
+        return False
 
     def create_task(self, coro: Any) -> asyncio.Task:
         result = self.__loop.create_task(coro)
-        self.__task_list.append(result)
-        if len(self.__task_list) >= 10:
-            self.run_tasks()
+        tasks = None
+        with self.__task_mutex:
+            self.__task_list.append(result)
+            if self.__ready_to_run():
+                tasks = self.__task_list
+                self.__task_list = []
+        if tasks:
+            self.__loop.run_until_complete(asyncio.gather(*tasks))
         return result
 
-    def finish_tasks(self):
-        self.run_tasks()
+    def finish_tasks(self) -> None:
+        tasks = None
+        with self.__task_mutex:
+            if len(self.__task_list) > 0:
+                tasks = self.__task_list
+                self.__task_list = []
+        if tasks:
+            self.__loop.run_until_complete(asyncio.gather(*tasks))
 
     async def __empty_line(self):
         return ""
@@ -1093,15 +1116,15 @@ class BatchedRPClient(RPClient):
         # TODO: implement logging
         return None
 
-    def clone(self) -> 'ScheduledRPClient':
+    def clone(self) -> 'BatchedRPClient':
         """Clone the client object, set current Item ID as cloned item ID.
 
         :returns: Cloned client object
-        :rtype: ScheduledRPClient
+        :rtype: BatchedRPClient
         """
         cloned_client = self.__client.clone()
         # noinspection PyTypeChecker
-        cloned = ScheduledRPClient(
+        cloned = BatchedRPClient(
             endpoint=None,
             project=None,
             launch_uuid=self.launch_uuid,
