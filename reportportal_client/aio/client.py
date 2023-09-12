@@ -20,9 +20,11 @@ import sys
 import threading
 import time
 import warnings
+from asyncio import Future
 from os import getenv
 from queue import LifoQueue
-from typing import Union, Tuple, List, Dict, Any, Optional, TextIO
+from typing import Union, Tuple, List, Dict, Any, Optional, TextIO, Coroutine, TypeVar, Generic, Generator, \
+    Awaitable
 
 import aiohttp
 import certifi
@@ -52,6 +54,68 @@ TASK_TIMEOUT: int = 60
 SHUTDOWN_TIMEOUT: int = 120
 
 
+T = TypeVar('T')
+
+
+class Task(Generic[T], asyncio.Task, metaclass=AbstractBaseClass):
+    __metaclass__ = AbstractBaseClass
+
+    def __init__(
+            self,
+            coro: Union[Generator[Future[object], None, T], Awaitable[T]],
+            *,
+            loop: asyncio.AbstractEventLoop,
+            name: Optional[str] = None
+    ) -> None:
+        super().__init__(coro, loop=loop, name=name)
+
+    @abstractmethod
+    def blocking_result(self) -> T:
+        raise NotImplementedError('"blocking_result" method is not implemented!')
+
+
+class BatchedTask(Generic[T], Task[T]):
+    __loop: asyncio.AbstractEventLoop
+    __thread: threading.Thread
+
+    def __init__(
+            self,
+            coro: Union[Generator[Future[object], None, T], Awaitable[T]],
+            *,
+            loop: asyncio.AbstractEventLoop,
+            name: Optional[str] = None,
+            thread: threading.Thread
+    ) -> None:
+        super().__init__(coro, loop=loop, name=name)
+        self.__loop = loop
+        self.__thread = thread
+
+    def blocking_result(self) -> T:
+        if self.done():
+            return self.result()
+        if self.__thread is not threading.current_thread():
+            warnings.warn("The method was called from different thread which was used to create the"
+                          "task, unexpected behavior is possible during the execution.", RuntimeWarning,
+                          stacklevel=3)
+        return self.__loop.run_until_complete(self)
+
+
+class _BatchedTaskFactory:
+    __loop: asyncio.AbstractEventLoop
+    __thread: threading.Thread
+
+    def __init__(self, loop: asyncio.AbstractEventLoop, thread: threading.Thread):
+        self.__loop = loop
+        self.__thread = thread
+
+    def __call__(
+            self,
+            loop: asyncio.AbstractEventLoop,
+            factory: Union[Coroutine[Any, Any, T], Generator[Any, None, T]]
+    ) -> Task[T]:
+        return BatchedTask(factory, loop=self.__loop, thread=self.__thread)
+
+
 class _LifoQueue(LifoQueue):
     def last(self):
         with self.mutex:
@@ -79,7 +143,7 @@ class _AsyncRPClient:
     print_output: Optional[TextIO]
     _skip_analytics: str
     __session: Optional[aiohttp.ClientSession]
-    __stat_task: Optional[asyncio.Task]
+    __stat_task: Optional[Task[aiohttp.ClientResponse]]
 
     def __init__(
             self,
@@ -172,14 +236,14 @@ class _AsyncRPClient:
                                                timeout=timeout)
         return self.__session
 
-    async def __get_item_url(self, item_id_future: Union[str, asyncio.Task]) -> Optional[str]:
+    async def __get_item_url(self, item_id_future: Union[str, Task[str]]) -> Optional[str]:
         item_id = await await_if_necessary(item_id_future)
         if item_id is NOT_FOUND:
             logger.warning('Attempt to make request for non-existent id.')
             return
         return root_uri_join(self.base_url_v2, 'item', item_id)
 
-    async def __get_launch_url(self, launch_uuid_future: Union[str, asyncio.Task]) -> Optional[str]:
+    async def __get_launch_url(self, launch_uuid_future: Union[str, Task[str]]) -> Optional[str]:
         launch_uuid = await await_if_necessary(launch_uuid_future)
         if launch_uuid is NOT_FOUND:
             logger.warning('Attempt to make request for non-existent launch.')
@@ -231,7 +295,7 @@ class _AsyncRPClient:
         return launch_uuid
 
     async def start_test_item(self,
-                              launch_uuid: Union[str, asyncio.Task],
+                              launch_uuid: Union[str, Task[str]],
                               name: str,
                               start_time: str,
                               item_type: str,
@@ -239,7 +303,7 @@ class _AsyncRPClient:
                               description: Optional[str] = None,
                               attributes: Optional[List[Dict]] = None,
                               parameters: Optional[Dict] = None,
-                              parent_item_id: Optional[Union[str, asyncio.Task]] = None,
+                              parent_item_id: Optional[Union[str, Task[str]]] = None,
                               has_stats: bool = True,
                               code_ref: Optional[str] = None,
                               retry: bool = False,
@@ -274,8 +338,8 @@ class _AsyncRPClient:
         return item_id
 
     async def finish_test_item(self,
-                               launch_uuid: Union[str, asyncio.Task],
-                               item_id: Union[str, asyncio.Task],
+                               launch_uuid: Union[str, Task[str]],
+                               item_id: Union[str, Task[str]],
                                end_time: str,
                                *,
                                status: str = None,
@@ -304,7 +368,7 @@ class _AsyncRPClient:
         return message
 
     async def finish_launch(self,
-                            launch_uuid: Union[str, asyncio.Task],
+                            launch_uuid: Union[str, Task[str]],
                             end_time: str,
                             *,
                             status: str = None,
@@ -327,7 +391,7 @@ class _AsyncRPClient:
         return message
 
     async def update_test_item(self,
-                               item_uuid: Union[str, asyncio.Task],
+                               item_uuid: Union[str, Task[str]],
                                *,
                                attributes: Optional[Union[List, Dict]] = None,
                                description: Optional[str] = None) -> Optional[str]:
@@ -343,24 +407,24 @@ class _AsyncRPClient:
         logger.debug('update_test_item - Item: %s', item_id)
         return await response.message
 
-    async def __get_item_uuid_url(self, item_uuid_future: Union[str, asyncio.Task]) -> Optional[str]:
+    async def __get_item_uuid_url(self, item_uuid_future: Union[str, Task[str]]) -> Optional[str]:
         item_uuid = await await_if_necessary(item_uuid_future)
         if item_uuid is NOT_FOUND:
             logger.warning('Attempt to make request for non-existent UUID.')
             return
         return root_uri_join(self.base_url_v1, 'item', 'uuid', item_uuid)
 
-    async def get_item_id_by_uuid(self, item_uuid_future: Union[str, asyncio.Task]) -> Optional[str]:
+    async def get_item_id_by_uuid(self, item_uuid_future: Union[str, Task[str]]) -> Optional[str]:
         """Get test Item ID by the given Item UUID.
 
-        :param item_uuid_future: Str or asyncio.Task UUID returned on the Item start
+        :param item_uuid_future: Str or Task UUID returned on the Item start
         :return:                 Test item ID
         """
         url = self.__get_item_uuid_url(item_uuid_future)
         response = await AsyncHttpRequest(self.session.get, url=url).make()
         return response.id if response else None
 
-    async def __get_launch_uuid_url(self, launch_uuid_future: Union[str, asyncio.Task]) -> Optional[str]:
+    async def __get_launch_uuid_url(self, launch_uuid_future: Union[str, Task[str]]) -> Optional[str]:
         launch_uuid = await await_if_necessary(launch_uuid_future)
         if launch_uuid is NOT_FOUND:
             logger.warning('Attempt to make request for non-existent Launch UUID.')
@@ -368,10 +432,10 @@ class _AsyncRPClient:
         logger.debug('get_launch_info - ID: %s', launch_uuid)
         return root_uri_join(self.base_url_v1, 'launch', 'uuid', launch_uuid)
 
-    async def get_launch_info(self, launch_uuid_future: Union[str, asyncio.Task]) -> Optional[Dict]:
+    async def get_launch_info(self, launch_uuid_future: Union[str, Task[str]]) -> Optional[Dict]:
         """Get the launch information by Launch UUID.
 
-        :param launch_uuid_future: Str or asyncio.Task UUID returned on the Launch start
+        :param launch_uuid_future: Str or Task UUID returned on the Launch start
         :return dict:              Launch information in dictionary
         """
         url = self.__get_launch_uuid_url(launch_uuid_future)
@@ -386,11 +450,11 @@ class _AsyncRPClient:
             launch_info = {}
         return launch_info
 
-    async def get_launch_ui_id(self, launch_uuid_future: Union[str, asyncio.Task]) -> Optional[int]:
+    async def get_launch_ui_id(self, launch_uuid_future: Union[str, Task[str]]) -> Optional[int]:
         launch_info = await self.get_launch_info(launch_uuid_future)
         return launch_info.get('id') if launch_info else None
 
-    async def get_launch_ui_url(self, launch_uuid_future: Union[str, asyncio.Task]) -> Optional[str]:
+    async def get_launch_ui_url(self, launch_uuid_future: Union[str, Task[str]]) -> Optional[str]:
         launch_uuid = await await_if_necessary(launch_uuid_future)
         launch_info = await self.get_launch_info(launch_uuid)
         ui_id = launch_info.get('id') if launch_info else None
@@ -415,13 +479,13 @@ class _AsyncRPClient:
         return await response.json if response else None
 
     async def log(self,
-                  launch_uuid: Union[str, asyncio.Task],
+                  launch_uuid: Union[str, Task[str]],
                   time: str,
                   message: str,
                   *,
                   level: Optional[Union[int, str]] = None,
                   attachment: Optional[Dict] = None,
-                  item_id: Optional[Union[str, asyncio.Task]] = None) -> None:
+                  item_id: Optional[Union[str, Task[str]]] = None) -> None:
         pass
 
     def clone(self) -> '_AsyncRPClient':
@@ -457,7 +521,7 @@ class RPClient(metaclass=AbstractBaseClass):
                      attributes: Optional[Union[List, Dict]] = None,
                      rerun: bool = False,
                      rerun_of: Optional[str] = None,
-                     **kwargs) -> Union[Optional[str], asyncio.Task]:
+                     **kwargs) -> Union[Optional[str], Task[str]]:
         raise NotImplementedError('"start_launch" method is not implemented!')
 
     @abstractmethod
@@ -469,17 +533,17 @@ class RPClient(metaclass=AbstractBaseClass):
                         description: Optional[str] = None,
                         attributes: Optional[List[Dict]] = None,
                         parameters: Optional[Dict] = None,
-                        parent_item_id: Union[Optional[str], asyncio.Task] = None,
+                        parent_item_id: Union[Optional[str], Task[str]] = None,
                         has_stats: bool = True,
                         code_ref: Optional[str] = None,
                         retry: bool = False,
                         test_case_id: Optional[str] = None,
-                        **kwargs: Any) -> Union[Optional[str], asyncio.Task]:
+                        **kwargs: Any) -> Union[Optional[str], Task[str]]:
         raise NotImplementedError('"start_test_item" method is not implemented!')
 
     @abstractmethod
     def finish_test_item(self,
-                         item_id: Union[str, asyncio.Task],
+                         item_id: Union[str, Task[str]],
                          end_time: str,
                          *,
                          status: str = None,
@@ -487,7 +551,7 @@ class RPClient(metaclass=AbstractBaseClass):
                          attributes: Optional[Union[List, Dict]] = None,
                          description: str = None,
                          retry: bool = False,
-                         **kwargs: Any) -> Union[Optional[str], asyncio.Task]:
+                         **kwargs: Any) -> Union[Optional[str], Task[str]]:
         raise NotImplementedError('"finish_test_item" method is not implemented!')
 
     @abstractmethod
@@ -495,7 +559,7 @@ class RPClient(metaclass=AbstractBaseClass):
                       end_time: str,
                       status: str = None,
                       attributes: Optional[Union[List, Dict]] = None,
-                      **kwargs: Any) -> Union[Optional[str], asyncio.Task]:
+                      **kwargs: Any) -> Union[Optional[str], Task[str]]:
         raise NotImplementedError('"finish_launch" method is not implemented!')
 
     @abstractmethod
@@ -504,11 +568,11 @@ class RPClient(metaclass=AbstractBaseClass):
         raise NotImplementedError('"update_test_item" method is not implemented!')
 
     @abstractmethod
-    def get_launch_info(self) -> Union[Optional[dict], asyncio.Task]:
+    def get_launch_info(self) -> Union[Optional[dict], Task[str]]:
         raise NotImplementedError('"get_launch_info" method is not implemented!')
 
     @abstractmethod
-    def get_item_id_by_uuid(self, item_uuid: str) -> Optional[str]:
+    def get_item_id_by_uuid(self, item_uuid: Union[str, Task[str]]) -> Optional[str]:
         raise NotImplementedError('"get_item_id_by_uuid" method is not implemented!')
 
     @abstractmethod
@@ -525,7 +589,7 @@ class RPClient(metaclass=AbstractBaseClass):
 
     @abstractmethod
     def log(self, time: str, message: str, level: Optional[Union[int, str]] = None,
-            attachment: Optional[Dict] = None, item_id: Optional[str] = None) -> None:
+            attachment: Optional[Dict] = None, item_id: Union[Optional[str], Task[str]] = None) -> None:
         raise NotImplementedError('"log" method is not implemented!')
 
     def start(self) -> None:
@@ -598,7 +662,7 @@ class AsyncRPClient(RPClient):
         return item_id
 
     async def finish_test_item(self,
-                               item_id: Union[asyncio.Task, str],
+                               item_id: str,
                                end_time: str,
                                *,
                                status: str = None,
@@ -691,14 +755,14 @@ class ThreadedRPClient(RPClient):
     _item_stack: _LifoQueue
     __loop: Optional[asyncio.AbstractEventLoop]
     __thread: Optional[threading.Thread]
-    __task_list: List[asyncio.Task]
+    __task_list: List[Task[T]]
     self_loop: bool
     self_thread: bool
-    launch_uuid: Optional[asyncio.Task]
+    launch_uuid: Optional[Task[str]]
     use_own_launch: bool
     step_reporter: StepReporter
 
-    def __init__(self, endpoint: str, project: str, *, launch_uuid: Optional[asyncio.Task] = None,
+    def __init__(self, endpoint: str, project: str, *, launch_uuid: Optional[Task[str]] = None,
                  client: Optional[_AsyncRPClient] = None, loop: Optional[asyncio.AbstractEventLoop] = None,
                  **kwargs: Any) -> None:
         set_current(self)
@@ -723,7 +787,7 @@ class ThreadedRPClient(RPClient):
             self.__loop = asyncio.new_event_loop()
             self.self_loop = True
 
-    def create_task(self, coro: Any) -> asyncio.Task:
+    def create_task(self, coro: Coroutine[Any, Any, T]) -> Task[T]:
         loop = self.__loop
         result = loop.create_task(coro)
         self.__task_list.append(result)
@@ -760,7 +824,7 @@ class ThreadedRPClient(RPClient):
                      attributes: Optional[Union[List, Dict]] = None,
                      rerun: bool = False,
                      rerun_of: Optional[str] = None,
-                     **kwargs) -> asyncio.Task:
+                     **kwargs) -> Task[str]:
         if not self.use_own_launch:
             return self.launch_uuid
         launch_uuid_coro = self.__client.start_launch(name, start_time, description=description,
@@ -777,12 +841,12 @@ class ThreadedRPClient(RPClient):
                         description: Optional[str] = None,
                         attributes: Optional[List[Dict]] = None,
                         parameters: Optional[Dict] = None,
-                        parent_item_id: Optional[asyncio.Task] = None,
+                        parent_item_id: Optional[Task[str]] = None,
                         has_stats: bool = True,
                         code_ref: Optional[str] = None,
                         retry: bool = False,
                         test_case_id: Optional[str] = None,
-                        **kwargs: Any) -> asyncio.Task:
+                        **kwargs: Any) -> Task[str]:
 
         item_id_coro = self.__client.start_test_item(self.launch_uuid, name, start_time, item_type,
                                                      description=description, attributes=attributes,
@@ -794,7 +858,7 @@ class ThreadedRPClient(RPClient):
         return item_id_task
 
     def finish_test_item(self,
-                         item_id: asyncio.Task,
+                         item_id: Task[str],
                          end_time: str,
                          *,
                          status: str = None,
@@ -802,7 +866,7 @@ class ThreadedRPClient(RPClient):
                          attributes: Optional[Union[List, Dict]] = None,
                          description: str = None,
                          retry: bool = False,
-                         **kwargs: Any) -> asyncio.Task:
+                         **kwargs: Any) -> Task[str]:
         result_coro = self.__client.finish_test_item(self.launch_uuid, item_id, end_time, status=status,
                                                      issue=issue, attributes=attributes,
                                                      description=description,
@@ -815,7 +879,7 @@ class ThreadedRPClient(RPClient):
                       end_time: str,
                       status: str = None,
                       attributes: Optional[Union[List, Dict]] = None,
-                      **kwargs: Any) -> asyncio.Task:
+                      **kwargs: Any) -> Task[str]:
         if self.use_own_launch:
             result_coro = self.__client.finish_launch(self.launch_uuid, end_time, status=status,
                                                       attributes=attributes, **kwargs)
@@ -827,21 +891,25 @@ class ThreadedRPClient(RPClient):
         return result_task
 
     def update_test_item(self,
-                         item_uuid: asyncio.Task,
+                         item_uuid: Task[str],
                          attributes: Optional[Union[List, Dict]] = None,
-                         description: Optional[str] = None) -> asyncio.Task:
+                         description: Optional[str] = None) -> Task[str]:
         result_coro = self.__client.update_test_item(item_uuid, attributes=attributes,
                                                      description=description)
         result_task = self.create_task(result_coro)
         return result_task
 
-    def _add_current_item(self, item: asyncio.Task) -> None:
+    def _add_current_item(self, item: Task[T]) -> None:
         """Add the last item from the self._items queue."""
         self._item_stack.put(item)
 
-    def _remove_current_item(self) -> asyncio.Task:
+    def _remove_current_item(self) -> Task[T]:
         """Remove the last item from the self._items queue."""
         return self._item_stack.get()
+
+    def current_item(self) -> Task[T]:
+        """Retrieve the last item reported by the client."""
+        return self._item_stack.last()
 
     async def __empty_dict(self):
         return {}
@@ -849,43 +917,39 @@ class ThreadedRPClient(RPClient):
     async def __none_value(self):
         return
 
-    def current_item(self) -> asyncio.Task:
-        """Retrieve the last item reported by the client."""
-        return self._item_stack.last()
-
-    def get_launch_info(self) -> asyncio.Task:
+    def get_launch_info(self) -> Task[dict]:
         if not self.launch_uuid:
             return self.create_task(self.__empty_dict())
         result_coro = self.__client.get_launch_info(self.launch_uuid)
         result_task = self.create_task(result_coro)
         return result_task
 
-    def get_item_id_by_uuid(self, item_uuid_future: asyncio.Task) -> asyncio.Task:
+    def get_item_id_by_uuid(self, item_uuid_future: Task[str]) -> Task[str]:
         result_coro = self.__client.get_item_id_by_uuid(item_uuid_future)
         result_task = self.create_task(result_coro)
         return result_task
 
-    def get_launch_ui_id(self) -> asyncio.Task:
+    def get_launch_ui_id(self) -> Task[str]:
         if not self.launch_uuid:
             return self.create_task(self.__none_value())
         result_coro = self.__client.get_launch_ui_id(self.launch_uuid)
         result_task = self.create_task(result_coro)
         return result_task
 
-    def get_launch_ui_url(self) -> asyncio.Task:
+    def get_launch_ui_url(self) -> Task[str]:
         if not self.launch_uuid:
             return self.create_task(self.__none_value())
         result_coro = self.__client.get_launch_ui_url(self.launch_uuid)
         result_task = self.create_task(result_coro)
         return result_task
 
-    def get_project_settings(self) -> asyncio.Task:
+    def get_project_settings(self) -> Task[dict]:
         result_coro = self.__client.get_project_settings()
         result_task = self.create_task(result_coro)
         return result_task
 
     def log(self, time: str, message: str, level: Optional[Union[int, str]] = None,
-            attachment: Optional[Dict] = None, item_id: Optional[str] = None) -> None:
+            attachment: Optional[Dict] = None, item_id: Optional[Task[str]] = None) -> None:
         # TODO: implement logging
         return None
 
@@ -914,16 +978,16 @@ class BatchedRPClient(RPClient):
     __client: _AsyncRPClient
     _item_stack: _LifoQueue
     __loop: asyncio.AbstractEventLoop
-    __task_list: List[asyncio.Task]
+    __task_list: List[Task[T]]
     __task_mutex: threading.Lock
     __last_run_time: float
-    launch_uuid: Optional[asyncio.Task]
+    __thread: threading.Thread
+    launch_uuid: Optional[Task[str]]
     use_own_launch: bool
     step_reporter: StepReporter
 
-    def __init__(self, endpoint: str, project: str, *, launch_uuid: Optional[asyncio.Task] = None,
-                 client: Optional[_AsyncRPClient] = None, loop: Optional[asyncio.AbstractEventLoop] = None,
-                 **kwargs: Any) -> None:
+    def __init__(self, endpoint: str, project: str, *, launch_uuid: Optional[Task[str]] = None,
+                 client: Optional[_AsyncRPClient] = None, **kwargs: Any) -> None:
         set_current(self)
         self.step_reporter = StepReporter(self)
         self._item_stack = _LifoQueue()
@@ -941,10 +1005,8 @@ class BatchedRPClient(RPClient):
         self.__task_mutex = threading.Lock()
         self.__last_run_time = time.time()
         self.__loop = asyncio.new_event_loop()
-
-    @property
-    def loop(self):
-        return self.__loop
+        self.__thread = threading.current_thread()
+        self.__loop.set_task_factory(_BatchedTaskFactory(self.__loop, self.__thread))
 
     def __ready_to_run(self) -> bool:
         current_time = time.time()
@@ -956,7 +1018,7 @@ class BatchedRPClient(RPClient):
             return True
         return False
 
-    def create_task(self, coro: Any) -> asyncio.Task:
+    def create_task(self, coro: Coroutine[Any, Any, T]) -> Task[T]:
         result = self.__loop.create_task(coro)
         tasks = None
         with self.__task_mutex:
@@ -987,7 +1049,7 @@ class BatchedRPClient(RPClient):
                      attributes: Optional[Union[List, Dict]] = None,
                      rerun: bool = False,
                      rerun_of: Optional[str] = None,
-                     **kwargs) -> asyncio.Task:
+                     **kwargs) -> Task[str]:
         if not self.use_own_launch:
             return self.launch_uuid
         launch_uuid_coro = self.__client.start_launch(name, start_time, description=description,
@@ -1004,12 +1066,12 @@ class BatchedRPClient(RPClient):
                         description: Optional[str] = None,
                         attributes: Optional[List[Dict]] = None,
                         parameters: Optional[Dict] = None,
-                        parent_item_id: Optional[asyncio.Task] = None,
+                        parent_item_id: Optional[Task[str]] = None,
                         has_stats: bool = True,
                         code_ref: Optional[str] = None,
                         retry: bool = False,
                         test_case_id: Optional[str] = None,
-                        **kwargs: Any) -> asyncio.Task:
+                        **kwargs: Any) -> Task[str]:
 
         item_id_coro = self.__client.start_test_item(self.launch_uuid, name, start_time, item_type,
                                                      description=description, attributes=attributes,
@@ -1021,7 +1083,7 @@ class BatchedRPClient(RPClient):
         return item_id_task
 
     def finish_test_item(self,
-                         item_id: asyncio.Task,
+                         item_id: Task[str],
                          end_time: str,
                          *,
                          status: str = None,
@@ -1029,7 +1091,7 @@ class BatchedRPClient(RPClient):
                          attributes: Optional[Union[List, Dict]] = None,
                          description: str = None,
                          retry: bool = False,
-                         **kwargs: Any) -> asyncio.Task:
+                         **kwargs: Any) -> Task[str]:
         result_coro = self.__client.finish_test_item(self.launch_uuid, item_id, end_time, status=status,
                                                      issue=issue, attributes=attributes,
                                                      description=description,
@@ -1042,7 +1104,7 @@ class BatchedRPClient(RPClient):
                       end_time: str,
                       status: str = None,
                       attributes: Optional[Union[List, Dict]] = None,
-                      **kwargs: Any) -> asyncio.Task:
+                      **kwargs: Any) -> Task[str]:
         if self.use_own_launch:
             result_coro = self.__client.finish_launch(self.launch_uuid, end_time, status=status,
                                                       attributes=attributes, **kwargs)
@@ -1054,21 +1116,25 @@ class BatchedRPClient(RPClient):
         return result_task
 
     def update_test_item(self,
-                         item_uuid: asyncio.Task,
+                         item_uuid: Task[str],
                          attributes: Optional[Union[List, Dict]] = None,
-                         description: Optional[str] = None) -> asyncio.Task:
+                         description: Optional[str] = None) -> Task:
         result_coro = self.__client.update_test_item(item_uuid, attributes=attributes,
                                                      description=description)
         result_task = self.create_task(result_coro)
         return result_task
 
-    def _add_current_item(self, item: asyncio.Task) -> None:
+    def _add_current_item(self, item: Task[T]) -> None:
         """Add the last item from the self._items queue."""
         self._item_stack.put(item)
 
-    def _remove_current_item(self) -> asyncio.Task:
+    def _remove_current_item(self) -> Task[T]:
         """Remove the last item from the self._items queue."""
         return self._item_stack.get()
+
+    def current_item(self) -> Task[T]:
+        """Retrieve the last item reported by the client."""
+        return self._item_stack.last()
 
     async def __empty_dict(self):
         return {}
@@ -1076,43 +1142,39 @@ class BatchedRPClient(RPClient):
     async def __none_value(self):
         return
 
-    def current_item(self) -> asyncio.Task:
-        """Retrieve the last item reported by the client."""
-        return self._item_stack.last()
-
-    def get_launch_info(self) -> asyncio.Task:
+    def get_launch_info(self) -> Task[dict]:
         if not self.launch_uuid:
             return self.create_task(self.__empty_dict())
         result_coro = self.__client.get_launch_info(self.launch_uuid)
         result_task = self.create_task(result_coro)
         return result_task
 
-    def get_item_id_by_uuid(self, item_uuid_future: asyncio.Task) -> asyncio.Task:
+    def get_item_id_by_uuid(self, item_uuid_future: Task[str]) -> Task[str]:
         result_coro = self.__client.get_item_id_by_uuid(item_uuid_future)
         result_task = self.create_task(result_coro)
         return result_task
 
-    def get_launch_ui_id(self) -> asyncio.Task:
+    def get_launch_ui_id(self) -> Task[str]:
         if not self.launch_uuid:
             return self.create_task(self.__none_value())
         result_coro = self.__client.get_launch_ui_id(self.launch_uuid)
         result_task = self.create_task(result_coro)
         return result_task
 
-    def get_launch_ui_url(self) -> asyncio.Task:
+    def get_launch_ui_url(self) -> Task[str]:
         if not self.launch_uuid:
             return self.create_task(self.__none_value())
         result_coro = self.__client.get_launch_ui_url(self.launch_uuid)
         result_task = self.create_task(result_coro)
         return result_task
 
-    def get_project_settings(self) -> asyncio.Task:
+    def get_project_settings(self) -> Task[dict]:
         result_coro = self.__client.get_project_settings()
         result_task = self.create_task(result_coro)
         return result_task
 
     def log(self, time: str, message: str, level: Optional[Union[int, str]] = None,
-            attachment: Optional[Dict] = None, item_id: Optional[str] = None) -> None:
+            attachment: Optional[Dict] = None, item_id: Union[Optional[str], Task[str]] = None) -> None:
         # TODO: implement logging
         return None
 
