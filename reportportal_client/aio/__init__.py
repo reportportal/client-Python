@@ -10,3 +10,11 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License
+
+from reportportal_client.aio.tasks import Task, BatchedTask, BatchedTaskFactory
+
+__all__ = [
+    'Task',
+    'BatchedTask',
+    'BatchedTaskFactory'
+]

@@ -20,17 +20,16 @@ import sys
 import threading
 import time
 import warnings
-from asyncio import Future
 from os import getenv
 from queue import LifoQueue
-from typing import Union, Tuple, List, Dict, Any, Optional, TextIO, Coroutine, TypeVar, Generic, Generator, \
-    Awaitable
+from typing import Union, Tuple, List, Dict, Any, Optional, TextIO, Coroutine, TypeVar
 
 import aiohttp
 import certifi
 
 # noinspection PyProtectedMember
 from reportportal_client._local import set_current
+from reportportal_client.aio import Task, BatchedTaskFactory
 from reportportal_client.core.rp_issues import Issue
 from reportportal_client.core.rp_requests import (LaunchStartRequest, AsyncHttpRequest, AsyncItemStartRequest,
                                                   AsyncItemFinishRequest, LaunchFinishRequest)
@@ -53,67 +52,7 @@ TASK_RUN_INTERVAL: float = 1.0
 TASK_TIMEOUT: int = 60
 SHUTDOWN_TIMEOUT: int = 120
 
-
-T = TypeVar('T')
-
-
-class Task(Generic[T], asyncio.Task, metaclass=AbstractBaseClass):
-    __metaclass__ = AbstractBaseClass
-
-    def __init__(
-            self,
-            coro: Union[Generator[Future[object], None, T], Awaitable[T]],
-            *,
-            loop: asyncio.AbstractEventLoop,
-            name: Optional[str] = None
-    ) -> None:
-        super().__init__(coro, loop=loop, name=name)
-
-    @abstractmethod
-    def blocking_result(self) -> T:
-        raise NotImplementedError('"blocking_result" method is not implemented!')
-
-
-class BatchedTask(Generic[T], Task[T]):
-    __loop: asyncio.AbstractEventLoop
-    __thread: threading.Thread
-
-    def __init__(
-            self,
-            coro: Union[Generator[Future[object], None, T], Awaitable[T]],
-            *,
-            loop: asyncio.AbstractEventLoop,
-            name: Optional[str] = None,
-            thread: threading.Thread
-    ) -> None:
-        super().__init__(coro, loop=loop, name=name)
-        self.__loop = loop
-        self.__thread = thread
-
-    def blocking_result(self) -> T:
-        if self.done():
-            return self.result()
-        if self.__thread is not threading.current_thread():
-            warnings.warn("The method was called from different thread which was used to create the"
-                          "task, unexpected behavior is possible during the execution.", RuntimeWarning,
-                          stacklevel=3)
-        return self.__loop.run_until_complete(self)
-
-
-class _BatchedTaskFactory:
-    __loop: asyncio.AbstractEventLoop
-    __thread: threading.Thread
-
-    def __init__(self, loop: asyncio.AbstractEventLoop, thread: threading.Thread):
-        self.__loop = loop
-        self.__thread = thread
-
-    def __call__(
-            self,
-            loop: asyncio.AbstractEventLoop,
-            factory: Union[Coroutine[Any, Any, T], Generator[Any, None, T]]
-    ) -> Task[T]:
-        return BatchedTask(factory, loop=self.__loop, thread=self.__thread)
+_T = TypeVar('_T')
 
 
 class _LifoQueue(LifoQueue):
@@ -755,7 +694,7 @@ class ThreadedRPClient(RPClient):
     _item_stack: _LifoQueue
     __loop: Optional[asyncio.AbstractEventLoop]
     __thread: Optional[threading.Thread]
-    __task_list: List[Task[T]]
+    __task_list: List[Task[_T]]
     self_loop: bool
     self_thread: bool
     launch_uuid: Optional[Task[str]]
@@ -787,7 +726,7 @@ class ThreadedRPClient(RPClient):
             self.__loop = asyncio.new_event_loop()
             self.self_loop = True
 
-    def create_task(self, coro: Coroutine[Any, Any, T]) -> Task[T]:
+    def create_task(self, coro: Coroutine[Any, Any, _T]) -> Task[_T]:
         loop = self.__loop
         result = loop.create_task(coro)
         self.__task_list.append(result)
@@ -899,15 +838,15 @@ class ThreadedRPClient(RPClient):
         result_task = self.create_task(result_coro)
         return result_task
 
-    def _add_current_item(self, item: Task[T]) -> None:
+    def _add_current_item(self, item: Task[_T]) -> None:
         """Add the last item from the self._items queue."""
         self._item_stack.put(item)
 
-    def _remove_current_item(self) -> Task[T]:
+    def _remove_current_item(self) -> Task[_T]:
         """Remove the last item from the self._items queue."""
         return self._item_stack.get()
 
-    def current_item(self) -> Task[T]:
+    def current_item(self) -> Task[_T]:
         """Retrieve the last item reported by the client."""
         return self._item_stack.last()
 
@@ -978,7 +917,7 @@ class BatchedRPClient(RPClient):
     __client: _AsyncRPClient
     _item_stack: _LifoQueue
     __loop: asyncio.AbstractEventLoop
-    __task_list: List[Task[T]]
+    __task_list: List[Task[_T]]
     __task_mutex: threading.Lock
     __last_run_time: float
     __thread: threading.Thread
@@ -1006,7 +945,7 @@ class BatchedRPClient(RPClient):
         self.__last_run_time = time.time()
         self.__loop = asyncio.new_event_loop()
         self.__thread = threading.current_thread()
-        self.__loop.set_task_factory(_BatchedTaskFactory(self.__loop, self.__thread))
+        self.__loop.set_task_factory(BatchedTaskFactory(self.__loop, self.__thread))
 
     def __ready_to_run(self) -> bool:
         current_time = time.time()
@@ -1018,7 +957,7 @@ class BatchedRPClient(RPClient):
             return True
         return False
 
-    def create_task(self, coro: Coroutine[Any, Any, T]) -> Task[T]:
+    def create_task(self, coro: Coroutine[Any, Any, _T]) -> Task[_T]:
         result = self.__loop.create_task(coro)
         tasks = None
         with self.__task_mutex:
@@ -1124,15 +1063,15 @@ class BatchedRPClient(RPClient):
         result_task = self.create_task(result_coro)
         return result_task
 
-    def _add_current_item(self, item: Task[T]) -> None:
+    def _add_current_item(self, item: Task[_T]) -> None:
         """Add the last item from the self._items queue."""
         self._item_stack.put(item)
 
-    def _remove_current_item(self) -> Task[T]:
+    def _remove_current_item(self) -> Task[_T]:
         """Remove the last item from the self._items queue."""
         return self._item_stack.get()
 
-    def current_item(self) -> Task[T]:
+    def current_item(self) -> Task[_T]:
         """Retrieve the last item reported by the client."""
         return self._item_stack.last()
 
