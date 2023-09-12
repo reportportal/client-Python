@@ -814,7 +814,7 @@ class ThreadedRPClient(RPClient):
                 break
         self.__task_list = []
 
-    async def __empty_line(self):
+    async def __empty_str(self):
         return ""
 
     def start_launch(self,
@@ -884,7 +884,7 @@ class ThreadedRPClient(RPClient):
             result_coro = self.__client.finish_launch(self.launch_uuid, end_time, status=status,
                                                       attributes=attributes, **kwargs)
         else:
-            result_coro = self.create_task(self.__empty_line())
+            result_coro = self.create_task(self.__empty_str())
 
         result_task = self.create_task(result_coro)
         self.finish_tasks()
@@ -914,8 +914,8 @@ class ThreadedRPClient(RPClient):
     async def __empty_dict(self):
         return {}
 
-    async def __none_value(self):
-        return
+    async def __int_value(self):
+        return -1
 
     def get_launch_info(self) -> Task[dict]:
         if not self.launch_uuid:
@@ -929,16 +929,16 @@ class ThreadedRPClient(RPClient):
         result_task = self.create_task(result_coro)
         return result_task
 
-    def get_launch_ui_id(self) -> Task[str]:
+    def get_launch_ui_id(self) -> Task[int]:
         if not self.launch_uuid:
-            return self.create_task(self.__none_value())
+            return self.create_task(self.__int_value())
         result_coro = self.__client.get_launch_ui_id(self.launch_uuid)
         result_task = self.create_task(result_coro)
         return result_task
 
     def get_launch_ui_url(self) -> Task[str]:
         if not self.launch_uuid:
-            return self.create_task(self.__none_value())
+            return self.create_task(self.__empty_str())
         result_coro = self.__client.get_launch_ui_url(self.launch_uuid)
         result_task = self.create_task(result_coro)
         return result_task
@@ -1039,7 +1039,7 @@ class BatchedRPClient(RPClient):
         if tasks:
             self.__loop.run_until_complete(asyncio.gather(*tasks))
 
-    async def __empty_line(self):
+    async def __empty_str(self):
         return ""
 
     def start_launch(self,
@@ -1109,7 +1109,7 @@ class BatchedRPClient(RPClient):
             result_coro = self.__client.finish_launch(self.launch_uuid, end_time, status=status,
                                                       attributes=attributes, **kwargs)
         else:
-            result_coro = self.create_task(self.__empty_line())
+            result_coro = self.create_task(self.__empty_str())
 
         result_task = self.create_task(result_coro)
         self.finish_tasks()
@@ -1139,8 +1139,8 @@ class BatchedRPClient(RPClient):
     async def __empty_dict(self):
         return {}
 
-    async def __none_value(self):
-        return
+    async def __int_value(self):
+        return -1
 
     def get_launch_info(self) -> Task[dict]:
         if not self.launch_uuid:
@@ -1154,16 +1154,16 @@ class BatchedRPClient(RPClient):
         result_task = self.create_task(result_coro)
         return result_task
 
-    def get_launch_ui_id(self) -> Task[str]:
+    def get_launch_ui_id(self) -> Task[int]:
         if not self.launch_uuid:
-            return self.create_task(self.__none_value())
+            return self.create_task(self.__int_value())
         result_coro = self.__client.get_launch_ui_id(self.launch_uuid)
         result_task = self.create_task(result_coro)
         return result_task
 
     def get_launch_ui_url(self) -> Task[str]:
         if not self.launch_uuid:
-            return self.create_task(self.__none_value())
+            return self.create_task(self.__empty_str())
         result_coro = self.__client.get_launch_ui_url(self.launch_uuid)
         result_task = self.create_task(result_coro)
         return result_task
