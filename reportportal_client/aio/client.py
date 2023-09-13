@@ -533,11 +533,26 @@ class RPClient(metaclass=AbstractBaseClass):
     def terminate(self, *_: Any, **__: Any) -> None:
         pass  # For backward compatibility
 
+    @abstractmethod
+    @property
+    def launch_uuid(self) -> Optional[Union[str, Task[str]]]:
+        raise NotImplementedError('"launch_uuid" property is not implemented!')
+
+    @property
+    def launch_id(self) -> Optional[Union[str, Task[str]]]:
+        warnings.warn(
+            message='`launch_id` property is deprecated since 5.5.0 and will be subject for removing in the'
+                    ' next major version. Use `launch_uuid` property instead.',
+            category=DeprecationWarning,
+            stacklevel=2
+        )
+        return self.launch_uuid
+
 
 class AsyncRPClient(RPClient):
     __client: _AsyncRPClient
     _item_stack: _LifoQueue
-    launch_uuid: Optional[str]
+    __launch_uuid: Optional[str]
     use_own_launch: bool
     step_reporter: StepReporter
 
@@ -665,6 +680,14 @@ class AsyncRPClient(RPClient):
                   attachment: Optional[Dict] = None, item_id: Optional[str] = None) -> None:
         return
 
+    @property
+    def launch_uuid(self) -> Optional[str]:
+        return self.__launch_uuid
+
+    @launch_uuid.setter
+    def launch_uuid(self, value: Optional[str]) -> None:
+        self.__launch_uuid = value
+
     def clone(self) -> 'AsyncRPClient':
         """Clone the client object, set current Item ID as cloned item ID.
 
@@ -700,7 +723,7 @@ class ThreadedRPClient(_SyncRPClient):
     __task_list: List[Task[_T]]
     self_loop: bool
     self_thread: bool
-    launch_uuid: Optional[Task[str]]
+    __launch_uuid: Optional[Task[str]]
     use_own_launch: bool
     step_reporter: StepReporter
 
@@ -892,6 +915,14 @@ class ThreadedRPClient(_SyncRPClient):
         # TODO: implement logging
         return None
 
+    @property
+    def launch_uuid(self) -> Optional[Task[str]]:
+        return self.__launch_uuid
+
+    @launch_uuid.setter
+    def launch_uuid(self, value: Optional[Task[str]]) -> None:
+        self.__launch_uuid = value
+
     def clone(self) -> 'ThreadedRPClient':
         """Clone the client object, set current Item ID as cloned item ID.
 
@@ -921,7 +952,7 @@ class BatchedRPClient(_SyncRPClient):
     __task_mutex: threading.Lock
     __last_run_time: float
     __thread: threading.Thread
-    launch_uuid: Optional[Task[str]]
+    __launch_uuid: Optional[Task[str]]
     use_own_launch: bool
     step_reporter: StepReporter
 
@@ -1113,6 +1144,14 @@ class BatchedRPClient(_SyncRPClient):
             attachment: Optional[Dict] = None, item_id: Union[Optional[str], Task[str]] = None) -> None:
         # TODO: implement logging
         return None
+
+    @property
+    def launch_uuid(self) -> Optional[Task[str]]:
+        return self.__launch_uuid
+
+    @launch_uuid.setter
+    def launch_uuid(self, value: Optional[Task[str]]) -> None:
+        self.__launch_uuid = value
 
     def clone(self) -> 'BatchedRPClient':
         """Clone the client object, set current Item ID as cloned item ID.
