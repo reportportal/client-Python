@@ -682,6 +682,7 @@ class AsyncRPClient(RPClient):
 
     async def log(self, datetime: str, message: str, level: Optional[Union[int, str]] = None,
                   attachment: Optional[Dict] = None, item_id: Optional[str] = None) -> None:
+        # TODO: implement logging
         return
 
     @property
