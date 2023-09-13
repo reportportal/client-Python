@@ -225,7 +225,7 @@ def calculate_json_part_size(json_dict: dict) -> int:
     return size
 
 
-def calculate_file_part_size(file: RPFile) -> int:
+def calculate_file_part_size(file: Optional[RPFile]) -> int:
     """Predict a file part size of Multipart request.
 
     :param file: RPFile class instance

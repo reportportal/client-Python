@@ -373,12 +373,16 @@ class RPRequestLog(RPRequestBase):
         """Get HTTP payload for the request."""
         return RPRequestLog.create_request(**self.__dict__)
 
+    @staticmethod
+    def _multipart_size(payload: dict, file: Optional[RPFile]):
+        size = helpers.calculate_json_part_size(payload)
+        size += helpers.calculate_file_part_size(file)
+        return size
+
     @property
     def multipart_size(self) -> int:
         """Calculate request size how it would transfer in Multipart HTTP."""
-        size = helpers.calculate_json_part_size(self.payload)
-        size += helpers.calculate_file_part_size(self.file)
-        return size
+        return RPRequestLog._multipart_size(self.payload, self.file)
 
 
 class AsyncRPRequestLog(RPRequestLog):
@@ -395,6 +399,11 @@ class AsyncRPRequestLog(RPRequestLog):
         data['launch_uuid'] = uuids[0]
         data['item_uuid'] = uuids[1]
         return RPRequestLog.create_request(**data)
+
+    @property
+    async def multipart_size(self) -> int:
+        """Calculate request size how it would transfer in Multipart HTTP."""
+        return RPRequestLog._multipart_size(await self.payload, self.file)
 
 
 class RPLogBatch(RPRequestBase):
@@ -475,23 +484,7 @@ class AsyncRPLogBatch(RPLogBatch):
 
     @property
     async def payload(self) -> aiohttp.MultipartWriter:
-        r"""Get HTTP payload for the request.
-
-        Example:
-        [('json_request_part',
-          (None,
-           '[{"launchUuid": "bf6edb74-b092-4b32-993a-29967904a5b4",
-              "time": "1588936537081",
-              "message": "Html report",
-              "level": "INFO",
-              "itemUuid": "d9dc2514-2c78-4c4f-9369-ee4bca4c78f8",
-              "file": {"name": "Detailed report"}}]',
-           'application/json')),
-         ('file',
-          ('Detailed report',
-           '<html lang="utf-8">\n<body><p>Paragraph</p></body></html>',
-           'text/html'))]
-        """
+        """Get HTTP payload for the request."""
         json_payload = aiohttp.Payload(await self.__get_request_part(), content_type='application/json')
         json_payload.set_content_disposition('form-data', name='json_request_part')
         mpwriter = aiohttp.MultipartWriter('form-data')

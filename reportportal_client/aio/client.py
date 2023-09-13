@@ -32,7 +32,8 @@ from reportportal_client._local import set_current
 from reportportal_client.aio import Task, BatchedTaskFactory
 from reportportal_client.core.rp_issues import Issue
 from reportportal_client.core.rp_requests import (LaunchStartRequest, AsyncHttpRequest, AsyncItemStartRequest,
-                                                  AsyncItemFinishRequest, LaunchFinishRequest)
+                                                  AsyncItemFinishRequest, LaunchFinishRequest,
+                                                  AsyncRPRequestLog, AsyncRPLogBatch)
 from reportportal_client.helpers import (root_uri_join, verify_value_length, await_if_necessary,
                                          agent_name_version)
 from reportportal_client.logs import MAX_LOG_BATCH_PAYLOAD_SIZE
@@ -417,15 +418,10 @@ class _AsyncRPClient:
         response = await AsyncHttpRequest(self.session.get, url=url).make()
         return await response.json if response else None
 
-    async def log(self,
-                  launch_uuid: Union[str, Task[str]],
-                  time: str,
-                  message: str,
-                  *,
-                  level: Optional[Union[int, str]] = None,
-                  attachment: Optional[Dict] = None,
-                  item_id: Optional[Union[str, Task[str]]] = None) -> None:
-        pass
+    async def log_batch(self, log_batch: List[AsyncRPRequestLog]) -> Tuple[str, ...]:
+        url = root_uri_join(self.base_url_v2, 'log')
+        response = await AsyncHttpRequest(self.session.post, url=url, data=AsyncRPLogBatch(log_batch)).make()
+        return await response.messages
 
     def clone(self) -> '_AsyncRPClient':
         """Clone the client object, set current Item ID as cloned item ID.
@@ -527,7 +523,7 @@ class RPClient(metaclass=AbstractBaseClass):
         raise NotImplementedError('"get_project_settings" method is not implemented!')
 
     @abstractmethod
-    def log(self, time: str, message: str, level: Optional[Union[int, str]] = None,
+    def log(self, datetime: str, message: str, level: Optional[Union[int, str]] = None,
             attachment: Optional[Dict] = None, item_id: Union[Optional[str], Task[str]] = None) -> None:
         raise NotImplementedError('"log" method is not implemented!')
 
@@ -665,7 +661,7 @@ class AsyncRPClient(RPClient):
     async def get_project_settings(self) -> Optional[Dict]:
         return await self.__client.get_project_settings()
 
-    async def log(self, time: str, message: str, level: Optional[Union[int, str]] = None,
+    async def log(self, datetime: str, message: str, level: Optional[Union[int, str]] = None,
                   attachment: Optional[Dict] = None, item_id: Optional[str] = None) -> None:
         return
 
@@ -689,7 +685,14 @@ class AsyncRPClient(RPClient):
         return cloned
 
 
-class ThreadedRPClient(RPClient):
+class _SyncRPClient(RPClient, metaclass=AbstractBaseClass):
+    __metaclass__ = AbstractBaseClass
+
+    async def __empty_str(self):
+        return ""
+
+
+class ThreadedRPClient(_SyncRPClient):
     __client: _AsyncRPClient
     _item_stack: _LifoQueue
     __loop: Optional[asyncio.AbstractEventLoop]
@@ -752,9 +755,6 @@ class ThreadedRPClient(RPClient):
             if time.time() - shutdown_start_time >= SHUTDOWN_TIMEOUT:
                 break
         self.__task_list = []
-
-    async def __empty_str(self):
-        return ""
 
     def start_launch(self,
                      name: str,
@@ -887,7 +887,7 @@ class ThreadedRPClient(RPClient):
         result_task = self.create_task(result_coro)
         return result_task
 
-    def log(self, time: str, message: str, level: Optional[Union[int, str]] = None,
+    def log(self, datetime: str, message: str, level: Optional[Union[int, str]] = None,
             attachment: Optional[Dict] = None, item_id: Optional[Task[str]] = None) -> None:
         # TODO: implement logging
         return None
@@ -913,7 +913,7 @@ class ThreadedRPClient(RPClient):
         return cloned
 
 
-class BatchedRPClient(RPClient):
+class BatchedRPClient(_SyncRPClient):
     __client: _AsyncRPClient
     _item_stack: _LifoQueue
     __loop: asyncio.AbstractEventLoop
@@ -977,9 +977,6 @@ class BatchedRPClient(RPClient):
                 self.__task_list = []
         if tasks:
             self.__loop.run_until_complete(asyncio.gather(*tasks))
-
-    async def __empty_str(self):
-        return ""
 
     def start_launch(self,
                      name: str,
@@ -1112,7 +1109,7 @@ class BatchedRPClient(RPClient):
         result_task = self.create_task(result_coro)
         return result_task
 
-    def log(self, time: str, message: str, level: Optional[Union[int, str]] = None,
+    def log(self, datetime: str, message: str, level: Optional[Union[int, str]] = None,
             attachment: Optional[Dict] = None, item_id: Union[Optional[str], Task[str]] = None) -> None:
         # TODO: implement logging
         return None
