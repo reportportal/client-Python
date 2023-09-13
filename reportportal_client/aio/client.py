@@ -548,6 +548,10 @@ class RPClient(metaclass=AbstractBaseClass):
         )
         return self.launch_uuid
 
+    @abstractmethod
+    def clone(self) -> 'RPClient':
+        raise NotImplementedError('"clone" method is not implemented!')
+
 
 class AsyncRPClient(RPClient):
     __client: _AsyncRPClient
@@ -711,209 +715,10 @@ class AsyncRPClient(RPClient):
 class _SyncRPClient(RPClient, metaclass=AbstractBaseClass):
     __metaclass__ = AbstractBaseClass
 
-    async def __empty_str(self):
-        return ""
-
-
-class ThreadedRPClient(_SyncRPClient):
-    __client: _AsyncRPClient
     _item_stack: _LifoQueue
-    __loop: Optional[asyncio.AbstractEventLoop]
-    __thread: Optional[threading.Thread]
-    __task_list: List[Task[_T]]
-    self_loop: bool
-    self_thread: bool
     __launch_uuid: Optional[Task[str]]
     use_own_launch: bool
     step_reporter: StepReporter
-
-    def __init__(self, endpoint: str, project: str, *, launch_uuid: Optional[Task[str]] = None,
-                 client: Optional[_AsyncRPClient] = None, loop: Optional[asyncio.AbstractEventLoop] = None,
-                 **kwargs: Any) -> None:
-        set_current(self)
-        self.step_reporter = StepReporter(self)
-        self._item_stack = _LifoQueue()
-        if client:
-            self.__client = client
-        else:
-            self.__client = _AsyncRPClient(endpoint, project, **kwargs)
-        if launch_uuid:
-            self.launch_uuid = launch_uuid
-            self.use_own_launch = False
-        else:
-            self.use_own_launch = True
-
-        self.__task_list = []
-        self.__thread = None
-        if loop:
-            self.__loop = loop
-            self.self_loop = False
-        else:
-            self.__loop = asyncio.new_event_loop()
-            self.self_loop = True
-
-    def create_task(self, coro: Coroutine[Any, Any, _T]) -> Task[_T]:
-        loop = self.__loop
-        result = loop.create_task(coro)
-        self.__task_list.append(result)
-        if not self.__thread and self.self_loop:
-            self.__thread = threading.Thread(target=loop.run_forever, name='RP-Async-Client',
-                                             daemon=True)
-            self.__thread.start()
-        i = 0
-        for i, task in enumerate(self.__task_list):
-            if not task.done():
-                break
-        self.__task_list = self.__task_list[i:]
-        return result
-
-    def finish_tasks(self):
-        sleep_time = sys.getswitchinterval()
-        shutdown_start_time = time.time()
-        for task in self.__task_list:
-            task_start_time = time.time()
-            while not task.done() and (time.time() - task_start_time < TASK_TIMEOUT) and (
-                    time.time() - shutdown_start_time < SHUTDOWN_TIMEOUT):
-                time.sleep(sleep_time)
-            if time.time() - shutdown_start_time >= SHUTDOWN_TIMEOUT:
-                break
-        self.__task_list = []
-
-    def start_launch(self,
-                     name: str,
-                     start_time: str,
-                     description: Optional[str] = None,
-                     attributes: Optional[Union[List, Dict]] = None,
-                     rerun: bool = False,
-                     rerun_of: Optional[str] = None,
-                     **kwargs) -> Task[str]:
-        if not self.use_own_launch:
-            return self.launch_uuid
-        launch_uuid_coro = self.__client.start_launch(name, start_time, description=description,
-                                                      attributes=attributes, rerun=rerun, rerun_of=rerun_of,
-                                                      **kwargs)
-        self.launch_uuid = self.create_task(launch_uuid_coro)
-        return self.launch_uuid
-
-    def start_test_item(self,
-                        name: str,
-                        start_time: str,
-                        item_type: str,
-                        *,
-                        description: Optional[str] = None,
-                        attributes: Optional[List[Dict]] = None,
-                        parameters: Optional[Dict] = None,
-                        parent_item_id: Optional[Task[str]] = None,
-                        has_stats: bool = True,
-                        code_ref: Optional[str] = None,
-                        retry: bool = False,
-                        test_case_id: Optional[str] = None,
-                        **kwargs: Any) -> Task[str]:
-
-        item_id_coro = self.__client.start_test_item(self.launch_uuid, name, start_time, item_type,
-                                                     description=description, attributes=attributes,
-                                                     parameters=parameters, parent_item_id=parent_item_id,
-                                                     has_stats=has_stats, code_ref=code_ref, retry=retry,
-                                                     test_case_id=test_case_id, **kwargs)
-        item_id_task = self.create_task(item_id_coro)
-        self._add_current_item(item_id_task)
-        return item_id_task
-
-    def finish_test_item(self,
-                         item_id: Task[str],
-                         end_time: str,
-                         *,
-                         status: str = None,
-                         issue: Optional[Issue] = None,
-                         attributes: Optional[Union[List, Dict]] = None,
-                         description: str = None,
-                         retry: bool = False,
-                         **kwargs: Any) -> Task[str]:
-        result_coro = self.__client.finish_test_item(self.launch_uuid, item_id, end_time, status=status,
-                                                     issue=issue, attributes=attributes,
-                                                     description=description,
-                                                     retry=retry, **kwargs)
-        result_task = self.create_task(result_coro)
-        self._remove_current_item()
-        return result_task
-
-    def finish_launch(self,
-                      end_time: str,
-                      status: str = None,
-                      attributes: Optional[Union[List, Dict]] = None,
-                      **kwargs: Any) -> Task[str]:
-        if self.use_own_launch:
-            result_coro = self.__client.finish_launch(self.launch_uuid, end_time, status=status,
-                                                      attributes=attributes, **kwargs)
-        else:
-            result_coro = self.create_task(self.__empty_str())
-
-        result_task = self.create_task(result_coro)
-        self.finish_tasks()
-        return result_task
-
-    def update_test_item(self,
-                         item_uuid: Task[str],
-                         attributes: Optional[Union[List, Dict]] = None,
-                         description: Optional[str] = None) -> Task[str]:
-        result_coro = self.__client.update_test_item(item_uuid, attributes=attributes,
-                                                     description=description)
-        result_task = self.create_task(result_coro)
-        return result_task
-
-    def _add_current_item(self, item: Task[_T]) -> None:
-        """Add the last item from the self._items queue."""
-        self._item_stack.put(item)
-
-    def _remove_current_item(self) -> Task[_T]:
-        """Remove the last item from the self._items queue."""
-        return self._item_stack.get()
-
-    def current_item(self) -> Task[_T]:
-        """Retrieve the last item reported by the client."""
-        return self._item_stack.last()
-
-    async def __empty_dict(self):
-        return {}
-
-    async def __int_value(self):
-        return -1
-
-    def get_launch_info(self) -> Task[dict]:
-        if not self.launch_uuid:
-            return self.create_task(self.__empty_dict())
-        result_coro = self.__client.get_launch_info(self.launch_uuid)
-        result_task = self.create_task(result_coro)
-        return result_task
-
-    def get_item_id_by_uuid(self, item_uuid_future: Task[str]) -> Task[str]:
-        result_coro = self.__client.get_item_id_by_uuid(item_uuid_future)
-        result_task = self.create_task(result_coro)
-        return result_task
-
-    def get_launch_ui_id(self) -> Task[int]:
-        if not self.launch_uuid:
-            return self.create_task(self.__int_value())
-        result_coro = self.__client.get_launch_ui_id(self.launch_uuid)
-        result_task = self.create_task(result_coro)
-        return result_task
-
-    def get_launch_ui_url(self) -> Task[str]:
-        if not self.launch_uuid:
-            return self.create_task(self.__empty_str())
-        result_coro = self.__client.get_launch_ui_url(self.launch_uuid)
-        result_task = self.create_task(result_coro)
-        return result_task
-
-    def get_project_settings(self) -> Task[dict]:
-        result_coro = self.__client.get_project_settings()
-        result_task = self.create_task(result_coro)
-        return result_task
-
-    def log(self, datetime: str, message: str, level: Optional[Union[int, str]] = None,
-            attachment: Optional[Dict] = None, item_id: Optional[Task[str]] = None) -> None:
-        # TODO: implement logging
-        return None
 
     @property
     def launch_uuid(self) -> Optional[Task[str]]:
@@ -922,39 +727,6 @@ class ThreadedRPClient(_SyncRPClient):
     @launch_uuid.setter
     def launch_uuid(self, value: Optional[Task[str]]) -> None:
         self.__launch_uuid = value
-
-    def clone(self) -> 'ThreadedRPClient':
-        """Clone the client object, set current Item ID as cloned item ID.
-
-        :returns: Cloned client object
-        :rtype: ThreadedRPClient
-        """
-        cloned_client = self.__client.clone()
-        # noinspection PyTypeChecker
-        cloned = ThreadedRPClient(
-            endpoint=None,
-            project=None,
-            launch_uuid=self.launch_uuid,
-            client=cloned_client,
-            loop=self.__loop
-        )
-        current_item = self.current_item()
-        if current_item:
-            cloned._add_current_item(current_item)
-        return cloned
-
-
-class BatchedRPClient(_SyncRPClient):
-    __client: _AsyncRPClient
-    _item_stack: _LifoQueue
-    __loop: asyncio.AbstractEventLoop
-    __task_list: List[Task[_T]]
-    __task_mutex: threading.Lock
-    __last_run_time: float
-    __thread: threading.Thread
-    __launch_uuid: Optional[Task[str]]
-    use_own_launch: bool
-    step_reporter: StepReporter
 
     def __init__(self, endpoint: str, project: str, *, launch_uuid: Optional[Task[str]] = None,
                  client: Optional[_AsyncRPClient] = None, **kwargs: Any) -> None:
@@ -971,43 +743,34 @@ class BatchedRPClient(_SyncRPClient):
         else:
             self.use_own_launch = True
 
-        self.__task_list = []
-        self.__task_mutex = threading.Lock()
-        self.__last_run_time = time.time()
-        self.__loop = asyncio.new_event_loop()
-        self.__thread = threading.current_thread()
-        self.__loop.set_task_factory(BatchedTaskFactory(self.__loop, self.__thread))
-
-    def __ready_to_run(self) -> bool:
-        current_time = time.time()
-        last_time = self.__last_run_time
-        if len(self.__task_list) <= 0:
-            return False
-        if len(self.__task_list) > TASK_RUN_NUM_THRESHOLD or current_time - last_time >= TASK_RUN_INTERVAL:
-            self.__last_run_time = current_time
-            return True
-        return False
-
+    @abstractmethod
     def create_task(self, coro: Coroutine[Any, Any, _T]) -> Task[_T]:
-        result = self.__loop.create_task(coro)
-        tasks = None
-        with self.__task_mutex:
-            self.__task_list.append(result)
-            if self.__ready_to_run():
-                tasks = self.__task_list
-                self.__task_list = []
-        if tasks:
-            self.__loop.run_until_complete(asyncio.gather(*tasks))
-        return result
+        raise NotImplementedError('"create_task" method is not implemented!')
 
+    @abstractmethod
     def finish_tasks(self) -> None:
-        tasks = None
-        with self.__task_mutex:
-            if len(self.__task_list) > 0:
-                tasks = self.__task_list
-                self.__task_list = []
-        if tasks:
-            self.__loop.run_until_complete(asyncio.gather(*tasks))
+        raise NotImplementedError('"create_task" method is not implemented!')
+
+    def _add_current_item(self, item: Task[_T]) -> None:
+        """Add the last item from the self._items queue."""
+        self._item_stack.put(item)
+
+    def _remove_current_item(self) -> Task[_T]:
+        """Remove the last item from the self._items queue."""
+        return self._item_stack.get()
+
+    def current_item(self) -> Task[_T]:
+        """Retrieve the last item reported by the client."""
+        return self._item_stack.last()
+
+    async def __empty_str(self):
+        return ""
+
+    async def __empty_dict(self):
+        return {}
+
+    async def __int_value(self):
+        return -1
 
     def start_launch(self,
                      name: str,
@@ -1091,24 +854,6 @@ class BatchedRPClient(_SyncRPClient):
         result_task = self.create_task(result_coro)
         return result_task
 
-    def _add_current_item(self, item: Task[_T]) -> None:
-        """Add the last item from the self._items queue."""
-        self._item_stack.put(item)
-
-    def _remove_current_item(self) -> Task[_T]:
-        """Remove the last item from the self._items queue."""
-        return self._item_stack.get()
-
-    def current_item(self) -> Task[_T]:
-        """Retrieve the last item reported by the client."""
-        return self._item_stack.last()
-
-    async def __empty_dict(self):
-        return {}
-
-    async def __int_value(self):
-        return -1
-
     def get_launch_info(self) -> Task[dict]:
         if not self.launch_uuid:
             return self.create_task(self.__empty_dict())
@@ -1141,17 +886,131 @@ class BatchedRPClient(_SyncRPClient):
         return result_task
 
     def log(self, datetime: str, message: str, level: Optional[Union[int, str]] = None,
-            attachment: Optional[Dict] = None, item_id: Union[Optional[str], Task[str]] = None) -> None:
+            attachment: Optional[Dict] = None, item_id: Optional[Task[str]] = None) -> None:
         # TODO: implement logging
         return None
 
-    @property
-    def launch_uuid(self) -> Optional[Task[str]]:
-        return self.__launch_uuid
 
-    @launch_uuid.setter
-    def launch_uuid(self, value: Optional[Task[str]]) -> None:
-        self.__launch_uuid = value
+class ThreadedRPClient(_SyncRPClient):
+    __task_list: List[Task[_T]]
+    __task_mutex: threading.Lock
+    __loop: Optional[asyncio.AbstractEventLoop]
+    __thread: Optional[threading.Thread]
+    self_loop: bool
+    self_thread: bool
+
+    def __init__(self, endpoint: str, project: str, *, launch_uuid: Optional[Task[str]] = None,
+                 client: Optional[_AsyncRPClient] = None, loop: Optional[asyncio.AbstractEventLoop] = None,
+                 **kwargs: Any) -> None:
+        super().__init__(endpoint, project, launch_uuid=launch_uuid, client=client, **kwargs)
+        self.__task_list = []
+        self.__task_mutex = threading.Lock()
+        self.__thread = None
+        if loop:
+            self.__loop = loop
+            self.self_loop = False
+        else:
+            self.__loop = asyncio.new_event_loop()
+            self.self_loop = True
+
+    def create_task(self, coro: Coroutine[Any, Any, _T]) -> Task[_T]:
+        loop = self.__loop
+        result = loop.create_task(coro)
+        with self.__task_mutex:
+            self.__task_list.append(result)
+            if not self.__thread and self.self_loop:
+                self.__thread = threading.Thread(target=loop.run_forever, name='RP-Async-Client',
+                                                 daemon=True)
+                self.__thread.start()
+            i = 0
+            for i, task in enumerate(self.__task_list):
+                if not task.done():
+                    break
+            self.__task_list = self.__task_list[i:]
+        return result
+
+    def finish_tasks(self):
+        sleep_time = sys.getswitchinterval()
+        shutdown_start_time = time.time()
+        with self.__task_mutex:
+            for task in self.__task_list:
+                task_start_time = time.time()
+                while not task.done() and (time.time() - task_start_time < TASK_TIMEOUT) and (
+                        time.time() - shutdown_start_time < SHUTDOWN_TIMEOUT):
+                    time.sleep(sleep_time)
+                if time.time() - shutdown_start_time >= SHUTDOWN_TIMEOUT:
+                    break
+            self.__task_list = []
+
+    def clone(self) -> 'ThreadedRPClient':
+        """Clone the client object, set current Item ID as cloned item ID.
+
+        :returns: Cloned client object
+        :rtype: ThreadedRPClient
+        """
+        cloned_client = self.__client.clone()
+        # noinspection PyTypeChecker
+        cloned = ThreadedRPClient(
+            endpoint=None,
+            project=None,
+            launch_uuid=self.launch_uuid,
+            client=cloned_client,
+            loop=self.__loop
+        )
+        current_item = self.current_item()
+        if current_item:
+            cloned._add_current_item(current_item)
+        return cloned
+
+
+class BatchedRPClient(_SyncRPClient):
+    __loop: asyncio.AbstractEventLoop
+    __task_list: List[Task[_T]]
+    __task_mutex: threading.Lock
+    __last_run_time: float
+    __thread: threading.Thread
+
+    def __init__(self, endpoint: str, project: str, *, launch_uuid: Optional[Task[str]] = None,
+                 client: Optional[_AsyncRPClient] = None, **kwargs: Any) -> None:
+        super().__init__(endpoint, project, launch_uuid=launch_uuid, client=client, **kwargs)
+
+        self.__task_list = []
+        self.__task_mutex = threading.Lock()
+        self.__last_run_time = time.time()
+        self.__loop = asyncio.new_event_loop()
+        self.__thread = threading.current_thread()
+        self.__loop.set_task_factory(BatchedTaskFactory(self.__loop, self.__thread))
+
+    def __ready_to_run(self) -> bool:
+        current_time = time.time()
+        last_time = self.__last_run_time
+        if len(self.__task_list) <= 0:
+            return False
+        if len(self.__task_list) > TASK_RUN_NUM_THRESHOLD or current_time - last_time >= TASK_RUN_INTERVAL:
+            self.__last_run_time = current_time
+            return True
+        return False
+
+    def create_task(self, coro: Coroutine[Any, Any, _T]) -> Task[_T]:
+        result = self.__loop.create_task(coro)
+        tasks = None
+        with self.__task_mutex:
+            self.__task_list.append(result)
+            if self.__ready_to_run():
+                tasks = self.__task_list
+                self.__task_list = []
+        if tasks:
+            self.__loop.run_until_complete(asyncio.gather(*tasks))
+        return result
+
+    def finish_tasks(self) -> None:
+        tasks = None
+        with self.__task_mutex:
+            if len(self.__task_list) > 0:
+                tasks = self.__task_list
+                self.__task_list = []
+        if tasks:
+            self.__loop.run_until_complete(asyncio.gather(*tasks))
 
     def clone(self) -> 'BatchedRPClient':
         """Clone the client object, set current Item ID as cloned item ID.
