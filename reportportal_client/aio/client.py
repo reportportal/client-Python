@@ -83,7 +83,7 @@ class _AsyncRPClient:
     print_output: Optional[TextIO]
     _skip_analytics: str
     __session: Optional[aiohttp.ClientSession]
-    __stat_task: Optional[Task[aiohttp.ClientResponse]]
+    __stat_task: Optional[asyncio.Task[aiohttp.ClientResponse]]
 
     def __init__(
             self,
@@ -96,7 +96,6 @@ class _AsyncRPClient:
             verify_ssl: Union[bool, str] = True,
             retries: int = None,
             max_pool_size: int = 50,
-
             http_timeout: Union[float, Tuple[float, float]] = (10, 10),
             log_batch_payload_size: int = MAX_LOG_BATCH_PAYLOAD_SIZE,
             mode: str = 'DEFAULT',
