@@ -18,7 +18,7 @@ import logging
 import ssl
 import sys
 import threading
-import time
+import time as datetime
 import warnings
 from os import getenv
 from queue import LifoQueue
@@ -575,12 +575,12 @@ class AsyncRPClient(RP):
     async def get_project_settings(self) -> Optional[Dict]:
         return await self.__client.get_project_settings()
 
-    async def log(self, datetime: str, message: str, level: Optional[Union[int, str]] = None,
+    async def log(self, time: str, message: str, level: Optional[Union[int, str]] = None,
                   attachment: Optional[Dict] = None,
                   item_id: Optional[str] = None) -> Optional[Tuple[str, ...]]:
         """Log message. Can be added to test item in any state.
 
-        :param datetime:    Log time
+        :param time:    Log time
         :param message:     Log message
         :param level:       Log level
         :param attachment:  Attachments(images,files,etc.)
@@ -590,7 +590,7 @@ class AsyncRPClient(RP):
             logger.warning("Attempt to log to non-existent item")
             return
         rp_file = RPFile(**attachment) if attachment else None
-        rp_log = AsyncRPRequestLog(self.launch_uuid, datetime, rp_file, item_id, level, message)
+        rp_log = AsyncRPRequestLog(self.launch_uuid, time, rp_file, item_id, level, message)
         return await self.__client.log_batch(await self._log_batcher.append_async(rp_log))
 
     @property
@@ -805,11 +805,11 @@ class _SyncRPClient(RP, metaclass=AbstractBaseClass):
     async def _log(self, log_rq: AsyncRPRequestLog) -> Optional[Tuple[str, ...]]:
         return await self.__client.log_batch(await self._log_batcher.append_async(log_rq))
 
-    def log(self, datetime: str, message: str, level: Optional[Union[int, str]] = None,
+    def log(self, time: str, message: str, level: Optional[Union[int, str]] = None,
             attachment: Optional[Dict] = None, item_id: Optional[Task[str]] = None) -> None:
         """Log message. Can be added to test item in any state.
 
-        :param datetime:    Log time
+        :param time:    Log time
         :param message:     Log message
         :param level:       Log level
         :param attachment:  Attachments(images,files,etc.)
@@ -819,7 +819,7 @@ class _SyncRPClient(RP, metaclass=AbstractBaseClass):
             logger.warning("Attempt to log to non-existent item")
             return
         rp_file = RPFile(**attachment) if attachment else None
-        rp_log = AsyncRPRequestLog(self.launch_uuid, datetime, rp_file, item_id, level, message)
+        rp_log = AsyncRPRequestLog(self.launch_uuid, time, rp_file, item_id, level, message)
         self.create_task(self._log(rp_log))
         return None
 
@@ -870,14 +870,14 @@ class ThreadedRPClient(_SyncRPClient):
 
     def finish_tasks(self):
         sleep_time = sys.getswitchinterval()
-        shutdown_start_time = time.time()
+        shutdown_start_time = datetime.time()
         with self.__task_mutex:
             for task in self.__task_list:
-                task_start_time = time.time()
-                while not task.done() and (time.time() - task_start_time < DEFAULT_TASK_TIMEOUT) and (
-                        time.time() - shutdown_start_time < DEFAULT_SHUTDOWN_TIMEOUT):
-                    time.sleep(sleep_time)
-                if time.time() - shutdown_start_time >= DEFAULT_SHUTDOWN_TIMEOUT:
+                task_start_time = datetime.time()
+                while not task.done() and (datetime.time() - task_start_time < DEFAULT_TASK_TIMEOUT) and (
+                        datetime.time() - shutdown_start_time < DEFAULT_SHUTDOWN_TIMEOUT):
+                    datetime.sleep(sleep_time)
+                if datetime.time() - shutdown_start_time >= DEFAULT_SHUTDOWN_TIMEOUT:
                     break
             self.__task_list = []
 
@@ -918,7 +918,7 @@ class BatchedRPClient(_SyncRPClient):
 
         self.__task_list = []
         self.__task_mutex = threading.Lock()
-        self.__last_run_time = time.time()
+        self.__last_run_time = datetime.time()
         self.__loop = asyncio.new_event_loop()
         self.__thread = threading.current_thread()
         self.__loop.set_task_factory(BatchedTaskFactory(self.__loop, self.__thread))
@@ -926,7 +926,7 @@ class BatchedRPClient(_SyncRPClient):
         self.__trigger_interval = trigger_interval
 
     def __ready_to_run(self) -> bool:
-        current_time = time.time()
+        current_time = datetime.time()
         last_time = self.__last_run_time
         if len(self.__task_list) <= 0:
             return False
