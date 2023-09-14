@@ -61,7 +61,7 @@ class _LifoQueue(LifoQueue):
                 return self.queue[-1]
 
 
-class _AsyncRPClient:
+class Client:
     api_v1: str
     api_v2: str
     base_url_v1: str
@@ -420,13 +420,13 @@ class _AsyncRPClient:
         response = await AsyncHttpRequest(self.session.post, url=url, data=AsyncRPLogBatch(log_batch)).make()
         return await response.messages
 
-    def clone(self) -> '_AsyncRPClient':
+    def clone(self) -> 'Client':
         """Clone the client object, set current Item ID as cloned item ID.
 
         :returns: Cloned client object
         :rtype: AsyncRPClient
         """
-        cloned = _AsyncRPClient(
+        cloned = Client(
             endpoint=self.endpoint,
             project=self.project,
             api_key=self.api_key,
@@ -443,21 +443,21 @@ class _AsyncRPClient:
 
 
 class AsyncRPClient(RP):
-    __client: _AsyncRPClient
+    __client: Client
     _item_stack: _LifoQueue
     __launch_uuid: Optional[str]
     use_own_launch: bool
     step_reporter: StepReporter
 
     def __init__(self, endpoint: str, project: str, *, launch_uuid: Optional[str] = None,
-                 client: Optional[_AsyncRPClient] = None, **kwargs: Any) -> None:
+                 client: Optional[Client] = None, **kwargs: Any) -> None:
         set_current(self)
         self.step_reporter = StepReporter(self)
         self._item_stack = _LifoQueue()
         if client:
             self.__client = client
         else:
-            self.__client = _AsyncRPClient(endpoint, project, **kwargs)
+            self.__client = Client(endpoint, project, **kwargs)
         if launch_uuid:
             self.launch_uuid = launch_uuid
             self.use_own_launch = False
@@ -619,14 +619,14 @@ class _SyncRPClient(RP, metaclass=AbstractBaseClass):
         self.__launch_uuid = value
 
     def __init__(self, endpoint: str, project: str, *, launch_uuid: Optional[Task[str]] = None,
-                 client: Optional[_AsyncRPClient] = None, **kwargs: Any) -> None:
+                 client: Optional[Client] = None, **kwargs: Any) -> None:
         set_current(self)
         self.step_reporter = StepReporter(self)
         self._item_stack = _LifoQueue()
         if client:
             self.__client = client
         else:
-            self.__client = _AsyncRPClient(endpoint, project, **kwargs)
+            self.__client = Client(endpoint, project, **kwargs)
         if launch_uuid:
             self.launch_uuid = launch_uuid
             self.use_own_launch = False
@@ -791,7 +791,8 @@ class ThreadedRPClient(_SyncRPClient):
     __shutdown_timeout: float
 
     def __init__(self, endpoint: str, project: str, *, launch_uuid: Optional[Task[str]] = None,
-                 client: Optional[_AsyncRPClient] = None, loop: Optional[asyncio.AbstractEventLoop] = None,
+                 client: Optional[Client] = None,
+                 loop: Optional[asyncio.AbstractEventLoop] = None,
                  task_timeout: float = DEFAULT_TASK_TIMEOUT,
                  shutdown_timeout: float = DEFAULT_SHUTDOWN_TIMEOUT, **kwargs: Any) -> None:
         super().__init__(endpoint, project, launch_uuid=launch_uuid, client=client, **kwargs)
@@ -868,7 +869,7 @@ class BatchedRPClient(_SyncRPClient):
     __trigger_interval: float
 
     def __init__(self, endpoint: str, project: str, *, launch_uuid: Optional[Task[str]] = None,
-                 client: Optional[_AsyncRPClient] = None, trigger_num: int = DEFAULT_TASK_TRIGGER_NUM,
+                 client: Optional[Client] = None, trigger_num: int = DEFAULT_TASK_TRIGGER_NUM,
                  trigger_interval: float = DEFAULT_TASK_TRIGGER_INTERVAL, **kwargs: Any) -> None:
         super().__init__(endpoint, project, launch_uuid=launch_uuid, client=client, **kwargs)
 
