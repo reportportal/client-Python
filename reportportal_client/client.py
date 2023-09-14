@@ -16,6 +16,7 @@
 import logging
 import sys
 import warnings
+from abc import abstractmethod
 from os import getenv
 from queue import LifoQueue
 from typing import Union, Tuple, List, Dict, Any, Optional, TextIO
@@ -23,6 +24,7 @@ from typing import Union, Tuple, List, Dict, Any, Optional, TextIO
 import requests
 from requests.adapters import HTTPAdapter, Retry, DEFAULT_RETRIES
 
+from aio import Task
 # noinspection PyProtectedMember
 from reportportal_client._local import set_current
 from reportportal_client.core.rp_issues import Issue
@@ -38,9 +40,124 @@ from reportportal_client.logs.log_manager import LogManager, MAX_LOG_BATCH_PAYLO
 from reportportal_client.services.statistics import send_event
 from reportportal_client.static.defines import NOT_FOUND
 from reportportal_client.steps import StepReporter
+from static.abstract import AbstractBaseClass
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
+
+
+class RP(metaclass=AbstractBaseClass):
+    __metaclass__ = AbstractBaseClass
+
+    @abstractmethod
+    def start_launch(self,
+                     name: str,
+                     start_time: str,
+                     description: Optional[str] = None,
+                     attributes: Optional[Union[List, Dict]] = None,
+                     rerun: bool = False,
+                     rerun_of: Optional[str] = None,
+                     **kwargs) -> Union[Optional[str], Task[str]]:
+        raise NotImplementedError('"start_launch" method is not implemented!')
+
+    @abstractmethod
+    def start_test_item(self,
+                        name: str,
+                        start_time: str,
+                        item_type: str,
+                        *,
+                        description: Optional[str] = None,
+                        attributes: Optional[List[Dict]] = None,
+                        parameters: Optional[Dict] = None,
+                        parent_item_id: Union[Optional[str], Task[str]] = None,
+                        has_stats: bool = True,
+                        code_ref: Optional[str] = None,
+                        retry: bool = False,
+                        test_case_id: Optional[str] = None,
+                        **kwargs: Any) -> Union[Optional[str], Task[str]]:
+        raise NotImplementedError('"start_test_item" method is not implemented!')
+
+    @abstractmethod
+    def finish_test_item(self,
+                         item_id: Union[str, Task[str]],
+                         end_time: str,
+                         *,
+                         status: str = None,
+                         issue: Optional[Issue] = None,
+                         attributes: Optional[Union[List, Dict]] = None,
+                         description: str = None,
+                         retry: bool = False,
+                         **kwargs: Any) -> Union[Optional[str], Task[str]]:
+        raise NotImplementedError('"finish_test_item" method is not implemented!')
+
+    @abstractmethod
+    def finish_launch(self,
+                      end_time: str,
+                      status: str = None,
+                      attributes: Optional[Union[List, Dict]] = None,
+                      **kwargs: Any) -> Union[Optional[str], Task[str]]:
+        raise NotImplementedError('"finish_launch" method is not implemented!')
+
+    @abstractmethod
+    def update_test_item(self, item_uuid: str, attributes: Optional[Union[List, Dict]] = None,
+                         description: Optional[str] = None) -> Optional[str]:
+        raise NotImplementedError('"update_test_item" method is not implemented!')
+
+    @abstractmethod
+    def get_launch_info(self) -> Union[Optional[dict], Task[str]]:
+        raise NotImplementedError('"get_launch_info" method is not implemented!')
+
+    @abstractmethod
+    def get_item_id_by_uuid(self, item_uuid: Union[str, Task[str]]) -> Optional[str]:
+        raise NotImplementedError('"get_item_id_by_uuid" method is not implemented!')
+
+    @abstractmethod
+    def get_launch_ui_id(self) -> Optional[int]:
+        raise NotImplementedError('"get_launch_ui_id" method is not implemented!')
+
+    @abstractmethod
+    def get_launch_ui_url(self) -> Optional[str]:
+        raise NotImplementedError('"get_launch_ui_id" method is not implemented!')
+
+    @abstractmethod
+    def get_project_settings(self) -> Optional[Dict]:
+        raise NotImplementedError('"get_project_settings" method is not implemented!')
+
+    @abstractmethod
+    def log(self, datetime: str, message: str, level: Optional[Union[int, str]] = None,
+            attachment: Optional[Dict] = None, item_id: Union[Optional[str], Task[str]] = None) -> None:
+        raise NotImplementedError('"log" method is not implemented!')
+
+    def start(self) -> None:
+        pass  # For backward compatibility
+
+    def terminate(self, *_: Any, **__: Any) -> None:
+        pass  # For backward compatibility
+
+    @abstractmethod
+    @property
+    def launch_uuid(self) -> Optional[Union[str, Task[str]]]:
+        raise NotImplementedError('"launch_uuid" property is not implemented!')
+
+    @property
+    def launch_id(self) -> Optional[Union[str, Task[str]]]:
+        warnings.warn(
+            message='`launch_id` property is deprecated since 5.5.0 and will be subject for removing in the'
+                    ' next major version. Use `launch_uuid` property instead.',
+            category=DeprecationWarning,
+            stacklevel=2
+        )
+        return self.launch_uuid
+
+    @abstractmethod
+    def current_item(self) -> Optional[Union[str, Task[str]]]:
+        """Retrieve the last item reported by the client."""
+        raise NotImplementedError('"current_item" method is not implemented!')
+
+    @abstractmethod
+    def clone(self) -> 'RPClient':
+        raise NotImplementedError('"clone" method is not implemented!')
+
 
 
 class _LifoQueue(LifoQueue):
@@ -50,7 +167,7 @@ class _LifoQueue(LifoQueue):
                 return self.queue[-1]
 
 
-class RPClient:
+class RPClient(RP):
     """Report portal client.
 
     The class is supposed to use by Report Portal agents: both custom and
@@ -61,29 +178,30 @@ class RPClient:
     thread to avoid request/response messing and other issues.
     """
 
-    _log_manager: LogManager = ...
-    api_v1: str = ...
-    api_v2: str = ...
-    base_url_v1: str = ...
-    base_url_v2: str = ...
-    endpoint: str = ...
-    is_skipped_an_issue: bool = ...
-    launch_id: str = ...
-    log_batch_size: int = ...
-    log_batch_payload_size: int = ...
-    project: str = ...
-    api_key: str = ...
-    verify_ssl: Union[bool, str] = ...
-    retries: int = ...
-    max_pool_size: int = ...
-    http_timeout: Union[float, Tuple[float, float]] = ...
-    session: requests.Session = ...
-    step_reporter: StepReporter = ...
-    mode: str = ...
-    launch_uuid_print: Optional[bool] = ...
-    print_output: Optional[TextIO] = ...
-    _skip_analytics: str = ...
-    _item_stack: _LifoQueue = ...
+    _log_manager: LogManager
+    api_v1: str
+    api_v2: str
+    base_url_v1: str
+    base_url_v2: str
+    endpoint: str
+    is_skipped_an_issue: bool
+    __launch_uuid: str
+    use_own_launch: bool
+    log_batch_size: int
+    log_batch_payload_size: int
+    project: str
+    api_key: str
+    verify_ssl: Union[bool, str]
+    retries: int
+    max_pool_size: int
+    http_timeout: Union[float, Tuple[float, float]]
+    session: requests.Session
+    step_reporter: StepReporter
+    mode: str
+    launch_uuid_print: Optional[bool]
+    print_output: Optional[TextIO]
+    _skip_analytics: str
+    _item_stack: _LifoQueue
 
     def __init__(
             self,
@@ -95,7 +213,7 @@ class RPClient:
             verify_ssl: bool = True,
             retries: int = None,
             max_pool_size: int = 50,
-            launch_id: str = None,
+            launch_uuid: str = None,
             http_timeout: Union[float, Tuple[float, float]] = (10, 10),
             log_batch_payload_size: int = MAX_LOG_BATCH_PAYLOAD_SIZE,
             mode: str = 'DEFAULT',
@@ -116,8 +234,7 @@ class RPClient:
         :param verify_ssl:             Option to skip ssl verification
         :param max_pool_size:          Option to set the maximum number of
                                        connections to save the pool.
-        :param launch_id:              a launch id to use instead of starting
-                                       own one
+        :param launch_uuid:            a launch UUID to use instead of starting own one
         :param http_timeout:           a float in seconds for connect and read
                                        timeout. Use a Tuple to specific connect
                                        and read separately.
@@ -133,7 +250,18 @@ class RPClient:
         self.base_url_v2 = uri_join(
             self.endpoint, 'api/{}'.format(self.api_v2), self.project)
         self.is_skipped_an_issue = is_skipped_an_issue
-        self.launch_id = launch_id
+        self.__launch_uuid = launch_uuid
+        if not self.__launch_uuid:
+            launch_id = kwargs.get('launch_id')
+            if launch_id:
+                warnings.warn(
+                    message='`launch_id` property is deprecated since 5.5.0 and will be subject for removing'
+                            ' in the next major version. Use `launch_uuid` property instead.',
+                    category=DeprecationWarning,
+                    stacklevel=2
+                )
+                self.__launch_uuid = launch_id
+        self.use_own_launch = bool(self.__launch_uuid)
         self.log_batch_size = log_batch_size
         self.log_batch_payload_size = log_batch_payload_size
         self.verify_ssl = verify_ssl
@@ -172,6 +300,14 @@ class RPClient:
         self.__init_session()
         self.__init_log_manager()
 
+    @property
+    def launch_uuid(self) -> Optional[str]:
+        return self.__launch_uuid
+
+    @launch_uuid.setter
+    def launch_uuid(self, value: Optional[str]) -> None:
+        self.__launch_uuid = value
+
     def __init_session(self) -> None:
         retry_strategy = Retry(
             total=self.retries,
@@ -191,10 +327,11 @@ class RPClient:
 
     def __init_log_manager(self) -> None:
         self._log_manager = LogManager(
-            self.endpoint, self.session, self.api_v2, self.launch_id,
+            self.endpoint, self.session, self.api_v2, self.launch_uuid,
             self.project, max_entry_number=self.log_batch_size,
             max_payload_size=self.log_batch_payload_size,
             verify_ssl=self.verify_ssl)
+
 
     def finish_launch(self,
                       end_time: str,
@@ -209,10 +346,10 @@ class RPClient:
                             CANCELLED
         :param attributes:  Launch attributes
         """
-        if self.launch_id is NOT_FOUND or not self.launch_id:
+        if self.launch_uuid is NOT_FOUND or not self.launch_uuid:
             logger.warning('Attempt to finish non-existent launch')
             return
-        url = uri_join(self.base_url_v2, 'launch', self.launch_id, 'finish')
+        url = uri_join(self.base_url_v2, 'launch', self.launch_uuid, 'finish')
         request_payload = LaunchFinishRequest(
             end_time,
             status=status,
@@ -224,7 +361,7 @@ class RPClient:
                                name='Finish Launch').make()
         if not response:
             return
-        logger.debug('finish_launch - ID: %s', self.launch_id)
+        logger.debug('finish_launch - ID: %s', self.launch_uuid)
         logger.debug('response message: %s', response.message)
         return response.message
 
@@ -258,7 +395,7 @@ class RPClient:
         url = uri_join(self.base_url_v2, 'item', item_id)
         request_payload = ItemFinishRequest(
             end_time,
-            self.launch_id,
+            self.launch_uuid,
             status,
             attributes=attributes,
             description=description,
@@ -291,10 +428,10 @@ class RPClient:
 
         :return dict: Launch information in dictionary
         """
-        if self.launch_id is None:
+        if self.launch_uuid is None:
             return {}
-        url = uri_join(self.base_url_v1, 'launch', 'uuid', self.launch_id)
-        logger.debug('get_launch_info - ID: %s', self.launch_id)
+        url = uri_join(self.base_url_v1, 'launch', 'uuid', self.launch_uuid)
+        logger.debug('get_launch_info - ID: %s', self.launch_uuid)
         response = HttpRequest(self.session.get, url=url,
                                verify_ssl=self.verify_ssl).make()
         if not response:
@@ -336,7 +473,7 @@ class RPClient:
             project_name=self.project.lower(), launch_type=launch_type,
             launch_id=ui_id)
         url = uri_join(self.endpoint, path)
-        logger.debug('get_launch_ui_url - ID: %s', self.launch_id)
+        logger.debug('get_launch_ui_url - UUID: %s', self.launch_uuid)
         return url
 
     def get_project_settings(self) -> Optional[Dict]:
@@ -403,11 +540,11 @@ class RPClient:
         if not self._skip_analytics:
             send_event('start_launch', *agent_name_version(attributes))
 
-        self._log_manager.launch_id = self.launch_id = response.id
-        logger.debug('start_launch - ID: %s', self.launch_id)
+        self._log_manager.launch_uuid = self.launch_uuid = response.id
+        logger.debug('start_launch - ID: %s', self.launch_uuid)
         if self.launch_uuid_print and self.print_output:
-            print(f'Report Portal Launch UUID: {self.launch_id}', file=self.print_output)
-        return self.launch_id
+            print(f'Report Portal Launch UUID: {self.launch_uuid}', file=self.print_output)
+        return self.launch_uuid
 
     def start_test_item(self,
                         name: str,
@@ -453,7 +590,7 @@ class RPClient:
             name,
             start_time,
             item_type,
-            self.launch_id,
+            self.launch_uuid,
             attributes=verify_value_length(attributes),
             code_ref=code_ref,
             description=description,
@@ -531,7 +668,7 @@ class RPClient:
             verify_ssl=self.verify_ssl,
             retries=self.retries,
             max_pool_size=self.max_pool_size,
-            launch_id=self.launch_id,
+            launch_uuid=self.launch_uuid,
             http_timeout=self.http_timeout,
             log_batch_payload_size=self.log_batch_payload_size,
             mode=self.mode

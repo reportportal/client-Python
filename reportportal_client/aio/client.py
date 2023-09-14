@@ -27,6 +27,7 @@ from typing import Union, Tuple, List, Dict, Any, Optional, TextIO, Coroutine, T
 import aiohttp
 import certifi
 
+from reportportal_client import RP
 # noinspection PyProtectedMember
 from reportportal_client._local import set_current
 from reportportal_client.aio import Task, BatchedTaskFactory
@@ -444,115 +445,7 @@ class _AsyncRPClient:
         return cloned
 
 
-class RPClient(metaclass=AbstractBaseClass):
-    __metaclass__ = AbstractBaseClass
-
-    @abstractmethod
-    def start_launch(self,
-                     name: str,
-                     start_time: str,
-                     description: Optional[str] = None,
-                     attributes: Optional[Union[List, Dict]] = None,
-                     rerun: bool = False,
-                     rerun_of: Optional[str] = None,
-                     **kwargs) -> Union[Optional[str], Task[str]]:
-        raise NotImplementedError('"start_launch" method is not implemented!')
-
-    @abstractmethod
-    def start_test_item(self,
-                        name: str,
-                        start_time: str,
-                        item_type: str,
-                        *,
-                        description: Optional[str] = None,
-                        attributes: Optional[List[Dict]] = None,
-                        parameters: Optional[Dict] = None,
-                        parent_item_id: Union[Optional[str], Task[str]] = None,
-                        has_stats: bool = True,
-                        code_ref: Optional[str] = None,
-                        retry: bool = False,
-                        test_case_id: Optional[str] = None,
-                        **kwargs: Any) -> Union[Optional[str], Task[str]]:
-        raise NotImplementedError('"start_test_item" method is not implemented!')
-
-    @abstractmethod
-    def finish_test_item(self,
-                         item_id: Union[str, Task[str]],
-                         end_time: str,
-                         *,
-                         status: str = None,
-                         issue: Optional[Issue] = None,
-                         attributes: Optional[Union[List, Dict]] = None,
-                         description: str = None,
-                         retry: bool = False,
-                         **kwargs: Any) -> Union[Optional[str], Task[str]]:
-        raise NotImplementedError('"finish_test_item" method is not implemented!')
-
-    @abstractmethod
-    def finish_launch(self,
-                      end_time: str,
-                      status: str = None,
-                      attributes: Optional[Union[List, Dict]] = None,
-                      **kwargs: Any) -> Union[Optional[str], Task[str]]:
-        raise NotImplementedError('"finish_launch" method is not implemented!')
-
-    @abstractmethod
-    def update_test_item(self, item_uuid: str, attributes: Optional[Union[List, Dict]] = None,
-                         description: Optional[str] = None) -> Optional[str]:
-        raise NotImplementedError('"update_test_item" method is not implemented!')
-
-    @abstractmethod
-    def get_launch_info(self) -> Union[Optional[dict], Task[str]]:
-        raise NotImplementedError('"get_launch_info" method is not implemented!')
-
-    @abstractmethod
-    def get_item_id_by_uuid(self, item_uuid: Union[str, Task[str]]) -> Optional[str]:
-        raise NotImplementedError('"get_item_id_by_uuid" method is not implemented!')
-
-    @abstractmethod
-    def get_launch_ui_id(self) -> Optional[int]:
-        raise NotImplementedError('"get_launch_ui_id" method is not implemented!')
-
-    @abstractmethod
-    def get_launch_ui_url(self) -> Optional[str]:
-        raise NotImplementedError('"get_launch_ui_id" method is not implemented!')
-
-    @abstractmethod
-    def get_project_settings(self) -> Optional[Dict]:
-        raise NotImplementedError('"get_project_settings" method is not implemented!')
-
-    @abstractmethod
-    def log(self, datetime: str, message: str, level: Optional[Union[int, str]] = None,
-            attachment: Optional[Dict] = None, item_id: Union[Optional[str], Task[str]] = None) -> None:
-        raise NotImplementedError('"log" method is not implemented!')
-
-    def start(self) -> None:
-        pass  # For backward compatibility
-
-    def terminate(self, *_: Any, **__: Any) -> None:
-        pass  # For backward compatibility
-
-    @abstractmethod
-    @property
-    def launch_uuid(self) -> Optional[Union[str, Task[str]]]:
-        raise NotImplementedError('"launch_uuid" property is not implemented!')
-
-    @property
-    def launch_id(self) -> Optional[Union[str, Task[str]]]:
-        warnings.warn(
-            message='`launch_id` property is deprecated since 5.5.0 and will be subject for removing in the'
-                    ' next major version. Use `launch_uuid` property instead.',
-            category=DeprecationWarning,
-            stacklevel=2
-        )
-        return self.launch_uuid
-
-    @abstractmethod
-    def clone(self) -> 'RPClient':
-        raise NotImplementedError('"clone" method is not implemented!')
-
-
-class AsyncRPClient(RPClient):
+class AsyncRPClient(RP):
     __client: _AsyncRPClient
     _item_stack: _LifoQueue
     __launch_uuid: Optional[str]
@@ -650,11 +543,11 @@ class AsyncRPClient(RPClient):
         """Add the last item from the self._items queue."""
         self._item_stack.put(item)
 
-    def _remove_current_item(self) -> str:
+    def _remove_current_item(self) -> Optional[str]:
         """Remove the last item from the self._items queue."""
         return self._item_stack.get()
 
-    def current_item(self) -> str:
+    def current_item(self) -> Optional[str]:
         """Retrieve the last item reported by the client."""
         return self._item_stack.last()
 
@@ -712,7 +605,7 @@ class AsyncRPClient(RPClient):
         return cloned
 
 
-class _SyncRPClient(RPClient, metaclass=AbstractBaseClass):
+class _SyncRPClient(RP, metaclass=AbstractBaseClass):
     __metaclass__ = AbstractBaseClass
 
     _item_stack: _LifoQueue

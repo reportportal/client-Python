@@ -17,11 +17,12 @@ limitations under the License.
 # noinspection PyProtectedMember
 from reportportal_client._local import current
 from reportportal_client.logs import RPLogger, RPLogHandler
-from reportportal_client.client import RPClient
+from reportportal_client.client import RP, RPClient
 from reportportal_client.steps import step
 
 __all__ = [
     'current',
+    'RP',
     'RPLogger',
     'RPLogHandler',
     'RPClient',
