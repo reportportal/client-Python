@@ -969,8 +969,7 @@ class BatchedRPClient(_SyncRPClient):
             endpoint=None,
             project=None,
             launch_uuid=self.launch_uuid,
-            client=cloned_client,
-            loop=self.__loop
+            client=cloned_client
         )
         current_item = self.current_item()
         if current_item:
