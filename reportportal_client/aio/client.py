@@ -27,6 +27,7 @@ from typing import Union, Tuple, List, Dict, Any, Optional, TextIO, Coroutine, T
 import aiohttp
 import certifi
 
+from logs.batcher import LogBatcher
 from reportportal_client import RP
 # noinspection PyProtectedMember
 from reportportal_client._local import set_current
@@ -35,7 +36,7 @@ from reportportal_client.aio import (Task, BatchedTaskFactory, ThreadedTaskFacto
                                      DEFAULT_TASK_TRIGGER_INTERVAL)
 from reportportal_client.core.rp_issues import Issue
 from reportportal_client.core.rp_requests import (LaunchStartRequest, AsyncHttpRequest, AsyncItemStartRequest,
-                                                  AsyncItemFinishRequest, LaunchFinishRequest,
+                                                  AsyncItemFinishRequest, LaunchFinishRequest, RPFile,
                                                   AsyncRPRequestLog, AsyncRPLogBatch)
 from reportportal_client.helpers import (root_uri_join, verify_value_length, await_if_necessary,
                                          agent_name_version)
@@ -443,8 +444,9 @@ class Client:
 
 
 class AsyncRPClient(RP):
-    __client: Client
     _item_stack: _LifoQueue
+    _log_batcher: LogBatcher
+    __client: Client
     __launch_uuid: Optional[str]
     use_own_launch: bool
     step_reporter: StepReporter
@@ -454,6 +456,7 @@ class AsyncRPClient(RP):
         set_current(self)
         self.step_reporter = StepReporter(self)
         self._item_stack = _LifoQueue()
+        self._log_batcher = LogBatcher()
         if client:
             self.__client = client
         else:
@@ -570,9 +573,25 @@ class AsyncRPClient(RP):
         return await self.__client.get_project_settings()
 
     async def log(self, datetime: str, message: str, level: Optional[Union[int, str]] = None,
-                  attachment: Optional[Dict] = None, item_id: Optional[str] = None) -> None:
-        # TODO: implement logging
-        return
+                  attachment: Optional[Dict] = None,
+                  parent_item: Optional[str] = None) -> Optional[Tuple[str, ...]]:
+        """Log message. Can be added to test item in any state.
+
+        :param datetime:    Log time
+        :param message:     Log message
+        :param level:       Log level
+        :param attachment:  Attachments(images,files,etc.)
+        :param parent_item: Parent item UUID
+        """
+        if parent_item is NOT_FOUND:
+            logger.warning("Attempt to log to non-existent item")
+            return
+        rp_file = RPFile(**attachment) if attachment else None
+        rp_log = AsyncRPRequestLog(self.launch_uuid, datetime, rp_file, parent_item, level, message)
+        batch = await self._log_batcher.append_async(rp_log)
+        if batch:
+            return await self.__client.log_batch(batch)
+
 
     @property
     def launch_uuid(self) -> Optional[str]:
@@ -606,6 +625,7 @@ class _SyncRPClient(RP, metaclass=AbstractBaseClass):
     __metaclass__ = AbstractBaseClass
 
     _item_stack: _LifoQueue
+    _log_batcher: LogBatcher
     __launch_uuid: Optional[Task[str]]
     use_own_launch: bool
     step_reporter: StepReporter
@@ -623,6 +643,7 @@ class _SyncRPClient(RP, metaclass=AbstractBaseClass):
         set_current(self)
         self.step_reporter = StepReporter(self)
         self._item_stack = _LifoQueue()
+        self._log_batcher = LogBatcher()
         if client:
             self.__client = client
         else:
@@ -775,9 +796,27 @@ class _SyncRPClient(RP, metaclass=AbstractBaseClass):
         result_task = self.create_task(result_coro)
         return result_task
 
+    async def _log(self, log_rq: AsyncRPRequestLog) -> Optional[Tuple[str, ...]]:
+        batch = await self._log_batcher.append_async(log_rq)
+        if batch:
+            return await self.__client.log_batch(batch)
+
     def log(self, datetime: str, message: str, level: Optional[Union[int, str]] = None,
-            attachment: Optional[Dict] = None, item_id: Optional[Task[str]] = None) -> None:
-        # TODO: implement logging
+            attachment: Optional[Dict] = None, parent_item: Optional[Task[str]] = None) -> None:
+        """Log message. Can be added to test item in any state.
+
+        :param datetime:    Log time
+        :param message:     Log message
+        :param level:       Log level
+        :param attachment:  Attachments(images,files,etc.)
+        :param parent_item: Parent item UUID
+        """
+        if parent_item is NOT_FOUND:
+            logger.warning("Attempt to log to non-existent item")
+            return
+        rp_file = RPFile(**attachment) if attachment else None
+        rp_log = AsyncRPRequestLog(self.launch_uuid, datetime, rp_file, parent_item, level, message)
+        self.create_task(self._log(rp_log))
         return None
 
 

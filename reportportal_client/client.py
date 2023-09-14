@@ -24,18 +24,15 @@ from typing import Union, Tuple, List, Dict, Any, Optional, TextIO
 import requests
 from requests.adapters import HTTPAdapter, Retry, DEFAULT_RETRIES
 
-from aio import Task
 # noinspection PyProtectedMember
 from reportportal_client._local import set_current
+from reportportal_client.aio import Task
 from reportportal_client.core.rp_issues import Issue
-from reportportal_client.core.rp_requests import (
-    HttpRequest,
-    ItemStartRequest,
-    ItemFinishRequest,
-    LaunchStartRequest,
-    LaunchFinishRequest
-)
+from reportportal_client.core.rp_requests import (HttpRequest, ItemStartRequest, ItemFinishRequest, RPFile,
+                                                  LaunchStartRequest, LaunchFinishRequest, RPRequestLog,
+                                                  RPLogBatch)
 from reportportal_client.helpers import uri_join, verify_value_length, agent_name_version
+from reportportal_client.logs.batcher import LogBatcher
 from reportportal_client.logs.log_manager import LogManager, MAX_LOG_BATCH_PAYLOAD_SIZE
 from reportportal_client.services.statistics import send_event
 from reportportal_client.static.defines import NOT_FOUND
@@ -159,7 +156,6 @@ class RP(metaclass=AbstractBaseClass):
         raise NotImplementedError('"clone" method is not implemented!')
 
 
-
 class _LifoQueue(LifoQueue):
     def last(self):
         with self.mutex:
@@ -202,6 +198,7 @@ class RPClient(RP):
     print_output: Optional[TextIO]
     _skip_analytics: str
     _item_stack: _LifoQueue
+    _log_batcher: LogBatcher
 
     def __init__(
             self,
@@ -331,7 +328,6 @@ class RPClient(RP):
             self.project, max_entry_number=self.log_batch_size,
             max_payload_size=self.log_batch_payload_size,
             verify_ssl=self.verify_ssl)
-
 
     def finish_launch(self,
                       end_time: str,
@@ -487,7 +483,7 @@ class RPClient(RP):
         return response.json if response else None
 
     def log(self, time: str, message: str, level: Optional[Union[int, str]] = None,
-            attachment: Optional[Dict] = None, item_id: Optional[str] = None) -> None:
+            attachment: Optional[Dict] = None, item_id: Optional[str] = None) -> Optional[Tuple[str, ...]]:
         """Send log message to the Report Portal.
 
         :param time:       Time in UTC
@@ -496,7 +492,17 @@ class RPClient(RP):
         :param attachment: Message's attachments
         :param item_id:    ID of the RP item the message belongs to
         """
-        self._log_manager.log(time, message, level, attachment, item_id)
+        if item_id is NOT_FOUND:
+            logger.warning("Attempt to log to non-existent item")
+            return
+        url = uri_join(self.base_url_v2, 'log')
+        rp_file = RPFile(**attachment) if attachment else None
+        rp_log = RPRequestLog(self.launch_uuid, time, rp_file, item_id, level, message)
+        batch = self._log_batcher.append(rp_log)
+        if batch:
+            response = HttpRequest(self.session.post, url, files=RPLogBatch(batch).payload,
+                                   verify_ssl=self.verify_ssl).make()
+            return response.messages
 
     def start(self) -> None:
         """Start the client."""
