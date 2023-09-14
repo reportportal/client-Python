@@ -32,8 +32,8 @@ from reportportal_client.core.rp_requests import (HttpRequest, ItemStartRequest,
                                                   LaunchStartRequest, LaunchFinishRequest, RPRequestLog,
                                                   RPLogBatch)
 from reportportal_client.helpers import uri_join, verify_value_length, agent_name_version
+from reportportal_client.logs import MAX_LOG_BATCH_PAYLOAD_SIZE
 from reportportal_client.logs.batcher import LogBatcher
-from reportportal_client.logs.log_manager import LogManager, MAX_LOG_BATCH_PAYLOAD_SIZE
 from reportportal_client.services.statistics import send_event
 from reportportal_client.static.defines import NOT_FOUND
 from reportportal_client.steps import StepReporter
@@ -173,8 +173,6 @@ class RPClient(RP):
     NOTICE: the class is not thread-safe, use new class instance for every new
     thread to avoid request/response messing and other issues.
     """
-
-    _log_manager: LogManager
     api_v1: str
     api_v2: str
     base_url_v1: str
@@ -261,6 +259,7 @@ class RPClient(RP):
         self.use_own_launch = bool(self.__launch_uuid)
         self.log_batch_size = log_batch_size
         self.log_batch_payload_size = log_batch_payload_size
+        self._log_batcher = LogBatcher(self.log_batch_size, self.log_batch_payload_size)
         self.verify_ssl = verify_ssl
         self.retries = retries
         self.max_pool_size = max_pool_size
@@ -295,7 +294,6 @@ class RPClient(RP):
                 )
 
         self.__init_session()
-        self.__init_log_manager()
 
     @property
     def launch_uuid(self) -> Optional[str]:
@@ -321,13 +319,6 @@ class RPClient(RP):
             session.headers['Authorization'] = 'Bearer {0}'.format(
                 self.api_key)
         self.session = session
-
-    def __init_log_manager(self) -> None:
-        self._log_manager = LogManager(
-            self.endpoint, self.session, self.api_v2, self.launch_uuid,
-            self.project, max_entry_number=self.log_batch_size,
-            max_payload_size=self.log_batch_payload_size,
-            verify_ssl=self.verify_ssl)
 
     def finish_launch(self,
                       end_time: str,
@@ -506,7 +497,7 @@ class RPClient(RP):
 
     def start(self) -> None:
         """Start the client."""
-        self._log_manager.start()
+        pass
 
     def start_launch(self,
                      name: str,
@@ -546,7 +537,7 @@ class RPClient(RP):
         if not self._skip_analytics:
             send_event('start_launch', *agent_name_version(attributes))
 
-        self._log_manager.launch_uuid = self.launch_uuid = response.id
+        self.launch_uuid = response.id
         logger.debug('start_launch - ID: %s', self.launch_uuid)
         if self.launch_uuid_print and self.print_output:
             print(f'Report Portal Launch UUID: {self.launch_uuid}', file=self.print_output)
@@ -623,7 +614,7 @@ class RPClient(RP):
 
     def terminate(self, *_: Any, **__: Any) -> None:
         """Call this to terminate the client."""
-        self._log_manager.stop()
+        pass
 
     def update_test_item(self, item_uuid: str, attributes: Optional[Union[List, Dict]] = None,
                          description: Optional[str] = None) -> Optional[str]:
@@ -705,5 +696,3 @@ class RPClient(RP):
         self.__dict__.update(state)
         # Restore 'session' field
         self.__init_session()
-        # Restore '_log_manager' field
-        self.__init_log_manager()
