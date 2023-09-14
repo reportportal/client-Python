@@ -27,6 +27,7 @@ from typing import Union, Tuple, List, Dict, Any, Optional, TextIO, Coroutine, T
 import aiohttp
 import certifi
 
+from aio.tasks import ThreadedTaskFactory
 from reportportal_client import RP
 # noinspection PyProtectedMember
 from reportportal_client._local import set_current
@@ -804,6 +805,7 @@ class ThreadedRPClient(_SyncRPClient):
             self.self_loop = False
         else:
             self.__loop = asyncio.new_event_loop()
+            self.__loop.set_task_factory(ThreadedTaskFactory(self.__loop))
             self.self_loop = True
 
     def create_task(self, coro: Coroutine[Any, Any, _T]) -> Task[_T]:
