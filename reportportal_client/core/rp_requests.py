@@ -431,7 +431,7 @@ class RPLogBatch(RPRequestBase):
                          rp_file.content,
                          rp_file.content_type or self.default_content))
 
-    def __get_files(self) -> List[Tuple[str, tuple]]:
+    def _get_files(self) -> List[Tuple[str, tuple]]:
         """Get list of files for the JSON body."""
         files = []
         for req in self.log_reqs:
@@ -469,7 +469,7 @@ class RPLogBatch(RPRequestBase):
            'text/html'))]
         """
         body = self.__get_request_part()
-        body.extend(self.__get_files())
+        body.extend(self._get_files())
         return body
 
 
@@ -485,11 +485,11 @@ class AsyncRPLogBatch(RPLogBatch):
     @property
     async def payload(self) -> aiohttp.MultipartWriter:
         """Get HTTP payload for the request."""
-        json_payload = aiohttp.Payload(await self.__get_request_part(), content_type='application/json')
+        json_payload = aiohttp.JsonPayload(await self.__get_request_part())
         json_payload.set_content_disposition('form-data', name='json_request_part')
         mpwriter = aiohttp.MultipartWriter('form-data')
         mpwriter.append_payload(json_payload)
-        for _, file in self.__get_files():
+        for _, file in self._get_files():
             file_payload = aiohttp.Payload(file[1], content_type=file[2], filename=file[0])
             mpwriter.append_payload(file_payload)
         return mpwriter
