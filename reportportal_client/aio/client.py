@@ -626,9 +626,14 @@ class _SyncRPClient(RP, metaclass=AbstractBaseClass):
 
     _item_stack: _LifoQueue
     _log_batcher: LogBatcher
+    __client: Client
     __launch_uuid: Optional[Task[str]]
     use_own_launch: bool
     step_reporter: StepReporter
+
+    @property
+    def client(self) -> Client:
+        return self.__client
 
     @property
     def launch_uuid(self) -> Optional[Task[str]]:
@@ -882,7 +887,7 @@ class ThreadedRPClient(_SyncRPClient):
         :returns: Cloned client object
         :rtype: ThreadedRPClient
         """
-        cloned_client = self.__client.clone()
+        cloned_client = self.client.clone()
         # noinspection PyTypeChecker
         cloned = ThreadedRPClient(
             endpoint=None,
@@ -958,7 +963,7 @@ class BatchedRPClient(_SyncRPClient):
         :returns: Cloned client object
         :rtype: BatchedRPClient
         """
-        cloned_client = self.__client.clone()
+        cloned_client = self.client.clone()
         # noinspection PyTypeChecker
         cloned = BatchedRPClient(
             endpoint=None,
