@@ -29,7 +29,7 @@ from reportportal_client.static.defines import NOT_FOUND
 logger = logging.getLogger(__name__)
 
 
-def _iter_json_messages(json: Any) -> Generator[str]:
+def _iter_json_messages(json: Any) -> Generator[str, None, None]:
     if not isinstance(json, Mapping):
         return
     data = json.get('responses', [json])

@@ -27,5 +27,7 @@ __all__ = [
     'ThreadedTaskFactory',
     'BlockingOperationError',
     'DEFAULT_TASK_TIMEOUT',
-    'DEFAULT_SHUTDOWN_TIMEOUT'
+    'DEFAULT_SHUTDOWN_TIMEOUT',
+    'DEFAULT_TASK_TRIGGER_NUM',
+    'DEFAULT_TASK_TRIGGER_INTERVAL'
 ]
