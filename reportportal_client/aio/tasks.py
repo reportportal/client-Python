@@ -22,8 +22,6 @@ from typing import TypeVar, Generic, Union, Generator, Awaitable, Optional, Coro
 
 from reportportal_client.static.abstract import AbstractBaseClass
 
-DEFAULT_TASK_WAIT_TIMEOUT: float = 60.0
-
 _T = TypeVar('_T')
 
 
@@ -97,7 +95,7 @@ class ThreadedTask(Generic[_T], Task[_T]):
             raise BlockingOperationError('Running loop is not alive')
         start_time = time.time()
         slee_time = sys.getswitchinterval()
-        while not self.done() or time.time() - start_time < DEFAULT_TASK_WAIT_TIMEOUT:
+        while not self.done() or time.time() - start_time < self.__wait_timeout:
             time.sleep(slee_time)
         if not self.done():
             raise BlockingOperationError('Timed out waiting for the task execution')
@@ -124,7 +122,7 @@ class ThreadedTaskFactory:
     __loop: asyncio.AbstractEventLoop
     __wait_timeout: float
 
-    def __init__(self, loop: asyncio.AbstractEventLoop, wait_timeout: float = DEFAULT_TASK_WAIT_TIMEOUT):
+    def __init__(self, loop: asyncio.AbstractEventLoop, wait_timeout: float):
         self.__loop = loop
         self.__wait_timeout = wait_timeout
 
