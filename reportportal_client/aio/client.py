@@ -27,7 +27,6 @@ from typing import Union, Tuple, List, Dict, Any, Optional, TextIO, Coroutine, T
 import aiohttp
 import certifi
 
-from logs.batcher import LogBatcher
 from reportportal_client import RP
 # noinspection PyProtectedMember
 from reportportal_client._local import set_current
@@ -41,6 +40,7 @@ from reportportal_client.core.rp_requests import (LaunchStartRequest, AsyncHttpR
 from reportportal_client.helpers import (root_uri_join, verify_value_length, await_if_necessary,
                                          agent_name_version)
 from reportportal_client.logs import MAX_LOG_BATCH_PAYLOAD_SIZE
+from reportportal_client.logs.batcher import LogBatcher
 from reportportal_client.services.statistics import async_send_event
 from reportportal_client.static.abstract import (
     AbstractBaseClass,
