@@ -577,20 +577,20 @@ class AsyncRPClient(RP):
 
     async def log(self, datetime: str, message: str, level: Optional[Union[int, str]] = None,
                   attachment: Optional[Dict] = None,
-                  parent_item: Optional[str] = None) -> Optional[Tuple[str, ...]]:
+                  item_id: Optional[str] = None) -> Optional[Tuple[str, ...]]:
         """Log message. Can be added to test item in any state.
 
         :param datetime:    Log time
         :param message:     Log message
         :param level:       Log level
         :param attachment:  Attachments(images,files,etc.)
-        :param parent_item: Parent item UUID
+        :param item_id: Parent item UUID
         """
-        if parent_item is NOT_FOUND:
+        if item_id is NOT_FOUND:
             logger.warning("Attempt to log to non-existent item")
             return
         rp_file = RPFile(**attachment) if attachment else None
-        rp_log = AsyncRPRequestLog(self.launch_uuid, datetime, rp_file, parent_item, level, message)
+        rp_log = AsyncRPRequestLog(self.launch_uuid, datetime, rp_file, item_id, level, message)
         return await self.__client.log_batch(await self._log_batcher.append_async(rp_log))
 
     @property
@@ -801,20 +801,20 @@ class _SyncRPClient(RP, metaclass=AbstractBaseClass):
         return await self.__client.log_batch(await self._log_batcher.append_async(log_rq))
 
     def log(self, datetime: str, message: str, level: Optional[Union[int, str]] = None,
-            attachment: Optional[Dict] = None, parent_item: Optional[Task[str]] = None) -> None:
+            attachment: Optional[Dict] = None, item_id: Optional[Task[str]] = None) -> None:
         """Log message. Can be added to test item in any state.
 
         :param datetime:    Log time
         :param message:     Log message
         :param level:       Log level
         :param attachment:  Attachments(images,files,etc.)
-        :param parent_item: Parent item UUID
+        :param item_id: Parent item UUID
         """
-        if parent_item is NOT_FOUND:
+        if item_id is NOT_FOUND:
             logger.warning("Attempt to log to non-existent item")
             return
         rp_file = RPFile(**attachment) if attachment else None
-        rp_log = AsyncRPRequestLog(self.launch_uuid, datetime, rp_file, parent_item, level, message)
+        rp_log = AsyncRPRequestLog(self.launch_uuid, datetime, rp_file, item_id, level, message)
         self.create_task(self._log(rp_log))
         return None
 
