@@ -196,7 +196,7 @@ class RPClient(RP):
     print_output: Optional[TextIO]
     _skip_analytics: str
     _item_stack: _LifoQueue
-    _log_batcher: LogBatcher
+    _log_batcher: LogBatcher[RPRequestLog]
 
     def __init__(
             self,
@@ -333,6 +333,7 @@ class RPClient(RP):
                             CANCELLED
         :param attributes:  Launch attributes
         """
+        self._log(self._log_batcher.flush())
         if self.launch_uuid is NOT_FOUND or not self.launch_uuid:
             logger.warning('Attempt to finish non-existent launch')
             return
@@ -473,6 +474,13 @@ class RPClient(RP):
                                verify_ssl=self.verify_ssl).make()
         return response.json if response else None
 
+    def _log(self, batch: Optional[List[RPRequestLog]]) -> Optional[Tuple[str, ...]]:
+        url = uri_join(self.base_url_v2, 'log')
+        if batch:
+            response = HttpRequest(self.session.post, url, files=RPLogBatch(batch).payload,
+                                   verify_ssl=self.verify_ssl).make()
+            return response.messages
+
     def log(self, time: str, message: str, level: Optional[Union[int, str]] = None,
             attachment: Optional[Dict] = None, item_id: Optional[str] = None) -> Optional[Tuple[str, ...]]:
         """Send log message to the Report Portal.
@@ -486,14 +494,9 @@ class RPClient(RP):
         if item_id is NOT_FOUND:
             logger.warning("Attempt to log to non-existent item")
             return
-        url = uri_join(self.base_url_v2, 'log')
         rp_file = RPFile(**attachment) if attachment else None
         rp_log = RPRequestLog(self.launch_uuid, time, rp_file, item_id, level, message)
-        batch = self._log_batcher.append(rp_log)
-        if batch:
-            response = HttpRequest(self.session.post, url, files=RPLogBatch(batch).payload,
-                                   verify_ssl=self.verify_ssl).make()
-            return response.messages
+        return self._log(self._log_batcher.append(rp_log))
 
     def start(self) -> None:
         """Start the client."""

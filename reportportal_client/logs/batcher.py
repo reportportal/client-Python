@@ -12,7 +12,7 @@
 #  limitations under the License
 import logging
 import threading
-from typing import List, Optional, TypeVar
+from typing import List, Optional, TypeVar, Generic
 
 from reportportal_client import helpers
 from reportportal_client.core.rp_requests import RPRequestLog, AsyncRPRequestLog
@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 T_co = TypeVar('T_co', bound='RPRequestLog', covariant=True)
 
 
-class LogBatcher:
+class LogBatcher(Generic[T_co]):
     entry_num: int
     payload_limit: int
     _lock: threading.Lock
@@ -68,3 +68,10 @@ class LogBatcher:
         :return ready to send batch or None
         """
         return self._append(await log_req.multipart_size, log_req)
+
+    def flush(self) -> Optional[List[T_co]]:
+        with self._lock:
+            if len(self._batch) > 0:
+                batch = self._batch
+                self._batch = []
+                return batch

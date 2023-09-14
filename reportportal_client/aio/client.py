@@ -416,10 +416,12 @@ class Client:
         response = await AsyncHttpRequest(self.session.get, url=url).make()
         return await response.json if response else None
 
-    async def log_batch(self, log_batch: List[AsyncRPRequestLog]) -> Tuple[str, ...]:
+    async def log_batch(self, log_batch: Optional[List[AsyncRPRequestLog]]) -> Tuple[str, ...]:
         url = root_uri_join(self.base_url_v2, 'log')
-        response = await AsyncHttpRequest(self.session.post, url=url, data=AsyncRPLogBatch(log_batch)).make()
-        return await response.messages
+        if log_batch:
+            response = await AsyncHttpRequest(self.session.post, url=url,
+                                              data=AsyncRPLogBatch(log_batch)).make()
+            return await response.messages
 
     def clone(self) -> 'Client':
         """Clone the client object, set current Item ID as cloned item ID.
@@ -529,6 +531,7 @@ class AsyncRPClient(RP):
                             status: str = None,
                             attributes: Optional[Union[List, Dict]] = None,
                             **kwargs: Any) -> Optional[str]:
+        await self.__client.log_batch(self._log_batcher.flush())
         if not self.use_own_launch:
             return ""
         return await self.__client.finish_launch(self.launch_uuid, end_time, status=status,
@@ -588,10 +591,7 @@ class AsyncRPClient(RP):
             return
         rp_file = RPFile(**attachment) if attachment else None
         rp_log = AsyncRPRequestLog(self.launch_uuid, datetime, rp_file, parent_item, level, message)
-        batch = await self._log_batcher.append_async(rp_log)
-        if batch:
-            return await self.__client.log_batch(batch)
-
+        return await self.__client.log_batch(await self._log_batcher.append_async(rp_log))
 
     @property
     def launch_uuid(self) -> Optional[str]:
@@ -746,6 +746,7 @@ class _SyncRPClient(RP, metaclass=AbstractBaseClass):
                       status: str = None,
                       attributes: Optional[Union[List, Dict]] = None,
                       **kwargs: Any) -> Task[str]:
+        self.create_task(self.__client.log_batch(self._log_batcher.flush()))
         if self.use_own_launch:
             result_coro = self.__client.finish_launch(self.launch_uuid, end_time, status=status,
                                                       attributes=attributes, **kwargs)
@@ -797,9 +798,7 @@ class _SyncRPClient(RP, metaclass=AbstractBaseClass):
         return result_task
 
     async def _log(self, log_rq: AsyncRPRequestLog) -> Optional[Tuple[str, ...]]:
-        batch = await self._log_batcher.append_async(log_rq)
-        if batch:
-            return await self.__client.log_batch(batch)
+        return await self.__client.log_batch(await self._log_batcher.append_async(log_rq))
 
     def log(self, datetime: str, message: str, level: Optional[Union[int, str]] = None,
             attachment: Optional[Dict] = None, parent_item: Optional[Task[str]] = None) -> None:
