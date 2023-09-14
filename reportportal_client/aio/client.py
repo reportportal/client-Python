@@ -420,7 +420,7 @@ class Client:
         url = root_uri_join(self.base_url_v2, 'log')
         if log_batch:
             response = await AsyncHttpRequest(self.session.post, url=url,
-                                              data=AsyncRPLogBatch(log_batch)).make()
+                                              data=AsyncRPLogBatch(log_batch).payload).make()
             return await response.messages
 
     def clone(self) -> 'Client':
