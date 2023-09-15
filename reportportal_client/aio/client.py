@@ -660,7 +660,7 @@ class _SyncRPClient(RP, metaclass=AbstractBaseClass):
             self.use_own_launch = True
 
     @abstractmethod
-    def create_task(self, coro: Coroutine[Any, Any, _T]) -> Task[_T]:
+    def create_task(self, coro: Coroutine[Any, Any, _T]) -> Optional[Task[_T]]:
         raise NotImplementedError('"create_task" method is not implemented!')
 
     @abstractmethod
@@ -825,11 +825,11 @@ class _SyncRPClient(RP, metaclass=AbstractBaseClass):
 
 
 class ThreadedRPClient(_SyncRPClient):
+    _loop: Optional[asyncio.AbstractEventLoop]
+    __self_loop: bool
     __task_list: List[Task[_T]]
     __task_mutex: threading.Lock
-    __loop: Optional[asyncio.AbstractEventLoop]
     __thread: Optional[threading.Thread]
-    __self_loop: bool
     __task_timeout: float
     __shutdown_timeout: float
 
@@ -845,20 +845,21 @@ class ThreadedRPClient(_SyncRPClient):
         self.__task_mutex = threading.Lock()
         self.__thread = None
         if loop:
-            self.__loop = loop
+            self._loop = loop
             self.__self_loop = False
         else:
-            self.__loop = asyncio.new_event_loop()
-            self.__loop.set_task_factory(ThreadedTaskFactory(self.__loop, self.__task_timeout))
+            self._loop = asyncio.new_event_loop()
+            self._loop.set_task_factory(ThreadedTaskFactory(self._loop, self.__task_timeout))
             self.__self_loop = True
 
-    def create_task(self, coro: Coroutine[Any, Any, _T]) -> Task[_T]:
-        loop = self.__loop
-        result = loop.create_task(coro)
+    def create_task(self, coro: Coroutine[Any, Any, _T]) -> Optional[Task[_T]]:
+        if not getattr(self, '_loop', None):
+            return
+        result = self._loop.create_task(coro)
         with self.__task_mutex:
             self.__task_list.append(result)
             if not self.__thread and self.__self_loop:
-                self.__thread = threading.Thread(target=loop.run_forever, name='RP-Async-Client',
+                self.__thread = threading.Thread(target=self._loop.run_forever, name='RP-Async-Client',
                                                  daemon=True)
                 self.__thread.start()
             i = 0
@@ -894,7 +895,7 @@ class ThreadedRPClient(_SyncRPClient):
             project=None,
             launch_uuid=self.launch_uuid,
             client=cloned_client,
-            loop=self.__loop
+            loop=self._loop
         )
         current_item = self.current_item()
         if current_item:
@@ -903,8 +904,9 @@ class ThreadedRPClient(_SyncRPClient):
 
 
 class BatchedRPClient(_SyncRPClient):
-    __loop: asyncio.AbstractEventLoop
+    _loop: asyncio.AbstractEventLoop
     __task_list: List[Task[_T]]
+    __queued_task_list: List[Task[_T]]
     __task_mutex: threading.Lock
     __last_run_time: float
     __thread: threading.Thread
@@ -919,9 +921,9 @@ class BatchedRPClient(_SyncRPClient):
         self.__task_list = []
         self.__task_mutex = threading.Lock()
         self.__last_run_time = datetime.time()
-        self.__loop = asyncio.new_event_loop()
+        self._loop = asyncio.new_event_loop()
         self.__thread = threading.current_thread()
-        self.__loop.set_task_factory(BatchedTaskFactory(self.__loop, self.__thread))
+        self._loop.set_task_factory(BatchedTaskFactory(self._loop, self.__thread))
         self.__trigger_num = trigger_num
         self.__trigger_interval = trigger_interval
 
@@ -936,16 +938,18 @@ class BatchedRPClient(_SyncRPClient):
             return True
         return False
 
-    def create_task(self, coro: Coroutine[Any, Any, _T]) -> Task[_T]:
-        result = self.__loop.create_task(coro)
+    def create_task(self, coro: Coroutine[Any, Any, _T]) -> Optional[Task[_T]]:
+        if not getattr(self, '_loop', None):
+            return
+        result = self._loop.create_task(coro)
         tasks = None
         with self.__task_mutex:
             self.__task_list.append(result)
             if self.__ready_to_run():
                 tasks = self.__task_list
                 self.__task_list = []
-        if tasks:
-            self.__loop.run_until_complete(asyncio.gather(*tasks))
+            if tasks:
+                self._loop.run_until_complete(asyncio.gather(*tasks))
         return result
 
     def finish_tasks(self) -> None:
@@ -954,8 +958,8 @@ class BatchedRPClient(_SyncRPClient):
             if len(self.__task_list) > 0:
                 tasks = self.__task_list
                 self.__task_list = []
-        if tasks:
-            self.__loop.run_until_complete(asyncio.gather(*tasks))
+            if tasks:
+                self._loop.run_until_complete(asyncio.gather(*tasks))
 
     def clone(self) -> 'BatchedRPClient':
         """Clone the client object, set current Item ID as cloned item ID.
