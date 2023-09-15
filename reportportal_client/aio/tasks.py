@@ -13,13 +13,12 @@
 
 import asyncio
 import sys
-import threading
 import time
-import warnings
 from abc import abstractmethod
 from asyncio import Future
-from typing import TypeVar, Generic, Union, Generator, Awaitable, Optional, Coroutine, Any
+from typing import TypeVar, Generic, Union, Generator, Awaitable, Optional, Coroutine, Any, List
 
+from reportportal_client.aio import DEFAULT_TASK_TRIGGER_NUM, DEFAULT_TASK_TRIGGER_INTERVAL
 from reportportal_client.static.abstract import AbstractBaseClass
 
 _T = TypeVar('_T')
@@ -125,3 +124,42 @@ class ThreadedTaskFactory:
             **_
     ) -> Task[_T]:
         return ThreadedTask(factory, self.__wait_timeout, loop=self.__loop)
+
+
+class TaskList(Generic[_T]):
+
+    __task_list: List[_T]
+    __last_run_time: float
+    __trigger_num: int
+    __trigger_interval: float
+
+    def __init__(self,
+                 trigger_num: int = DEFAULT_TASK_TRIGGER_NUM,
+                 trigger_interval: float = DEFAULT_TASK_TRIGGER_INTERVAL):
+        self.__last_run_time = time.time()
+        self.__trigger_num = trigger_num
+        self.__trigger_interval = trigger_interval
+
+    def __ready_to_run(self) -> bool:
+        current_time = time.time()
+        last_time = self.__last_run_time
+        if len(self.__task_list) <= 0:
+            return False
+        if (len(self.__task_list) >= self.__trigger_num
+                or current_time - last_time >= self.__trigger_interval):
+            self.__last_run_time = current_time
+            return True
+        return False
+
+    def append(self, value: _T) -> Optional[List[_T]]:
+        self.__task_list.append(value)
+        if self.__ready_to_run():
+            tasks = self.__task_list
+            self.__task_list = []
+            return tasks
+
+    def flush(self) -> Optional[List[_T]]:
+        if len(self.__task_list) > 0:
+            tasks = self.__task_list
+            self.__task_list = []
+            return tasks
