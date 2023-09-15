@@ -646,7 +646,7 @@ class _SyncRPClient(RP, metaclass=AbstractBaseClass):
 
     @property
     def endpoint(self) -> str:
-        return self.endpoint
+        return self.__endpoint
 
     def __init__(self, endpoint: str, project: str, *, launch_uuid: Optional[Task[str]] = None,
                  client: Optional[Client] = None, log_batcher: Optional[LogBatcher] = None,
