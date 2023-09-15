@@ -914,15 +914,23 @@ class BatchedRPClient(_SyncRPClient):
     __task_list: TaskList[Task[_T]]
     __task_mutex: threading.Lock
     __last_run_time: float
-    __thread: threading.Thread
     __trigger_num: int
     __trigger_interval: float
 
-    def __init__(self, endpoint: str, project: str, *, launch_uuid: Optional[Task[str]] = None,
-                 client: Optional[Client] = None, log_batcher: Optional[LogBatcher] = None,
-                 task_list: Optional[TaskList] = None, task_mutex: Optional[threading.Lock] = None,
-                 trigger_num: int = DEFAULT_TASK_TRIGGER_NUM,
-                 trigger_interval: float = DEFAULT_TASK_TRIGGER_INTERVAL, **kwargs: Any) -> None:
+    def __init__(
+            self, endpoint: str,
+            project: str,
+            *,
+            launch_uuid: Optional[Task[str]] = None,
+            client: Optional[Client] = None,
+            log_batcher: Optional[LogBatcher] = None,
+            task_list: Optional[TaskList] = None,
+            task_mutex: Optional[threading.Lock] = None,
+            loop: Optional[asyncio.AbstractEventLoop] = None,
+            trigger_num: int = DEFAULT_TASK_TRIGGER_NUM,
+            trigger_interval: float = DEFAULT_TASK_TRIGGER_INTERVAL,
+            **kwargs: Any
+    ) -> None:
         super().__init__(endpoint, project, launch_uuid=launch_uuid, client=client, log_batcher=log_batcher,
                          **kwargs)
         if task_list:
@@ -934,9 +942,11 @@ class BatchedRPClient(_SyncRPClient):
         else:
             self.__task_mutex = threading.Lock()
         self.__last_run_time = datetime.time()
-        self._loop = asyncio.new_event_loop()
-        self.__thread = threading.current_thread()
-        self._loop.set_task_factory(BatchedTaskFactory(self._loop))
+        if loop:
+            self._loop = loop
+        else:
+            self._loop = asyncio.new_event_loop()
+            self._loop.set_task_factory(BatchedTaskFactory(self._loop))
         self.__trigger_num = trigger_num
         self.__trigger_interval = trigger_interval
 
@@ -971,7 +981,8 @@ class BatchedRPClient(_SyncRPClient):
             client=cloned_client,
             log_batcher=self._log_batcher,
             task_list=self.__task_list,
-            task_mutex=self.__task_mutex
+            task_mutex=self.__task_mutex,
+            loop=self._loop
         )
         current_item = self.current_item()
         if current_item:
