@@ -137,6 +137,7 @@ class TaskList(Generic[_T]):
     def __init__(self,
                  trigger_num: int = DEFAULT_TASK_TRIGGER_NUM,
                  trigger_interval: float = DEFAULT_TASK_TRIGGER_INTERVAL):
+        self.__task_list = []
         self.__last_run_time = time.time()
         self.__trigger_num = trigger_num
         self.__trigger_interval = trigger_interval
