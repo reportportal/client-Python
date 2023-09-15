@@ -933,14 +933,8 @@ class BatchedRPClient(_SyncRPClient):
     ) -> None:
         super().__init__(endpoint, project, launch_uuid=launch_uuid, client=client, log_batcher=log_batcher,
                          **kwargs)
-        if task_list:
-            self.__task_list = task_list
-        else:
-            self.__task_list = TaskList()
-        if task_mutex:
-            self.__task_mutex = task_mutex
-        else:
-            self.__task_mutex = threading.Lock()
+        self.__task_list = task_list or TaskList()
+        self.__task_mutex = task_mutex or threading.Lock()
         self.__last_run_time = datetime.time()
         if loop:
             self._loop = loop
