@@ -131,8 +131,8 @@ class RP(metaclass=AbstractBaseClass):
     def terminate(self, *_: Any, **__: Any) -> None:
         pass  # For backward compatibility
 
-    @abstractmethod
     @property
+    @abstractmethod
     def launch_uuid(self) -> Optional[Union[str, Task[str]]]:
         raise NotImplementedError('"launch_uuid" property is not implemented!')
 
