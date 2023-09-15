@@ -214,6 +214,7 @@ class RPClient(RP):
             mode: str = 'DEFAULT',
             launch_uuid_print: bool = False,
             print_output: Optional[TextIO] = None,
+            log_batcher: Optional[LogBatcher[RPRequestLog]] = None,
             **kwargs: Any
     ) -> None:
         """Initialize required attributes.
@@ -259,7 +260,7 @@ class RPClient(RP):
         self.use_own_launch = bool(self.__launch_uuid)
         self.log_batch_size = log_batch_size
         self.log_batch_payload_size = log_batch_payload_size
-        self._log_batcher = LogBatcher(self.log_batch_size, self.log_batch_payload_size)
+        self._log_batcher = log_batcher or LogBatcher(self.log_batch_size, self.log_batch_payload_size)
         self.verify_ssl = verify_ssl
         self.retries = retries
         self.max_pool_size = max_pool_size
@@ -671,7 +672,8 @@ class RPClient(RP):
             launch_uuid=self.launch_uuid,
             http_timeout=self.http_timeout,
             log_batch_payload_size=self.log_batch_payload_size,
-            mode=self.mode
+            mode=self.mode,
+            log_batcher=self._log_batcher
         )
         current_item = self.current_item()
         if current_item:
