@@ -628,6 +628,7 @@ class _SyncRPClient(RP, metaclass=AbstractBaseClass):
     _log_batcher: LogBatcher
     __client: Client
     __launch_uuid: Optional[Task[str]]
+    __endpoint: str
     use_own_launch: bool
     step_reporter: StepReporter
 
@@ -643,10 +644,14 @@ class _SyncRPClient(RP, metaclass=AbstractBaseClass):
     def launch_uuid(self, value: Optional[Task[str]]) -> None:
         self.__launch_uuid = value
 
+    @property
+    def endpoint(self) -> str:
+        return self.endpoint
+
     def __init__(self, endpoint: str, project: str, *, launch_uuid: Optional[Task[str]] = None,
                  client: Optional[Client] = None, log_batcher: Optional[LogBatcher] = None,
                  **kwargs: Any) -> None:
-        set_current(self)
+        self.__endpoint = endpoint
         self.step_reporter = StepReporter(self)
         self._item_stack = _LifoQueue()
         if log_batcher:
@@ -662,6 +667,7 @@ class _SyncRPClient(RP, metaclass=AbstractBaseClass):
             self.use_own_launch = False
         else:
             self.use_own_launch = True
+        set_current(self)
 
     @abstractmethod
     def create_task(self, coro: Coroutine[Any, Any, _T]) -> Optional[Task[_T]]:
