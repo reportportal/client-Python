@@ -478,9 +478,9 @@ class AsyncRPLogBatch(RPLogBatch):
     def __int__(self, *args, **kwargs) -> None:
         super.__init__(*args, **kwargs)
 
-    async def __get_request_part(self) -> str:
+    async def __get_request_part(self) -> List[dict]:
         coroutines = [log.payload for log in self.log_reqs]
-        return json_converter.dumps(await asyncio.gather(*coroutines))
+        return list(await asyncio.gather(*coroutines))
 
     @property
     async def payload(self) -> aiohttp.MultipartWriter:
