@@ -920,7 +920,7 @@ class BatchedRPClient(_SyncRPClient):
 
     def __init__(self, endpoint: str, project: str, *, launch_uuid: Optional[Task[str]] = None,
                  client: Optional[Client] = None, log_batcher: Optional[LogBatcher] = None,
-                 task_list: Optional[TaskList] = None, task_mutex: Optional[threading.Lock],
+                 task_list: Optional[TaskList] = None, task_mutex: Optional[threading.Lock] = None,
                  trigger_num: int = DEFAULT_TASK_TRIGGER_NUM,
                  trigger_interval: float = DEFAULT_TASK_TRIGGER_INTERVAL, **kwargs: Any) -> None:
         super().__init__(endpoint, project, launch_uuid=launch_uuid, client=client, log_batcher=log_batcher,
