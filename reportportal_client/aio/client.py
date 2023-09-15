@@ -644,11 +644,15 @@ class _SyncRPClient(RP, metaclass=AbstractBaseClass):
         self.__launch_uuid = value
 
     def __init__(self, endpoint: str, project: str, *, launch_uuid: Optional[Task[str]] = None,
-                 client: Optional[Client] = None, **kwargs: Any) -> None:
+                 client: Optional[Client] = None, log_batcher: Optional[LogBatcher] = None,
+                 **kwargs: Any) -> None:
         set_current(self)
         self.step_reporter = StepReporter(self)
         self._item_stack = _LifoQueue()
-        self._log_batcher = LogBatcher()
+        if log_batcher:
+            self._log_batcher = log_batcher
+        else:
+            self._log_batcher = LogBatcher()
         if client:
             self.__client = client
         else:
@@ -834,11 +838,12 @@ class ThreadedRPClient(_SyncRPClient):
     __shutdown_timeout: float
 
     def __init__(self, endpoint: str, project: str, *, launch_uuid: Optional[Task[str]] = None,
-                 client: Optional[Client] = None,
+                 client: Optional[Client] = None, log_batcher: Optional[LogBatcher] = None,
                  loop: Optional[asyncio.AbstractEventLoop] = None,
                  task_timeout: float = DEFAULT_TASK_TIMEOUT,
                  shutdown_timeout: float = DEFAULT_SHUTDOWN_TIMEOUT, **kwargs: Any) -> None:
-        super().__init__(endpoint, project, launch_uuid=launch_uuid, client=client, **kwargs)
+        super().__init__(endpoint, project, launch_uuid=launch_uuid, client=client, log_batcher=log_batcher,
+                         **kwargs)
         self.__task_timeout = task_timeout
         self.__shutdown_timeout = shutdown_timeout
         self.__task_list = []
@@ -895,6 +900,7 @@ class ThreadedRPClient(_SyncRPClient):
             project=None,
             launch_uuid=self.launch_uuid,
             client=cloned_client,
+            log_batcher=self._log_batcher,
             loop=self._loop
         )
         current_item = self.current_item()
@@ -914,9 +920,11 @@ class BatchedRPClient(_SyncRPClient):
     __trigger_interval: float
 
     def __init__(self, endpoint: str, project: str, *, launch_uuid: Optional[Task[str]] = None,
-                 client: Optional[Client] = None, trigger_num: int = DEFAULT_TASK_TRIGGER_NUM,
+                 client: Optional[Client] = None, log_batcher: Optional[LogBatcher] = None,
+                 trigger_num: int = DEFAULT_TASK_TRIGGER_NUM,
                  trigger_interval: float = DEFAULT_TASK_TRIGGER_INTERVAL, **kwargs: Any) -> None:
-        super().__init__(endpoint, project, launch_uuid=launch_uuid, client=client, **kwargs)
+        super().__init__(endpoint, project, launch_uuid=launch_uuid, client=client, log_batcher=log_batcher,
+                         **kwargs)
 
         self.__task_list = []
         self.__task_mutex = threading.Lock()
@@ -973,6 +981,7 @@ class BatchedRPClient(_SyncRPClient):
             endpoint=None,
             project=None,
             launch_uuid=self.launch_uuid,
+            log_batcher=self._log_batcher,
             client=cloned_client
         )
         current_item = self.current_item()
