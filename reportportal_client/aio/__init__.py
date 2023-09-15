@@ -12,12 +12,11 @@
 #  limitations under the License
 
 from reportportal_client.aio.tasks import (Task, TaskList, BatchedTask, BatchedTaskFactory, ThreadedTask,
-                                           ThreadedTaskFactory, BlockingOperationError)
+                                           ThreadedTaskFactory, BlockingOperationError,
+                                           DEFAULT_TASK_TRIGGER_NUM, DEFAULT_TASK_TRIGGER_INTERVAL)
 
 DEFAULT_TASK_TIMEOUT: float = 60.0
 DEFAULT_SHUTDOWN_TIMEOUT: float = 120.0
-DEFAULT_TASK_TRIGGER_NUM: int = 10
-DEFAULT_TASK_TRIGGER_INTERVAL: float = 1.0
 
 __all__ = [
     'Task',

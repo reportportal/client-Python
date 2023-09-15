@@ -18,10 +18,11 @@ from abc import abstractmethod
 from asyncio import Future
 from typing import TypeVar, Generic, Union, Generator, Awaitable, Optional, Coroutine, Any, List
 
-from reportportal_client.aio import DEFAULT_TASK_TRIGGER_NUM, DEFAULT_TASK_TRIGGER_INTERVAL
 from reportportal_client.static.abstract import AbstractBaseClass
 
 _T = TypeVar('_T')
+DEFAULT_TASK_TRIGGER_NUM: int = 10
+DEFAULT_TASK_TRIGGER_INTERVAL: float = 1.0
 
 
 class BlockingOperationError(RuntimeError):
