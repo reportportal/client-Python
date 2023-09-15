@@ -912,7 +912,6 @@ class ThreadedRPClient(_SyncRPClient):
 class BatchedRPClient(_SyncRPClient):
     _loop: asyncio.AbstractEventLoop
     __task_list: List[Task[_T]]
-    __queued_task_list: List[Task[_T]]
     __task_mutex: threading.Lock
     __last_run_time: float
     __thread: threading.Thread
@@ -931,7 +930,7 @@ class BatchedRPClient(_SyncRPClient):
         self.__last_run_time = datetime.time()
         self._loop = asyncio.new_event_loop()
         self.__thread = threading.current_thread()
-        self._loop.set_task_factory(BatchedTaskFactory(self._loop, self.__thread))
+        self._loop.set_task_factory(BatchedTaskFactory(self._loop))
         self.__trigger_num = trigger_num
         self.__trigger_interval = trigger_interval
 
