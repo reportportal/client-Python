@@ -98,7 +98,7 @@ class ThreadedTask(Generic[_T], Task[_T]):
             raise BlockingOperationError('Running loop is not alive')
         start_time = time.time()
         slee_time = sys.getswitchinterval()
-        while not self.done() or time.time() - start_time < self.__wait_timeout:
+        while not self.done() and time.time() - start_time < self.__wait_timeout:
             time.sleep(slee_time)
         if not self.done():
             raise BlockingOperationError('Timed out waiting for the task execution')
