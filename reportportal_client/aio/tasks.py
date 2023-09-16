@@ -66,7 +66,7 @@ class BatchedTask(Generic[_T], Task[_T]):
 
     def __repr__(self) -> str:
         if self.done():
-            return str(self.result())
+            return repr(self.result())
         return super().__repr__()
 
     def __str__(self):
@@ -106,7 +106,7 @@ class ThreadedTask(Generic[_T], Task[_T]):
 
     def __repr__(self) -> str:
         if self.done():
-            return str(self.result())
+            return repr(self.result())
         return super().__repr__()
 
     def __str__(self):
