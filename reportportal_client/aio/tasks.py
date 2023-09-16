@@ -64,6 +64,16 @@ class BatchedTask(Generic[_T], Task[_T]):
             return self.result()
         return self.__loop.run_until_complete(self)
 
+    def __repr__(self) -> str:
+        if self.done():
+            return str(self.result())
+        return super().__repr__()
+
+    def __str__(self):
+        if self.done():
+            return str(self.result())
+        return super().__str__()
+
 
 class ThreadedTask(Generic[_T], Task[_T]):
     __loop: asyncio.AbstractEventLoop
@@ -93,6 +103,16 @@ class ThreadedTask(Generic[_T], Task[_T]):
         if not self.done():
             raise BlockingOperationError('Timed out waiting for the task execution')
         return self.result()
+
+    def __repr__(self) -> str:
+        if self.done():
+            return str(self.result())
+        return super().__repr__()
+
+    def __str__(self):
+        if self.done():
+            return str(self.result())
+        return super().__str__()
 
 
 class BatchedTaskFactory:
