@@ -160,8 +160,13 @@ class Client:
             else:
                 ssl_config = ssl.create_default_context(cafile=certifi.where())
 
-        connector = aiohttp.TCPConnector(ssl=ssl_config, limit=self.max_pool_size,
-                                         keepalive_timeout=self.keepalive_timeout)
+        params = {
+            'ssl': ssl_config,
+            'limit': self.max_pool_size
+        }
+        if self.keepalive_timeout:
+            params['keepalive_timeout'] = self.keepalive_timeout
+        connector = aiohttp.TCPConnector(**params)
 
         timeout = None
         if self.http_timeout:
