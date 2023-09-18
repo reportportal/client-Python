@@ -77,6 +77,7 @@ class Client:
     retries: int
     max_pool_size: int
     http_timeout: Union[float, Tuple[float, float]]
+    keepalive_timeout: Optional[float]
     mode: str
     launch_uuid_print: Optional[bool]
     print_output: Optional[TextIO]
@@ -96,6 +97,7 @@ class Client:
             retries: int = None,
             max_pool_size: int = 50,
             http_timeout: Union[float, Tuple[float, float]] = (10, 10),
+            keepalive_timeout: Optional[float] = None,
             log_batch_payload_size: int = MAX_LOG_BATCH_PAYLOAD_SIZE,
             mode: str = 'DEFAULT',
             launch_uuid_print: bool = False,
@@ -114,6 +116,7 @@ class Client:
         self.retries = retries
         self.max_pool_size = max_pool_size
         self.http_timeout = http_timeout
+        self.keepalive_timeout = keepalive_timeout
         self.mode = mode
         self._skip_analytics = getenv('AGENT_NO_ANALYTICS')
         self.launch_uuid_print = launch_uuid_print
@@ -157,7 +160,8 @@ class Client:
             else:
                 ssl_config = ssl.create_default_context(cafile=certifi.where())
 
-        connector = aiohttp.TCPConnector(ssl=ssl_config, limit=self.max_pool_size)
+        connector = aiohttp.TCPConnector(ssl=ssl_config, limit=self.max_pool_size,
+                                         keepalive_timeout=self.keepalive_timeout)
 
         timeout = None
         if self.http_timeout:
@@ -439,8 +443,11 @@ class Client:
             retries=self.retries,
             max_pool_size=self.max_pool_size,
             http_timeout=self.http_timeout,
+            keepalive_timeout=self.keepalive_timeout,
             log_batch_payload_size=self.log_batch_payload_size,
-            mode=self.mode
+            mode=self.mode,
+            launch_uuid_print=self.launch_uuid_print,
+            print_output=self.print_output
         )
         return cloned
 
@@ -845,7 +852,6 @@ class _SyncRPClient(RP, metaclass=AbstractBaseClass):
 
 class ThreadedRPClient(_SyncRPClient):
     _loop: Optional[asyncio.AbstractEventLoop]
-    __self_loop: bool
     __task_list: BackgroundTaskList[Task[_T]]
     __task_mutex: threading.RLock
     __thread: Optional[threading.Thread]
@@ -876,13 +882,18 @@ class ThreadedRPClient(_SyncRPClient):
         self.__thread = None
         if loop:
             self._loop = loop
-            self.__self_loop = False
         else:
             self._loop = asyncio.new_event_loop()
             self._loop.set_task_factory(ThreadedTaskFactory(self._loop, self.__task_timeout))
-            self.__self_loop = True
+            self.__heartbeat()
             self.__thread = threading.Thread(target=self._loop.run_forever, name='RP-Async-Client',
                                              daemon=True)
+            self.__thread.start()
+
+    def __heartbeat(self):
+        #  We operate on our own loop with daemon thread, so we will exit in any way when main thread exit,
+        #  so we can iterate forever
+        self._loop.call_at(self._loop.time() + 1, self.__heartbeat)
 
     def create_task(self, coro: Coroutine[Any, Any, _T]) -> Optional[Task[_T]]:
         if not getattr(self, '_loop', None):
@@ -890,8 +901,6 @@ class ThreadedRPClient(_SyncRPClient):
         result = self._loop.create_task(coro)
         with self.__task_mutex:
             self.__task_list.append(result)
-            if self.__self_loop and not self.__thread.is_alive():
-                self.__thread.start()
         return result
 
     def finish_tasks(self):
