@@ -913,13 +913,13 @@ class ThreadedRPClient(_SyncRPClient):
         shutdown_start_time = datetime.time()
         with self.__task_mutex:
             tasks = self.__task_list.flush()
-            for task in tasks:
-                task_start_time = datetime.time()
-                while not task.done() and (datetime.time() - task_start_time < DEFAULT_TASK_TIMEOUT) and (
-                        datetime.time() - shutdown_start_time < DEFAULT_SHUTDOWN_TIMEOUT):
-                    datetime.sleep(sleep_time)
-                if datetime.time() - shutdown_start_time >= DEFAULT_SHUTDOWN_TIMEOUT:
-                    break
+        for task in tasks:
+            task_start_time = datetime.time()
+            while not task.done() and (datetime.time() - task_start_time < DEFAULT_TASK_TIMEOUT) and (
+                    datetime.time() - shutdown_start_time < DEFAULT_SHUTDOWN_TIMEOUT):
+                datetime.sleep(sleep_time)
+            if datetime.time() - shutdown_start_time >= DEFAULT_SHUTDOWN_TIMEOUT:
+                break
 
     def clone(self) -> 'ThreadedRPClient':
         """Clone the client object, set current Item ID as cloned item ID.
