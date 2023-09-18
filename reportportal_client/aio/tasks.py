@@ -147,8 +147,7 @@ class ThreadedTaskFactory:
         return ThreadedTask(factory, self.__wait_timeout, loop=self.__loop)
 
 
-class TaskList(Generic[_T]):
-
+class TriggerTaskList(Generic[_T]):
     __task_list: List[_T]
     __last_run_time: float
     __trigger_num: int
@@ -181,6 +180,32 @@ class TaskList(Generic[_T]):
             return tasks
 
     def flush(self) -> Optional[List[_T]]:
+        if len(self.__task_list) > 0:
+            tasks = self.__task_list
+            self.__task_list = []
+            return tasks
+
+
+class BackgroundTaskList(Generic[_T]):
+    __task_list: List[_T]
+
+    def __init__(self):
+        self.__task_list = []
+
+    def __remove_finished(self):
+        i = -1
+        for task in self.__task_list:
+            if not task.done():
+                break
+            i += 1
+        self.__task_list = self.__task_list[i + 1:]
+
+    def append(self, value: _T) -> None:
+        self.__remove_finished()
+        self.__task_list.append(value)
+
+    def flush(self) -> Optional[List[_T]]:
+        self.__remove_finished()
         if len(self.__task_list) > 0:
             tasks = self.__task_list
             self.__task_list = []
