@@ -784,7 +784,7 @@ class _SyncRPClient(RP, metaclass=AbstractBaseClass):
             result_coro = self.__client.finish_launch(self.launch_uuid, end_time, status=status,
                                                       attributes=attributes, **kwargs)
         else:
-            result_coro = self.create_task(self.__empty_str())
+            result_coro = self.__empty_str()
 
         result_task = self.create_task(result_coro)
         self.finish_tasks()
@@ -898,7 +898,7 @@ class ThreadedRPClient(_SyncRPClient):
     def __heartbeat(self):
         #  We operate on our own loop with daemon thread, so we will exit in any way when main thread exit,
         #  so we can iterate forever
-        self._loop.call_at(self._loop.time() + 1, self.__heartbeat)
+        self._loop.call_at(self._loop.time() + 0.1, self.__heartbeat)
 
     def create_task(self, coro: Coroutine[Any, Any, _T]) -> Optional[Task[_T]]:
         if not getattr(self, '_loop', None):
@@ -920,6 +920,13 @@ class ThreadedRPClient(_SyncRPClient):
                 datetime.sleep(sleep_time)
             if datetime.time() - shutdown_start_time >= DEFAULT_SHUTDOWN_TIMEOUT:
                 break
+        logs = self._log_batcher.flush()
+        if logs:
+            task_start_time = datetime.time()
+            log_task = self._loop.create_task(self._log_batch(logs))
+            while not log_task.done() and (datetime.time() - task_start_time < DEFAULT_TASK_TIMEOUT) and (
+                    datetime.time() - shutdown_start_time < DEFAULT_SHUTDOWN_TIMEOUT):
+                datetime.sleep(sleep_time)
 
     def clone(self) -> 'ThreadedRPClient':
         """Clone the client object, set current Item ID as cloned item ID.
