@@ -186,6 +186,7 @@ class Client:
     def close(self):
         if self.__session:
             self.__session.close()
+            self.__session = None
 
     async def __get_item_url(self, item_id_future: Union[str, Task[str]]) -> Optional[str]:
         item_id = await await_if_necessary(item_id_future)
