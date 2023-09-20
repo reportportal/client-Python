@@ -645,6 +645,8 @@ class _SyncRPClient(RP, metaclass=AbstractBaseClass):
 
     _item_stack: _LifoQueue
     _log_batcher: LogBatcher
+    _shutdown_timeout: float
+    _task_timeout: float
     __client: Client
     __launch_uuid: Optional[Task[str]]
     __endpoint: str
@@ -672,13 +674,24 @@ class _SyncRPClient(RP, metaclass=AbstractBaseClass):
     def project(self) -> str:
         return self.__project
 
-    def __init__(self, endpoint: str, project: str, *, launch_uuid: Optional[Task[str]] = None,
-                 client: Optional[Client] = None, log_batcher: Optional[LogBatcher] = None,
-                 **kwargs: Any) -> None:
+    def __init__(
+            self,
+            endpoint: str,
+            project: str,
+            *,
+            launch_uuid: Optional[Task[str]] = None,
+            client: Optional[Client] = None,
+            log_batcher: Optional[LogBatcher] = None,
+            task_timeout: float = DEFAULT_TASK_TIMEOUT,
+            shutdown_timeout: float = DEFAULT_SHUTDOWN_TIMEOUT,
+            **kwargs: Any
+    ) -> None:
         self.__endpoint = endpoint
         self.__project = project
         self.step_reporter = StepReporter(self)
         self._item_stack = _LifoQueue()
+        self._shutdown_timeout = shutdown_timeout
+        self._task_timeout = task_timeout
         if log_batcher:
             self._log_batcher = log_batcher
         else:
@@ -868,8 +881,6 @@ class ThreadedRPClient(_SyncRPClient):
     __task_list: BackgroundTaskList[Task[_T]]
     __task_mutex: threading.RLock
     __thread: Optional[threading.Thread]
-    __task_timeout: float
-    __shutdown_timeout: float
 
     def __init__(
             self,
@@ -882,14 +893,10 @@ class ThreadedRPClient(_SyncRPClient):
             task_list: Optional[BackgroundTaskList[Task[_T]]] = None,
             task_mutex: Optional[threading.RLock] = None,
             loop: Optional[asyncio.AbstractEventLoop] = None,
-            task_timeout: float = DEFAULT_TASK_TIMEOUT,
-            shutdown_timeout: float = DEFAULT_SHUTDOWN_TIMEOUT,
             **kwargs: Any
     ) -> None:
         super().__init__(endpoint, project, launch_uuid=launch_uuid, client=client, log_batcher=log_batcher,
                          **kwargs)
-        self.__task_timeout = task_timeout
-        self.__shutdown_timeout = shutdown_timeout
         self.__task_list = task_list or BackgroundTaskList()
         self.__task_mutex = task_mutex or threading.RLock()
         self.__thread = None
@@ -897,7 +904,7 @@ class ThreadedRPClient(_SyncRPClient):
             self._loop = loop
         else:
             self._loop = asyncio.new_event_loop()
-            self._loop.set_task_factory(ThreadedTaskFactory(self._loop, self.__task_timeout))
+            self._loop.set_task_factory(ThreadedTaskFactory(self._loop, self._task_timeout))
             self.__heartbeat()
             self.__thread = threading.Thread(target=self._loop.run_forever, name='RP-Async-Client',
                                              daemon=True)
@@ -917,24 +924,17 @@ class ThreadedRPClient(_SyncRPClient):
         return result
 
     def finish_tasks(self):
-        sleep_time = sys.getswitchinterval()
         shutdown_start_time = datetime.time()
         with self.__task_mutex:
             tasks = self.__task_list.flush()
         for task in tasks:
-            task_start_time = datetime.time()
-            while not task.done() and (datetime.time() - task_start_time < DEFAULT_TASK_TIMEOUT) and (
-                    datetime.time() - shutdown_start_time < DEFAULT_SHUTDOWN_TIMEOUT):
-                datetime.sleep(sleep_time)
-            if datetime.time() - shutdown_start_time >= DEFAULT_SHUTDOWN_TIMEOUT:
+            task.blocking_result()
+            if datetime.time() - shutdown_start_time >= self._shutdown_timeout:
                 break
         logs = self._log_batcher.flush()
         if logs:
-            task_start_time = datetime.time()
-            log_task = self._loop.create_task(self._log_batch(logs))
-            while not log_task.done() and (datetime.time() - task_start_time < DEFAULT_TASK_TIMEOUT) and (
-                    datetime.time() - shutdown_start_time < DEFAULT_SHUTDOWN_TIMEOUT):
-                datetime.sleep(sleep_time)
+            log_task: Task[Tuple[str, ...]] = self._loop.create_task(self._log_batch(logs))
+            log_task.blocking_result()
 
     def clone(self) -> 'ThreadedRPClient':
         """Clone the client object, set current Item ID as cloned item ID.
@@ -1002,14 +1002,14 @@ class BatchedRPClient(_SyncRPClient):
         with self.__task_mutex:
             tasks = self.__task_list.append(result)
             if tasks:
-                self._loop.run_until_complete(asyncio.wait(tasks))
+                self._loop.run_until_complete(asyncio.wait(tasks, timeout=self._task_timeout))
         return result
 
     def finish_tasks(self) -> None:
         with self.__task_mutex:
             tasks = self.__task_list.flush()
             if tasks:
-                self._loop.run_until_complete(asyncio.wait(tasks))
+                self._loop.run_until_complete(asyncio.wait(tasks, timeout=self._shutdown_timeout))
             logs = self._log_batcher.flush()
             if logs:
                 log_task = self._loop.create_task(self._log_batch(logs))
