@@ -3,3 +3,4 @@ requests>=2.27.1
 six>=1.16.0
 aiohttp>=3.8.5
 certifi>=2023.7.22
+sympy>=1.10.1
