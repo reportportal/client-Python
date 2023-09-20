@@ -27,7 +27,7 @@ THROTTLING_STATUSES: set = {425, 429}
 RETRY_STATUSES: set = {408, 500, 502, 503, 507}.union(THROTTLING_STATUSES)
 
 
-class RetryClass(Enum, int):
+class RetryClass(int, Enum):
     SERVER_ERROR = 1
     CONNECTION_ERROR = 5
     THROTTLING = 7
