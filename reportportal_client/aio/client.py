@@ -33,6 +33,7 @@ from reportportal_client._local import set_current
 from reportportal_client.aio import (Task, BatchedTaskFactory, ThreadedTaskFactory, DEFAULT_TASK_TIMEOUT,
                                      DEFAULT_SHUTDOWN_TIMEOUT, DEFAULT_TASK_TRIGGER_NUM, TriggerTaskList,
                                      DEFAULT_TASK_TRIGGER_INTERVAL, BackgroundTaskList)
+from reportportal_client.aio.http import RetryingClientSession
 from reportportal_client.core.rp_issues import Issue
 from reportportal_client.core.rp_requests import (LaunchStartRequest, AsyncHttpRequest, AsyncItemStartRequest,
                                                   AsyncItemFinishRequest, LaunchFinishRequest, RPFile,
@@ -148,7 +149,6 @@ class Client:
 
     @property
     def session(self) -> aiohttp.ClientSession:
-        # TODO: add retry handler
         if self.__session:
             return self.__session
 
@@ -179,7 +179,7 @@ class Client:
         headers = {}
         if self.api_key:
             headers['Authorization'] = f'Bearer {self.api_key}'
-        self.__session = aiohttp.ClientSession(self.endpoint, connector=connector, headers=headers,
+        self.__session = RetryingClientSession(self.endpoint, connector=connector, headers=headers,
                                                timeout=timeout)
         return self.__session
 

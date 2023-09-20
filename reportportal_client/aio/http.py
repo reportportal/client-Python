@@ -11,28 +11,26 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License
 
+import asyncio
+import sys
+from typing import Coroutine
+
 import aiohttp
-from aenum import auto, Enum
-from aiohttp import ClientResponse
+from aenum import Enum
+from aiohttp import ClientResponse, ServerConnectionError, \
+    ClientResponseError
 from sympy import fibonacci
 
 DEFAULT_RETRY_NUMBER: int = 5
 DEFAULT_RETRY_DELAY: int = 10
+THROTTLING_STATUSES: set = {425, 429}
+RETRY_STATUSES: set = {408, 500, 502, 503, 507}.union(THROTTLING_STATUSES)
 
 
-class RetryClass(Enum):
-    CONNECTION_ERROR = auto()
-    SERVER_ERROR = auto()
-    BAD_REQUEST = auto()
-    THROTTLING = auto()
-
-
-RETRY_FACTOR = {
-    RetryClass.CONNECTION_ERROR: 5,
-    RetryClass.SERVER_ERROR: 1,
-    RetryClass.BAD_REQUEST: 0,
-    RetryClass.THROTTLING: 10
-}
+class RetryClass(Enum, int):
+    SERVER_ERROR = 1
+    CONNECTION_ERROR = 5
+    THROTTLING = 7
 
 
 class RetryingClientSession(aiohttp.ClientSession):
@@ -42,18 +40,63 @@ class RetryingClientSession(aiohttp.ClientSession):
     def __init__(
             self,
             *args,
-            retry_number: int = DEFAULT_RETRY_NUMBER,
-            retry_delay: int = DEFAULT_RETRY_DELAY,
+            max_retry_number: int = DEFAULT_RETRY_NUMBER,
+            base_retry_delay: int = DEFAULT_RETRY_DELAY,
             **kwargs
     ):
         super().__init__(*args, **kwargs)
-        self.__retry_number = retry_number
-        self.__retry_delay = retry_delay
+        self.__retry_number = max_retry_number
+        self.__retry_delay = base_retry_delay
+
+    async def __nothing(self):
+        pass
+
+    def __sleep(self, retry_num: int, retry_factor: int) -> Coroutine:
+        if retry_num > 0:  # don't wait at the first retry attempt
+            return asyncio.sleep(fibonacci(retry_factor + retry_num - 1) * self.__retry_delay)
+        else:
+            return self.__nothing()
 
     async def _request(
             self,
             *args,
             **kwargs
     ) -> ClientResponse:
-        fibonacci(5)
-        return await super()._request(*args, **kwargs)
+        result = None
+        exceptions = []
+        for i in range(self.__retry_number + 1):  # add one for the first attempt, which is not a retry
+            retry_factor = None
+            try:
+                result = await super()._request(*args, **kwargs)
+            except Exception as exc:
+                exceptions.append(exc)
+                if isinstance(exc, ServerConnectionError) or isinstance(exc, ClientResponseError):
+                    retry_factor = RetryClass.CONNECTION_ERROR
+
+                if not retry_factor:
+                    raise exc
+
+            if result:
+                if result.ok or result.status not in RETRY_STATUSES:
+                    return result
+
+                if result.status in THROTTLING_STATUSES:
+                    retry_factor = RetryClass.THROTTLING
+                else:
+                    retry_factor = RetryClass.SERVER_ERROR
+
+            if i + 1 < self.__retry_number:
+                # don't wait at the last attempt
+                await self.__sleep(i, retry_factor)
+
+        if exceptions:
+            if len(exceptions) > 1:
+                if sys.version_info > (3, 10):
+                    # noinspection PyCompatibility
+                    raise ExceptionGroup('During retry attempts the following exceptions happened',
+                                         exceptions)
+                else:
+                    raise exceptions[-1]
+            else:
+                raise exceptions[0]
+        return result
