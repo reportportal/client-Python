@@ -12,8 +12,7 @@
 #  limitations under the License
 
 import os
-
-from six.moves import mock
+from unittest import mock
 
 from reportportal_client import helpers
 from reportportal_client.logs.log_manager import LogManager, \

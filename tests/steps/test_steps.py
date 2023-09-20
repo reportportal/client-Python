@@ -12,10 +12,10 @@
 #  limitations under the License
 import random
 import time
+from unittest import mock
 
 from reportportal_client import step
 from reportportal_client._local import set_current
-from six.moves import mock
 
 NESTED_STEP_NAME = 'test nested step'
 PARENT_STEP_ID = '123-123-1234-123'

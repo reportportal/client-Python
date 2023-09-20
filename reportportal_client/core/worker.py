@@ -14,12 +14,13 @@
 #  limitations under the License
 
 import logging
+import queue
 import threading
 from threading import current_thread, Thread
 
 from aenum import auto, Enum, unique
+
 from reportportal_client.static.defines import Priority
-from six.moves import queue
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())

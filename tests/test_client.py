@@ -11,11 +11,11 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License
 from io import StringIO
+from unittest import mock
 
 import pytest
 from requests import Response
 from requests.exceptions import ReadTimeout
-from six.moves import mock
 
 from reportportal_client import RPClient
 from reportportal_client.helpers import timestamp

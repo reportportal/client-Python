@@ -11,11 +11,11 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License
 import re
+# noinspection PyUnresolvedReferences
+from unittest import mock
 
 # noinspection PyPackageRequirements
 import pytest
-# noinspection PyUnresolvedReferences
-from six.moves import mock
 
 # noinspection PyProtectedMember
 from reportportal_client._local import set_current

@@ -14,9 +14,8 @@
 #  limitations under the License
 
 import logging
+import queue
 from threading import Lock
-
-from six.moves import queue
 
 from reportportal_client import helpers
 from reportportal_client.core.rp_requests import (

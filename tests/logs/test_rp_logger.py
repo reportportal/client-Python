@@ -14,9 +14,9 @@ import inspect
 import logging
 import sys
 from logging import LogRecord
+from unittest import mock
 
 import pytest
-from six.moves import mock
 
 from reportportal_client._local import set_current
 from reportportal_client.logs import RPLogger, RPLogHandler

@@ -1,6 +1,6 @@
 """This module contains common Pytest fixtures and hooks for unit tests."""
 
-from six.moves import mock
+from unittest import mock
 
 # noinspection PyPackageRequirements
 from pytest import fixture
@@ -11,6 +11,7 @@ from reportportal_client.client import RPClient
 @fixture()
 def response():
     """Cook up a mock for the Response with specific arguments."""
+
     def inner(ret_code, ret_value):
         """Set up response with the given parameters.
 
@@ -22,6 +23,7 @@ def response():
             resp.status_code = ret_code
             resp.json.return_value = ret_value
             return resp
+
     return inner
 
 

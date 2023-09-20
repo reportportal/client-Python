@@ -15,9 +15,7 @@
 import logging
 import sys
 import threading
-
-from six import PY2
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 
 # noinspection PyProtectedMember
 from reportportal_client._local import current, set_current
@@ -59,16 +57,11 @@ class RPLogger(logging.getLoggerClass()):
             # exception on some versions of IronPython. We trap it here so that
             # IronPython can use logging.
             try:
-                if PY2:
-                    # In python2.7 findCaller() don't accept any parameters
-                    # and returns 3 elements
-                    fn, lno, func = self.findCaller()
+                if 'stacklevel' in kwargs:
+                    fn, lno, func, sinfo = \
+                        self.findCaller(stack_info, kwargs['stacklevel'])
                 else:
-                    if 'stacklevel' in kwargs:
-                        fn, lno, func, sinfo = \
-                            self.findCaller(stack_info, kwargs['stacklevel'])
-                    else:
-                        fn, lno, func, sinfo = self.findCaller(stack_info)
+                    fn, lno, func, sinfo = self.findCaller(stack_info)
 
             except ValueError:  # pragma: no cover
                 fn, lno, func = '(unknown file)', 0, '(unknown function)'
@@ -78,14 +71,8 @@ class RPLogger(logging.getLoggerClass()):
         if exc_info and not isinstance(exc_info, tuple):
             exc_info = sys.exc_info()
 
-        if PY2:
-            # In python2.7 makeRecord() accepts everything but sinfo
-            record = self.makeRecord(self.name, level, fn, lno, msg, args,
-                                     exc_info, func, extra)
-        else:
-            record = self.makeRecord(self.name, level, fn, lno, msg, args,
-                                     exc_info, func, extra, sinfo)
-
+        record = self.makeRecord(self.name, level, fn, lno, msg, args,
+                                 exc_info, func, extra, sinfo)
         if not getattr(record, 'attachment', None):
             record.attachment = attachment
         self.handle(record)

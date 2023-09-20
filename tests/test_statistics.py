@@ -13,9 +13,10 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License
 
-from requests.exceptions import RequestException
 # noinspection PyUnresolvedReferences
-from six.moves import mock
+from unittest import mock
+
+from requests.exceptions import RequestException
 
 from reportportal_client.services.constants import ENDPOINT, CLIENT_INFO
 from reportportal_client.services.statistics import send_event

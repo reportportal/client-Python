@@ -19,8 +19,6 @@ import logging
 import os
 from uuid import uuid4
 
-import six
-
 from .constants import CLIENT_ID_PROPERTY, RP_FOLDER_PATH, \
     RP_PROPERTIES_FILE_PATH
 
@@ -37,7 +35,7 @@ class __NoSectionConfigParser(configparser.ConfigParser):
         return io.StringIO(content)
 
     def read(self, filenames, encoding=None):
-        if isinstance(filenames, six.string_types):
+        if isinstance(filenames, str):
             filenames = [filenames]
         for filename in filenames:
             with open(filename, 'r') as fp:

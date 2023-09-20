@@ -13,9 +13,9 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License
 
+import queue
 import time
-
-from six.moves import queue, mock
+from unittest import mock
 
 from reportportal_client.core.rp_requests import (
     HttpRequest,
