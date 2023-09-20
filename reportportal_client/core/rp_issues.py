@@ -40,7 +40,7 @@ order to add an issue to the test result:
 #  limitations under the License
 
 
-class Issue(object):
+class Issue:
     """This class represents an issue that can be attached to test result."""
 
     def __init__(self,
@@ -81,7 +81,7 @@ class Issue(object):
         }
 
 
-class ExternalIssue(object):
+class ExternalIssue:
     """This class represents external(BTS) system issue."""
 
     def __init__(self,
