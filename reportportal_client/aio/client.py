@@ -183,6 +183,10 @@ class Client:
                                                timeout=timeout)
         return self.__session
 
+    def close(self):
+        if self.__session:
+            self.__session.close()
+
     async def __get_item_url(self, item_id_future: Union[str, Task[str]]) -> Optional[str]:
         item_id = await await_if_necessary(item_id_future)
         if item_id is NOT_FOUND:
@@ -546,9 +550,11 @@ class AsyncRPClient(RP):
         await self.__client.log_batch(self._log_batcher.flush())
         if not self.use_own_launch:
             return ""
-        return await self.__client.finish_launch(self.launch_uuid, end_time, status=status,
-                                                 attributes=attributes,
-                                                 **kwargs)
+        result = await self.__client.finish_launch(self.launch_uuid, end_time, status=status,
+                                                   attributes=attributes,
+                                                   **kwargs)
+        self.__client.close()
+        return result
 
     async def update_test_item(self, item_uuid: str, attributes: Optional[Union[List, Dict]] = None,
                                description: Optional[str] = None) -> Optional[str]:
@@ -788,6 +794,7 @@ class _SyncRPClient(RP, metaclass=AbstractBaseClass):
 
         result_task = self.create_task(result_coro)
         self.finish_tasks()
+        self.__client.close()
         return result_task
 
     def update_test_item(self,
