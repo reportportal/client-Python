@@ -183,9 +183,9 @@ class Client:
                                                timeout=timeout)
         return self.__session
 
-    def close(self):
+    async def close(self):
         if self.__session:
-            self.__session.close()
+            await self.__session.close()
             self.__session = None
 
     async def __get_item_url(self, item_id_future: Union[str, Task[str]]) -> Optional[str]:
@@ -554,7 +554,7 @@ class AsyncRPClient(RP):
         result = await self.__client.finish_launch(self.launch_uuid, end_time, status=status,
                                                    attributes=attributes,
                                                    **kwargs)
-        self.__client.close()
+        await self.__client.close()
         return result
 
     async def update_test_item(self, item_uuid: str, attributes: Optional[Union[List, Dict]] = None,
@@ -640,7 +640,7 @@ class AsyncRPClient(RP):
         return cloned
 
 
-class _SyncRPClient(RP, metaclass=AbstractBaseClass):
+class _RPClient(RP, metaclass=AbstractBaseClass):
     __metaclass__ = AbstractBaseClass
 
     _item_stack: _LifoQueue
@@ -808,7 +808,6 @@ class _SyncRPClient(RP, metaclass=AbstractBaseClass):
 
         result_task = self.create_task(result_coro)
         self.finish_tasks()
-        self.__client.close()
         return result_task
 
     def update_test_item(self,
@@ -875,8 +874,11 @@ class _SyncRPClient(RP, metaclass=AbstractBaseClass):
         self.create_task(self._log(rp_log))
         return None
 
+    async def _close(self):
+        await self.__client.close()
 
-class ThreadedRPClient(_SyncRPClient):
+
+class ThreadedRPClient(_RPClient):
     _loop: Optional[asyncio.AbstractEventLoop]
     __task_list: BackgroundTaskList[Task[_T]]
     __task_mutex: threading.RLock
@@ -933,8 +935,8 @@ class ThreadedRPClient(_SyncRPClient):
                 break
         logs = self._log_batcher.flush()
         if logs:
-            log_task: Task[Tuple[str, ...]] = self._loop.create_task(self._log_batch(logs))
-            log_task.blocking_result()
+            self._loop.create_task(self._log_batch(logs)).blocking_result()
+        self._loop.create_task(self._close()).blocking_result()
 
     def clone(self) -> 'ThreadedRPClient':
         """Clone the client object, set current Item ID as cloned item ID.
@@ -960,7 +962,7 @@ class ThreadedRPClient(_SyncRPClient):
         return cloned
 
 
-class BatchedRPClient(_SyncRPClient):
+class BatchedRPClient(_RPClient):
     _loop: asyncio.AbstractEventLoop
     __task_list: TriggerTaskList[Task[_T]]
     __task_mutex: threading.RLock
@@ -1014,6 +1016,7 @@ class BatchedRPClient(_SyncRPClient):
             if logs:
                 log_task = self._loop.create_task(self._log_batch(logs))
                 self._loop.run_until_complete(log_task)
+            self._loop.run_until_complete(self._close())
 
     def clone(self) -> 'BatchedRPClient':
         """Clone the client object, set current Item ID as cloned item ID.
