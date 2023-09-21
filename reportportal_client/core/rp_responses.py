@@ -19,6 +19,7 @@ https://github.com/reportportal/documentation/blob/master/src/md/src/DevGuides/r
 #  limitations under the License
 
 import logging
+from json import JSONDecodeError
 from typing import Any, Optional, Generator, Mapping, Tuple, Protocol
 
 from aiohttp import ClientResponse
@@ -66,7 +67,10 @@ class RPResponse(Protocol):
     def json(self) -> Any:
         """Get the response in dictionary."""
         if not self.__json:
-            self.__json = self._resp.json()
+            try:
+                self.__json = self._resp.json()
+            except JSONDecodeError:
+                self.__json = {}
         return self.__json
 
     @property

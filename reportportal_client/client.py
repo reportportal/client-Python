@@ -14,6 +14,7 @@
 #  limitations under the License
 
 import logging
+import queue
 import sys
 import warnings
 from abc import abstractmethod
@@ -646,9 +647,12 @@ class RPClient(RP):
         """Add the last item from the self._items queue."""
         self._item_stack.put(item)
 
-    def _remove_current_item(self) -> str:
+    def _remove_current_item(self) -> Optional[str]:
         """Remove the last item from the self._items queue."""
-        return self._item_stack.get()
+        try:
+            return self._item_stack.get(timeout=0)
+        except queue.Empty:
+            return
 
     def current_item(self) -> Optional[str]:
         """Retrieve the last item reported by the client."""
