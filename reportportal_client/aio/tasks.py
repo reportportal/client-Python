@@ -34,7 +34,7 @@ class Task(Generic[_T], asyncio.Task, metaclass=AbstractBaseClass):
 
     def __init__(
             self,
-            coro: Union[Generator[Future[object], None, _T], Awaitable[_T]],
+            coro: Union[Generator[Future[Any], None, _T], Awaitable[_T]],
             *,
             loop: asyncio.AbstractEventLoop,
             name: Optional[str] = None
@@ -51,7 +51,7 @@ class BatchedTask(Generic[_T], Task[_T]):
 
     def __init__(
             self,
-            coro: Union[Generator[Future[object], None, _T], Awaitable[_T]],
+            coro: Union[Generator[Future[Any], None, _T], Awaitable[_T]],
             *,
             loop: asyncio.AbstractEventLoop,
             name: Optional[str] = None
@@ -81,7 +81,7 @@ class ThreadedTask(Generic[_T], Task[_T]):
 
     def __init__(
             self,
-            coro: Union[Generator[Future[object], None, _T], Awaitable[_T]],
+            coro: Union[Generator[Future[Any], None, _T], Awaitable[_T]],
             wait_timeout: float,
             *,
             loop: asyncio.AbstractEventLoop,
