@@ -20,7 +20,7 @@ https://github.com/reportportal/documentation/blob/master/src/md/src/DevGuides/r
 
 import logging
 from json import JSONDecodeError
-from typing import Any, Optional, Generator, Mapping, Tuple, Protocol
+from typing import Any, Optional, Generator, Mapping, Tuple
 
 from aiohttp import ClientResponse
 from requests import Response
@@ -40,7 +40,7 @@ def _iter_json_messages(json: Any) -> Generator[str, None, None]:
             yield message
 
 
-class RPResponse(Protocol):
+class RPResponse:
     """Class representing RP API response."""
     _resp: Response
     __json: Any
