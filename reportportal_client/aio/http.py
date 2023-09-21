@@ -19,18 +19,17 @@ import aiohttp
 from aenum import Enum
 from aiohttp import ClientResponse, ServerConnectionError, \
     ClientResponseError
-from sympy import fibonacci
 
 DEFAULT_RETRY_NUMBER: int = 5
-DEFAULT_RETRY_DELAY: int = 10
+DEFAULT_RETRY_DELAY: int = 5
 THROTTLING_STATUSES: set = {425, 429}
 RETRY_STATUSES: set = {408, 500, 502, 503, 507}.union(THROTTLING_STATUSES)
 
 
 class RetryClass(int, Enum):
     SERVER_ERROR = 1
-    CONNECTION_ERROR = 5
-    THROTTLING = 7
+    CONNECTION_ERROR = 2
+    THROTTLING = 3
 
 
 class RetryingClientSession(aiohttp.ClientSession):
@@ -53,7 +52,7 @@ class RetryingClientSession(aiohttp.ClientSession):
 
     def __sleep(self, retry_num: int, retry_factor: int) -> Coroutine:
         if retry_num > 0:  # don't wait at the first retry attempt
-            return asyncio.sleep(fibonacci(retry_factor + retry_num - 1) * self.__retry_delay)
+            return asyncio.sleep((retry_factor * self.__retry_delay) ** retry_num)
         else:
             return self.__nothing()
 
