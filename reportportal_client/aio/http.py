@@ -15,13 +15,12 @@ import asyncio
 import sys
 from typing import Coroutine
 
-import aiohttp
 from aenum import Enum
-from aiohttp import ClientResponse, ServerConnectionError, \
+from aiohttp import ClientSession, ClientResponse, ServerConnectionError, \
     ClientResponseError
 
 DEFAULT_RETRY_NUMBER: int = 5
-DEFAULT_RETRY_DELAY: int = 5
+DEFAULT_RETRY_DELAY: float = 0.005
 THROTTLING_STATUSES: set = {425, 429}
 RETRY_STATUSES: set = {408, 500, 502, 503, 507}.union(THROTTLING_STATUSES)
 
@@ -32,15 +31,15 @@ class RetryClass(int, Enum):
     THROTTLING = 3
 
 
-class RetryingClientSession(aiohttp.ClientSession):
+class RetryingClientSession(ClientSession):
     __retry_number: int
-    __retry_delay: int
+    __retry_delay: float
 
     def __init__(
             self,
             *args,
             max_retry_number: int = DEFAULT_RETRY_NUMBER,
-            base_retry_delay: int = DEFAULT_RETRY_DELAY,
+            base_retry_delay: float = DEFAULT_RETRY_DELAY,
             **kwargs
     ):
         super().__init__(*args, **kwargs)
@@ -52,7 +51,8 @@ class RetryingClientSession(aiohttp.ClientSession):
 
     def __sleep(self, retry_num: int, retry_factor: int) -> Coroutine:
         if retry_num > 0:  # don't wait at the first retry attempt
-            return asyncio.sleep((retry_factor * self.__retry_delay) ** retry_num)
+            delay = (((retry_factor * self.__retry_delay) * 1000) ** retry_num) / 1000
+            return asyncio.sleep(delay)
         else:
             return self.__nothing()
 
