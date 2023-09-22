@@ -71,7 +71,7 @@ class RPResponse:
         if self.__json is NOT_SET:
             try:
                 self.__json = self._resp.json()
-            except JSONDecodeError:
+            except (JSONDecodeError, TypeError):
                 self.__json = None
         return self.__json
 
@@ -122,7 +122,7 @@ class AsyncRPResponse:
         if self.__json is NOT_SET:
             try:
                 self.__json = await self._resp.json()
-            except JSONDecodeError:
+            except (JSONDecodeError, TypeError):
                 self.__json = None
         return self.__json
 
