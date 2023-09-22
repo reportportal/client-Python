@@ -241,7 +241,7 @@ class Client:
             self.__stat_task = asyncio.create_task(stat_coro, name='Statistics update')
 
         launch_uuid = await response.id
-        logger.debug(f'start_launch - ID: %s', launch_uuid)
+        logger.debug(f'start_launch - ID: {launch_uuid}')
         if self.launch_uuid_print and self.print_output:
             print(f'Report Portal Launch UUID: {launch_uuid}', file=self.print_output)
         return launch_uuid

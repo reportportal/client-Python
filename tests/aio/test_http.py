@@ -15,13 +15,12 @@ import socketserver
 import sys
 import threading
 import time
-import traceback
 from unittest import mock
 
 import aiohttp
 import pytest
 
-from reportportal_client.aio.http import RetryingClientSession, ClientSession
+from reportportal_client.aio.http import RetryingClientSession
 
 HTTP_TIMEOUT_TIME = 1.2
 
@@ -56,16 +55,15 @@ def get_http_server(server_class=SERVER_CLASS, server_address=SERVER_ADDRESS,
 @pytest.mark.asyncio
 async def test_retry_on_request_timeout():
     timeout = aiohttp.ClientTimeout(connect=1, sock_read=1)
-    session = RetryingClientSession('http://localhost:8000',timeout=timeout, max_retry_number=5,
+    session = RetryingClientSession('http://localhost:8000', timeout=timeout, max_retry_number=5,
                                     base_retry_delay=0.01)
     parent_request = super(type(session), session)._request
     async_mock = mock.AsyncMock()
     async_mock.side_effect = parent_request
-    total_time = 0.0
+    exception = None
     with get_http_server(server_handler=TimeoutHttpHandler):
         with mock.patch('reportportal_client.aio.http.ClientSession._request', async_mock):
             async with session:
-                exception = None
                 start_time = time.time()
                 try:
                     await session.get('/')
