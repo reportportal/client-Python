@@ -94,7 +94,7 @@ class RetryingClientSession(ClientSession):
                     # noinspection PyCompatibility
                     raise ExceptionGroup(  # noqa: F821
                         'During retry attempts the following exceptions happened',
-                                         exceptions
+                        exceptions
                     )
                 else:
                     raise exceptions[-1]
