@@ -426,6 +426,7 @@ class RPClient(RP):
                                verify_ssl=self.verify_ssl).make()
         if not response:
             return
+        launch_info = None
         if response.is_success:
             launch_info = response.json
             logger.debug(
@@ -433,7 +434,6 @@ class RPClient(RP):
         else:
             logger.warning('get_launch_info - Launch info: '
                            'Failed to fetch launch ID from the API.')
-            launch_info = {}
         return launch_info
 
     def get_launch_ui_id(self) -> Optional[int]:

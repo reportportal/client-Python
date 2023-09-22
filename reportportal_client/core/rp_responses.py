@@ -25,7 +25,7 @@ from typing import Any, Optional, Generator, Mapping, Tuple
 from aiohttp import ClientResponse
 from requests import Response
 
-from reportportal_client.static.defines import NOT_FOUND
+from reportportal_client.static.defines import NOT_FOUND, NOT_SET
 
 logger = logging.getLogger(__name__)
 
@@ -51,11 +51,13 @@ class RPResponse:
         :param data: requests.Response object
         """
         self._resp = data
-        self.__json = None
+        self.__json = NOT_SET
 
     @property
     def id(self) -> Optional[str]:
         """Get value of the 'id' key."""
+        if self.json is None:
+            return
         return self.json.get('id', NOT_FOUND)
 
     @property
@@ -66,21 +68,25 @@ class RPResponse:
     @property
     def json(self) -> Any:
         """Get the response in dictionary."""
-        if not self.__json:
+        if self.__json is NOT_SET:
             try:
                 self.__json = self._resp.json()
             except JSONDecodeError:
-                self.__json = {}
+                self.__json = None
         return self.__json
 
     @property
     def message(self) -> Optional[str]:
         """Get value of the 'message' key."""
+        if self.json is None:
+            return
         return self.json.get('message')
 
     @property
-    def messages(self) -> Tuple[str, ...]:
+    def messages(self) -> Optional[Tuple[str, ...]]:
         """Get list of messages received."""
+        if self.json is None:
+            return
         return tuple(_iter_json_messages(self.json))
 
 
@@ -95,12 +101,15 @@ class AsyncRPResponse:
         :param data: requests.Response object
         """
         self._resp = data
-        self.__json = None
+        self.__json = NOT_SET
 
     @property
     async def id(self) -> Optional[str]:
         """Get value of the 'id' key."""
-        return (await self.json).get('id', NOT_FOUND)
+        json = await self.json
+        if json is None:
+            return
+        return json.get('id', NOT_FOUND)
 
     @property
     def is_success(self) -> bool:
@@ -110,16 +119,25 @@ class AsyncRPResponse:
     @property
     async def json(self) -> Any:
         """Get the response in dictionary."""
-        if not self.__json:
-            self.__json = await self._resp.json()
+        if self.__json is NOT_SET:
+            try:
+                self.__json = await self._resp.json()
+            except JSONDecodeError:
+                self.__json = None
         return self.__json
 
     @property
     async def message(self) -> Optional[str]:
         """Get value of the 'message' key."""
-        return (await self.json).get('message')
+        json = await self.json
+        if json is None:
+            return
+        return json.get('message')
 
     @property
-    async def messages(self) -> Tuple[str, ...]:
+    async def messages(self) -> Optional[Tuple[str, ...]]:
         """Get list of messages received."""
-        return tuple(_iter_json_messages(await self.json))
+        json = await self.json
+        if json is None:
+            return
+        return tuple(_iter_json_messages(json))
