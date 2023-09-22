@@ -92,7 +92,6 @@ class RetryingClientSession(ClientSession):
             if len(exceptions) > 1:
                 if sys.version_info > (3, 10):
                     # noinspection PyCompatibility
-
                     raise ExceptionGroup(  # noqa: F821
                         'During retry attempts the following exceptions happened',
                                          exceptions
