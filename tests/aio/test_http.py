@@ -12,6 +12,7 @@
 #  limitations under the License
 import http.server
 import socketserver
+import sys
 import threading
 import time
 import traceback
@@ -50,6 +51,8 @@ def get_http_server(server_class=SERVER_CLASS, server_address=SERVER_ADDRESS,
     return httpd
 
 
+@pytest.mark.skipif(sys.version_info < (3, 8),
+                    reason="the test requires Python 3.8 or higher")
 @pytest.mark.asyncio
 async def test_retry_on_request_timeout():
     timeout = aiohttp.ClientTimeout(connect=1, sock_read=1)
