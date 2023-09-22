@@ -12,9 +12,11 @@
 #  limitations under the License
 
 import os
+import json
 from unittest import mock
 
 from reportportal_client import helpers
+from reportportal_client.core.rp_requests import HttpRequest
 from reportportal_client.logs.log_manager import LogManager, \
     MAX_LOG_BATCH_PAYLOAD_SIZE
 
@@ -44,8 +46,8 @@ def test_log_batch_send_by_length():
 
     assert log_manager._worker.send.call_count == 1
     batch = log_manager._worker.send.call_args[0][0]
-    assert len(batch.log_reqs) == 5
-    assert batch.http_request is not None
+    assert isinstance(batch, HttpRequest)
+    assert len(json.loads(batch.files[0][1][1])) == 5
     assert 'post' in session._mock_children
     assert len(log_manager._batch) == 0
     assert log_manager._payload_size == helpers.TYPICAL_MULTIPART_FOOTER_LENGTH
@@ -66,8 +68,8 @@ def test_log_batch_send_url_format():
 
     assert log_manager._worker.send.call_count == 1
     batch = log_manager._worker.send.call_args[0][0]
-    assert batch.http_request is not None
-    assert batch.http_request.url == \
+    assert isinstance(batch, HttpRequest)
+    assert batch.url == \
            RP_URL + '/api/' + API_VERSION + '/' + PROJECT_NAME + '/log'
 
 
@@ -104,8 +106,8 @@ def test_log_batch_send_by_stop():
 
     assert log_manager._worker.send.call_count == 1
     batch = log_manager._worker.send.call_args[0][0]
-    assert len(batch.log_reqs) == 4
-    assert batch.http_request is not None
+    assert isinstance(batch, HttpRequest)
+    assert len(json.loads(batch.files[0][1][1])) == 4
     assert 'post' in session._mock_children
     assert len(log_manager._batch) == 0
     assert log_manager._payload_size == helpers.TYPICAL_MULTIPART_FOOTER_LENGTH
@@ -158,12 +160,11 @@ def test_log_batch_send_by_size():
 
     assert log_manager._worker.send.call_count == 1
     batch = log_manager._worker.send.call_args[0][0]
-    assert len(batch.log_reqs) == 1
-    assert batch.http_request is not None
+    assert isinstance(batch, HttpRequest)
+    assert len(json.loads(batch.files[0][1][1])) == 1
     assert 'post' in session._mock_children
     assert len(log_manager._batch) == 1
-    assert log_manager._payload_size < \
-           helpers.TYPICAL_MULTIPART_FOOTER_LENGTH + 1024
+    assert log_manager._payload_size < helpers.TYPICAL_MULTIPART_FOOTER_LENGTH + 1024
 
 
 # noinspection PyUnresolvedReferences
@@ -188,8 +189,8 @@ def test_log_batch_triggers_previous_request_to_send():
 
     assert log_manager._worker.send.call_count == 1
     batch = log_manager._worker.send.call_args[0][0]
-    assert len(batch.log_reqs) == 1
-    assert batch.http_request is not None
+    assert isinstance(batch, HttpRequest)
+    assert len(json.loads(batch.files[0][1][1])) == 1
     assert 'post' in session._mock_children
     assert len(log_manager._batch) == 1
     assert log_manager._payload_size > MAX_LOG_BATCH_PAYLOAD_SIZE
