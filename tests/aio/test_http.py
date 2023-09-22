@@ -61,6 +61,7 @@ async def test_retry_on_request_timeout():
     parent_request = super(type(session), session)._request
     async_mock = mock.AsyncMock()
     async_mock.side_effect = parent_request
+    total_time = 0.0
     with get_http_server(server_handler=TimeoutHttpHandler):
         with mock.patch('reportportal_client.aio.http.ClientSession._request', async_mock):
             async with session:
@@ -71,8 +72,8 @@ async def test_retry_on_request_timeout():
                 except Exception as exc:
                     exception = exc
                 total_time = time.time() - start_time
-                retries_and_delays = 6 + 0.02 + 0.4 + 8
-                assert exception is not None
-                assert async_mock.call_count == 6
-                assert total_time > retries_and_delays
-                assert total_time < retries_and_delays * 1.5
+    retries_and_delays = 6 + 0.02 + 0.4 + 8
+    assert exception is not None
+    assert async_mock.call_count == 6
+    assert total_time > retries_and_delays
+    assert total_time < retries_and_delays * 1.5
