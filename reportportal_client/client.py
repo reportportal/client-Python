@@ -44,6 +44,11 @@ logger.addHandler(logging.NullHandler())
 
 
 class RP(metaclass=AbstractBaseClass):
+    """Common interface for Report Portal clients.
+
+    This abstract class serves as common interface for different Report Portal clients. It's implemented to
+    ease migration from version to version and to ensure that each particular client has the same methods.
+    """
     __metaclass__ = AbstractBaseClass
 
     @abstractmethod
