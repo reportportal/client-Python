@@ -17,8 +17,9 @@ import json
 import logging
 import time
 import uuid
+import queue
 from platform import machine, processor, system
-from typing import Optional, Any, List, Dict, Callable, Tuple, Union
+from typing import Optional, Any, List, Dict, Callable, Tuple, Union, TypeVar, Generic
 
 from pkg_resources import DistributionNotFound, get_distribution
 
@@ -26,6 +27,23 @@ from reportportal_client.core.rp_file import RPFile
 from reportportal_client.static.defines import ATTRIBUTE_LENGTH_LIMIT
 
 logger: logging.Logger = logging.getLogger(__name__)
+_T = TypeVar('_T')
+
+
+class LifoQueue(Generic[_T], queue.LifoQueue[_T]):
+    """This Queue adds 'last' method to original queue.LifoQueue.
+
+    Unlike 'get' method in queue.LifoQueue the 'last' method do not remove an entity from the queue.
+    """
+
+    def last(self) -> _T:
+        """Return the last element from the queue, but does not remove it.
+
+        :return: the last element in the queue
+        """
+        with self.mutex:
+            if self._qsize():
+                return self.queue[-1]
 
 
 def generate_uuid() -> str:

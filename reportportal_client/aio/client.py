@@ -21,7 +21,6 @@ import threading
 import time as datetime
 import warnings
 from os import getenv
-from queue import LifoQueue
 from typing import Union, Tuple, List, Dict, Any, Optional, TextIO, Coroutine, TypeVar
 
 import aiohttp
@@ -39,7 +38,7 @@ from reportportal_client.core.rp_requests import (LaunchStartRequest, AsyncHttpR
                                                   AsyncItemFinishRequest, LaunchFinishRequest, RPFile,
                                                   AsyncRPRequestLog, AsyncRPLogBatch)
 from reportportal_client.helpers import (root_uri_join, verify_value_length, await_if_necessary,
-                                         agent_name_version)
+                                         agent_name_version, LifoQueue)
 from reportportal_client.logs import MAX_LOG_BATCH_PAYLOAD_SIZE
 from reportportal_client.logs.batcher import LogBatcher
 from reportportal_client.services.statistics import async_send_event
@@ -54,13 +53,6 @@ logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
 _T = TypeVar('_T')
-
-
-class _LifoQueue(LifoQueue):
-    def last(self):
-        with self.mutex:
-            if self._qsize():
-                return self.queue[-1]
 
 
 class Client:
@@ -463,7 +455,7 @@ class Client:
 
 
 class AsyncRPClient(RP):
-    _item_stack: _LifoQueue
+    _item_stack: LifoQueue
     _log_batcher: LogBatcher
     __client: Client
     __launch_uuid: Optional[str]
@@ -474,7 +466,7 @@ class AsyncRPClient(RP):
                  client: Optional[Client] = None, **kwargs: Any) -> None:
         set_current(self)
         self.step_reporter = StepReporter(self)
-        self._item_stack = _LifoQueue()
+        self._item_stack = LifoQueue()
         self._log_batcher = LogBatcher()
         if client:
             self.__client = client
@@ -643,7 +635,7 @@ class AsyncRPClient(RP):
 class _RPClient(RP, metaclass=AbstractBaseClass):
     __metaclass__ = AbstractBaseClass
 
-    _item_stack: _LifoQueue
+    _item_stack: LifoQueue
     _log_batcher: LogBatcher
     _shutdown_timeout: float
     _task_timeout: float
@@ -689,7 +681,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
         self.__endpoint = endpoint
         self.__project = project
         self.step_reporter = StepReporter(self)
-        self._item_stack = _LifoQueue()
+        self._item_stack = LifoQueue()
         self._shutdown_timeout = shutdown_timeout
         self._task_timeout = task_timeout
         if log_batcher:

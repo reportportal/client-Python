@@ -19,7 +19,6 @@ import sys
 import warnings
 from abc import abstractmethod
 from os import getenv
-from queue import LifoQueue
 from typing import Union, Tuple, List, Dict, Any, Optional, TextIO
 
 import requests
@@ -32,7 +31,7 @@ from reportportal_client.core.rp_issues import Issue
 from reportportal_client.core.rp_requests import (HttpRequest, ItemStartRequest, ItemFinishRequest, RPFile,
                                                   LaunchStartRequest, LaunchFinishRequest, RPRequestLog,
                                                   RPLogBatch)
-from reportportal_client.helpers import uri_join, verify_value_length, agent_name_version
+from reportportal_client.helpers import uri_join, verify_value_length, agent_name_version, LifoQueue
 from reportportal_client.logs import MAX_LOG_BATCH_PAYLOAD_SIZE
 from reportportal_client.logs.batcher import LogBatcher
 from reportportal_client.services.statistics import send_event
@@ -157,13 +156,6 @@ class RP(metaclass=AbstractBaseClass):
         raise NotImplementedError('"clone" method is not implemented!')
 
 
-class _LifoQueue(LifoQueue):
-    def last(self):
-        with self.mutex:
-            if self._qsize():
-                return self.queue[-1]
-
-
 class RPClient(RP):
     """Report portal client.
 
@@ -196,7 +188,7 @@ class RPClient(RP):
     launch_uuid_print: Optional[bool]
     print_output: Optional[TextIO]
     _skip_analytics: str
-    _item_stack: _LifoQueue
+    _item_stack: LifoQueue
     _log_batcher: LogBatcher[RPRequestLog]
 
     def __init__(
@@ -267,7 +259,7 @@ class RPClient(RP):
         self.max_pool_size = max_pool_size
         self.http_timeout = http_timeout
         self.step_reporter = StepReporter(self)
-        self._item_stack = _LifoQueue()
+        self._item_stack = LifoQueue()
         self.mode = mode
         self._skip_analytics = getenv('AGENT_NO_ANALYTICS')
         self.launch_uuid_print = launch_uuid_print
