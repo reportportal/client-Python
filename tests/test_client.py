@@ -206,7 +206,7 @@ def test_launch_uuid_print():
     client.session = mock.Mock()
     client._skip_analytics = True
     client.start_launch('Test Launch', timestamp())
-    assert 'Report Portal Launch UUID: ' in str_io.getvalue()
+    assert 'ReportPortal Launch UUID: ' in str_io.getvalue()
 
 
 def test_no_launch_uuid_print():
@@ -216,7 +216,7 @@ def test_no_launch_uuid_print():
     client.session = mock.Mock()
     client._skip_analytics = True
     client.start_launch('Test Launch', timestamp())
-    assert 'Report Portal Launch UUID: ' not in str_io.getvalue()
+    assert 'ReportPortal Launch UUID: ' not in str_io.getvalue()
 
 
 @mock.patch('reportportal_client.client.sys.stdout', new_callable=StringIO)
@@ -227,7 +227,7 @@ def test_launch_uuid_print_default_io(mock_stdout):
     client._skip_analytics = True
     client.start_launch('Test Launch', timestamp())
 
-    assert 'Report Portal Launch UUID: ' in mock_stdout.getvalue()
+    assert 'ReportPortal Launch UUID: ' in mock_stdout.getvalue()
 
 
 @mock.patch('reportportal_client.client.sys.stdout', new_callable=StringIO)
@@ -238,4 +238,4 @@ def test_launch_uuid_print_default_print(mock_stdout):
     client._skip_analytics = True
     client.start_launch('Test Launch', timestamp())
 
-    assert 'Report Portal Launch UUID: ' not in mock_stdout.getvalue()
+    assert 'ReportPortal Launch UUID: ' not in mock_stdout.getvalue()

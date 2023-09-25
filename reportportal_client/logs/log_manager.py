@@ -39,7 +39,7 @@ class LogManager(object):
                  max_payload_size=MAX_LOG_BATCH_PAYLOAD_SIZE):
         """Initialize instance attributes.
 
-        :param rp_url:           Report portal URL
+        :param rp_url:           ReportPortal URL
         :param session:          HTTP Session object
         :param api_version:      RP API version
         :param launch_id:        Parent launch UUID

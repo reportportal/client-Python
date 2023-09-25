@@ -106,12 +106,12 @@ class HttpRequest:
         self._priority = value
 
     def make(self) -> Optional[RPResponse]:
-        """Make HTTP request to the Report Portal API."""
+        """Make HTTP request to the ReportPortal API."""
         try:
             return RPResponse(self.session_method(self.url, data=self.data, json=self.json, files=self.files,
                                                   verify=self.verify_ssl, timeout=self.http_timeout))
         except (KeyError, IOError, ValueError, TypeError) as exc:
-            logger.warning("Report Portal %s request failed", self.name, exc_info=exc)
+            logger.warning("ReportPortal %s request failed", self.name, exc_info=exc)
 
 
 class AsyncHttpRequest(HttpRequest):
@@ -135,7 +135,7 @@ class AsyncHttpRequest(HttpRequest):
         super().__init__(session_method=session_method, url=url, data=data, json=json, name=name)
 
     async def make(self) -> Optional[AsyncRPResponse]:
-        """Make HTTP request to the Report Portal API."""
+        """Make HTTP request to the ReportPortal API."""
         url = await await_if_necessary(self.url)
         if not url:
             return
@@ -144,7 +144,7 @@ class AsyncHttpRequest(HttpRequest):
         try:
             return AsyncRPResponse(await self.session_method(url, data=data, json=json))
         except (KeyError, IOError, ValueError, TypeError) as exc:
-            logger.warning("Report Portal %s request failed", self.name, exc_info=exc)
+            logger.warning("ReportPortal %s request failed", self.name, exc_info=exc)
 
 
 class RPRequestBase(metaclass=AbstractBaseClass):

@@ -1,4 +1,4 @@
-"""This module contains asynchronous implementation of Report Portal Client."""
+"""This module contains asynchronous implementation of ReportPortal Client."""
 
 #  Copyright (c) 2023 EPAM Systems
 #  Licensed under the Apache License, Version 2.0 (the "License");
@@ -235,7 +235,7 @@ class Client:
         launch_uuid = await response.id
         logger.debug(f'start_launch - ID: {launch_uuid}')
         if self.launch_uuid_print and self.print_output:
-            print(f'Report Portal Launch UUID: {launch_uuid}', file=self.print_output)
+            print(f'ReportPortal Launch UUID: {launch_uuid}', file=self.print_output)
         return launch_uuid
 
     async def start_test_item(self,

@@ -39,7 +39,7 @@ from reportportal_client.helpers import timestamp
 
 endpoint = "http://docker.local:8080"
 project = "default"
-# You can get UUID from user profile page in the Report Portal.
+# You can get UUID from user profile page in the ReportPortal.
 api_key = "1adf271d-505f-44a8-ad71-0afbdf8c83bd"
 launch_name = "Test launch"
 launch_doc = "Testing logging with attachment."

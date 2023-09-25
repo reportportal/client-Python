@@ -24,6 +24,10 @@ T_co = TypeVar('T_co', bound='RPRequestLog', covariant=True)
 
 
 class LogBatcher(Generic[T_co]):
+    """
+
+
+    """
     entry_num: int
     payload_limit: int
     _lock: threading.Lock

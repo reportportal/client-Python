@@ -1,4 +1,4 @@
-"""This module contains Report Portal Client interface and synchronous implementation class."""
+"""This module contains ReportPortal Client interface and synchronous implementation class."""
 
 #  Copyright (c) 2023 EPAM Systems
 #  Licensed under the Apache License, Version 2.0 (the "License");
@@ -44,9 +44,9 @@ logger.addHandler(logging.NullHandler())
 
 
 class RP(metaclass=AbstractBaseClass):
-    """Common interface for Report Portal clients.
+    """Common interface for ReportPortal clients.
 
-    This abstract class serves as common interface for different Report Portal clients. It's implemented to
+    This abstract class serves as common interface for different ReportPortal clients. It's implemented to
     ease migration from version to version and to ensure that each particular client has the same methods.
     """
 
@@ -211,7 +211,7 @@ class RP(metaclass=AbstractBaseClass):
                          item_uuid: Union[Optional[str], Task[str]],
                          attributes: Optional[Union[list, dict]] = None,
                          description: Optional[str] = None) -> Union[Optional[str], Task[str]]:
-        """Update existing test item at the Report Portal.
+        """Update existing test item at the ReportPortal.
 
         :param item_uuid:   Test item UUID returned on the item start
         :param attributes: Test item attributes: [{'key': 'k_name', 'value': 'k_value'}, ...]
@@ -264,7 +264,7 @@ class RP(metaclass=AbstractBaseClass):
     @abstractmethod
     def log(self, datetime: str, message: str, level: Optional[Union[int, str]] = None,
             attachment: Optional[dict] = None, item_id: Union[Optional[str], Task[str]] = None) -> None:
-        """Send log message to the Report Portal.
+        """Send log message to the ReportPortal.
 
         :param datetime:   Time in UTC
         :param message:    Log message text
@@ -307,10 +307,10 @@ class RP(metaclass=AbstractBaseClass):
 
 
 class RPClient(RP):
-    """Report portal client.
+    """ReportPortal client.
 
-    The class is supposed to use by Report Portal agents: both custom and
-    official to make calls to Report Portal. It handles HTTP request and
+    The class is supposed to use by ReportPortal agents: both custom and
+    official to make calls to ReportPortal. It handles HTTP request and
     response bodies generation and serialization, connection retries and log
     batching.
     """
@@ -410,7 +410,7 @@ class RPClient(RP):
     ) -> None:
         """Initialize required attributes.
 
-        :param endpoint:               Endpoint of the report portal service
+        :param endpoint:               Endpoint of the ReportPortal service
         :param project:                Project name to report to
         :param api_key:                Authorization API key
         :param log_batch_size:         Option to set the maximum number of
@@ -530,7 +530,7 @@ class RPClient(RP):
         self.__launch_uuid = response.id
         logger.debug('start_launch - ID: %s', self.launch_uuid)
         if self.launch_uuid_print and self.print_output:
-            print(f'Report Portal Launch UUID: {self.launch_uuid}', file=self.print_output)
+            print(f'ReportPortal Launch UUID: {self.launch_uuid}', file=self.print_output)
         return self.launch_uuid
 
     def start_test_item(self,
@@ -686,7 +686,7 @@ class RPClient(RP):
 
     def update_test_item(self, item_uuid: str, attributes: Optional[Union[list, dict]] = None,
                          description: Optional[str] = None) -> Optional[str]:
-        """Update existing test item at the Report Portal.
+        """Update existing test item at the ReportPortal.
 
         :param str item_uuid:   Test item UUID returned on the item start
         :param str description: Test item description
@@ -715,7 +715,7 @@ class RPClient(RP):
 
     def log(self, time: str, message: str, level: Optional[Union[int, str]] = None,
             attachment: Optional[dict] = None, item_id: Optional[str] = None) -> Optional[Tuple[str, ...]]:
-        """Send log message to the Report Portal.
+        """Send log message to the ReportPortal.
 
         :param time:       Time in UTC
         :param message:    Log message text
