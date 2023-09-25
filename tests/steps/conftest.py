@@ -16,7 +16,6 @@ from unittest import mock
 from pytest import fixture
 
 from reportportal_client.client import RPClient
-from reportportal_client.steps import StepReporter
 
 
 @fixture

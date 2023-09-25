@@ -13,6 +13,7 @@
 
 """This module includes exceptions used by the client."""
 
+
 class RPExceptionBase(Exception):
     """General exception for the package."""
 

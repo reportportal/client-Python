@@ -39,6 +39,7 @@ order to add an issue to the test result:
 }
 """
 
+
 class Issue:
     """This class represents an issue that can be attached to test result."""
 
