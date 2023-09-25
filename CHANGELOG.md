@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.4.1]
 ### Changed
 - Unified ReportPortal product naming, by @HardNorth
 - `RPClient` internal item stack implementation changed to `LifoQueue` to maintain concurrency better, by @HardNorth
