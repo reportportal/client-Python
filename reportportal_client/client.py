@@ -1,4 +1,4 @@
-"""This module contains Report Portal Client class."""
+"""This module contains Report Portal Client interface and synchronous implementation class."""
 
 #  Copyright (c) 2023 EPAM Systems
 #  Licensed under the Apache License, Version 2.0 (the "License");
@@ -60,6 +60,17 @@ class RP(metaclass=AbstractBaseClass):
                      rerun: bool = False,
                      rerun_of: Optional[str] = None,
                      **kwargs) -> Union[Optional[str], Task[str]]:
+        """Start a new launch with the given parameters.
+
+        :param name:        Launch name
+        :param start_time:  Launch start time
+        :param description: Launch description
+        :param attributes:  Launch attributes
+        :param rerun:       Start launch in rerun mode
+        :param rerun_of:    For rerun mode specifies which launch will be
+                            re-run. Should be used with the 'rerun' option.
+        :returns            Launch UUID
+        """
         raise NotImplementedError('"start_launch" method is not implemented!')
 
     @abstractmethod
@@ -77,6 +88,27 @@ class RP(metaclass=AbstractBaseClass):
                         retry: bool = False,
                         test_case_id: Optional[str] = None,
                         **kwargs: Any) -> Union[Optional[str], Task[str]]:
+        """Start case/step/nested step item.
+
+        :param name:           Name of the test item
+        :param start_time:     The item start time
+        :param item_type:      Type of the test item. Allowable values:
+                               "suite", "story", "test", "scenario", "step",
+                               "before_class", "before_groups",
+                               "before_method", "before_suite",
+                               "before_test", "after_class", "after_groups",
+                               "after_method", "after_suite", "after_test"
+        :param description:    The item description
+        :param attributes:     Test item attributes
+        :param parameters:     Set of parameters (for parametrized test items)
+        :param parent_item_id: An ID of a parent SUITE / STEP
+        :param has_stats:      Set to False if test item is nested step
+        :param code_ref:       Physical location of the test item
+        :param retry:          Used to report retry of the test. Allowable
+                               values: "True" or "False"
+        :param test_case_id:   A unique ID of the current step
+        :returns               Test Item UUID
+        """
         raise NotImplementedError('"start_test_item" method is not implemented!')
 
     @abstractmethod
@@ -90,6 +122,21 @@ class RP(metaclass=AbstractBaseClass):
                          description: str = None,
                          retry: bool = False,
                          **kwargs: Any) -> Union[Optional[str], Task[str]]:
+        """Finish suite/case/step/nested step item.
+
+        :param item_id:     ID of the test item
+        :param end_time:    The item end time
+        :param status:      Test status. Allowable values:
+                            PASSED, FAILED, STOPPED, SKIPPED, INTERRUPTED, CANCELLED, INFO, WARN or None
+        :param issue:       Issue which will be attached to the current item
+        :param attributes:  Test item attributes(tags). Pairs of key and value.
+                            Override attributes on start
+        :param description: Test item description. Overrides description
+                            from start request.
+        :param retry:       Used to report retry of the test. Allowable values:
+                            "True" or "False"
+        :returns            Response message
+        """
         raise NotImplementedError('"finish_test_item" method is not implemented!')
 
     @abstractmethod
@@ -98,11 +145,28 @@ class RP(metaclass=AbstractBaseClass):
                       status: str = None,
                       attributes: Optional[Union[List, Dict]] = None,
                       **kwargs: Any) -> Union[Optional[str], Task[str]]:
+        """Finish current launch.
+
+        :param end_time:    Launch end time
+        :param status:      Launch status. Can be one of the followings:
+                            PASSED, FAILED, STOPPED, SKIPPED, INTERRUPTED, CANCELLED
+        :param attributes:  Launch attributes
+        :returns            Response message
+        """
         raise NotImplementedError('"finish_launch" method is not implemented!')
 
     @abstractmethod
-    def update_test_item(self, item_uuid: str, attributes: Optional[Union[List, Dict]] = None,
-                         description: Optional[str] = None) -> Optional[str]:
+    def update_test_item(self,
+                         item_uuid: Union[Optional[str], Task[str]],
+                         attributes: Optional[Union[List, Dict]] = None,
+                         description: Optional[str] = None) -> Union[Optional[str], Task[str]]:
+        """Update existing test item at the Report Portal.
+
+        :param item_uuid:   Test item UUID returned on the item start
+        :param attributes: Test item attributes: [{'key': 'k_name', 'value': 'k_value'}, ...]
+        :param description: Test item description
+        :returns            Response message
+        """
         raise NotImplementedError('"update_test_item" method is not implemented!')
 
     @abstractmethod
