@@ -51,6 +51,48 @@ class RP(metaclass=AbstractBaseClass):
     """
     __metaclass__ = AbstractBaseClass
 
+    @property
+    @abstractmethod
+    def launch_uuid(self) -> Optional[Union[str, Task[str]]]:
+        """Return current launch UUID.
+
+        :return: UUID string
+        """
+        raise NotImplementedError('"launch_uuid" property is not implemented!')
+
+    @property
+    def launch_id(self) -> Optional[Union[str, Task[str]]]:
+        """Return current launch UUID.
+
+        :return: UUID string
+        """
+        warnings.warn(
+            message='`launch_id` property is deprecated since 5.5.0 and will be subject for removing in the'
+                    ' next major version. Use `launch_uuid` property instead.',
+            category=DeprecationWarning,
+            stacklevel=2
+        )
+        return self.launch_uuid
+
+    @property
+    @abstractmethod
+    def endpoint(self) -> str:
+        raise NotImplementedError('"endpoint" property is not implemented!')
+
+    @property
+    @abstractmethod
+    def project(self) -> str:
+        raise NotImplementedError('"project" property is not implemented!')
+
+    @property
+    @abstractmethod
+    def step_reporter(self) -> StepReporter:
+        """Return StepReporter object for the current launch.
+
+        :return: StepReporter to report steps
+        """
+        raise NotImplementedError('"step_reporter" property is not implemented!')
+
     @abstractmethod
     def start_launch(self,
                      name: str,
@@ -195,25 +237,22 @@ class RP(metaclass=AbstractBaseClass):
         raise NotImplementedError('"log" method is not implemented!')
 
     def start(self) -> None:
-        pass  # For backward compatibility
-
-    def terminate(self, *_: Any, **__: Any) -> None:
-        pass  # For backward compatibility
-
-    @property
-    @abstractmethod
-    def launch_uuid(self) -> Optional[Union[str, Task[str]]]:
-        raise NotImplementedError('"launch_uuid" property is not implemented!')
-
-    @property
-    def launch_id(self) -> Optional[Union[str, Task[str]]]:
+        """Start the client."""
         warnings.warn(
-            message='`launch_id` property is deprecated since 5.5.0 and will be subject for removing in the'
-                    ' next major version. Use `launch_uuid` property instead.',
+            message='`start` method is deprecated since 5.5.0 and will be subject for removing in the'
+                    ' next major version. There is no any necessity to call this method anymore.',
             category=DeprecationWarning,
             stacklevel=2
         )
-        return self.launch_uuid
+
+    def terminate(self, *_: Any, **__: Any) -> None:
+        """Call this to terminate the client."""
+        warnings.warn(
+            message='`terminate` method is deprecated since 5.5.0 and will be subject for removing in the'
+                    ' next major version. There is no any necessity to call this method anymore.',
+            category=DeprecationWarning,
+            stacklevel=2
+        )
 
     @abstractmethod
     def current_item(self) -> Optional[Union[str, Task[str]]]:
@@ -239,26 +278,59 @@ class RPClient(RP):
     api_v2: str
     base_url_v1: str
     base_url_v2: str
-    endpoint: str
+    __endpoint: str
     is_skipped_an_issue: bool
     __launch_uuid: str
     use_own_launch: bool
     log_batch_size: int
     log_batch_payload_size: int
-    project: str
+    __project: str
     api_key: str
     verify_ssl: Union[bool, str]
     retries: int
     max_pool_size: int
     http_timeout: Union[float, Tuple[float, float]]
     session: requests.Session
-    step_reporter: StepReporter
+    __step_reporter: StepReporter
     mode: str
     launch_uuid_print: Optional[bool]
     print_output: Optional[TextIO]
     _skip_analytics: str
     _item_stack: LifoQueue
     _log_batcher: LogBatcher[RPRequestLog]
+
+    @property
+    def launch_uuid(self) -> Optional[str]:
+        return self.__launch_uuid
+
+    @property
+    def endpoint(self) -> str:
+        return self.__endpoint
+
+    @property
+    def project(self) -> str:
+        return self.__project
+
+    @property
+    def step_reporter(self) -> StepReporter:
+        return self.__step_reporter
+
+    def __init_session(self) -> None:
+        retry_strategy = Retry(
+            total=self.retries,
+            backoff_factor=0.1,
+            status_forcelist=[429, 500, 502, 503, 504]
+        ) if self.retries else DEFAULT_RETRIES
+        session = requests.Session()
+        session.mount('https://', HTTPAdapter(
+            max_retries=retry_strategy, pool_maxsize=self.max_pool_size))
+        # noinspection HttpUrlsUsage
+        session.mount('http://', HTTPAdapter(
+            max_retries=retry_strategy, pool_maxsize=self.max_pool_size))
+        if self.api_key:
+            session.headers['Authorization'] = 'Bearer {0}'.format(
+                self.api_key)
+        self.session = session
 
     def __init__(
             self,
@@ -301,12 +373,12 @@ class RPClient(RP):
         """
         set_current(self)
         self.api_v1, self.api_v2 = 'v1', 'v2'
-        self.endpoint = endpoint
-        self.project = project
+        self.__endpoint = endpoint
+        self.__project = project
         self.base_url_v1 = uri_join(
-            self.endpoint, 'api/{}'.format(self.api_v1), self.project)
+            self.__endpoint, 'api/{}'.format(self.api_v1), self.__project)
         self.base_url_v2 = uri_join(
-            self.endpoint, 'api/{}'.format(self.api_v2), self.project)
+            self.__endpoint, 'api/{}'.format(self.api_v2), self.__project)
         self.is_skipped_an_issue = is_skipped_an_issue
         self.__launch_uuid = launch_uuid
         if not self.__launch_uuid:
@@ -327,7 +399,7 @@ class RPClient(RP):
         self.retries = retries
         self.max_pool_size = max_pool_size
         self.http_timeout = http_timeout
-        self.step_reporter = StepReporter(self)
+        self.__step_reporter = StepReporter(self)
         self._item_stack = LifoQueue()
         self.mode = mode
         self._skip_analytics = getenv('AGENT_NO_ANALYTICS')
@@ -357,213 +429,6 @@ class RPClient(RP):
                 )
 
         self.__init_session()
-
-    @property
-    def launch_uuid(self) -> Optional[str]:
-        return self.__launch_uuid
-
-    @launch_uuid.setter
-    def launch_uuid(self, value: Optional[str]) -> None:
-        self.__launch_uuid = value
-
-    def __init_session(self) -> None:
-        retry_strategy = Retry(
-            total=self.retries,
-            backoff_factor=0.1,
-            status_forcelist=[429, 500, 502, 503, 504]
-        ) if self.retries else DEFAULT_RETRIES
-        session = requests.Session()
-        session.mount('https://', HTTPAdapter(
-            max_retries=retry_strategy, pool_maxsize=self.max_pool_size))
-        # noinspection HttpUrlsUsage
-        session.mount('http://', HTTPAdapter(
-            max_retries=retry_strategy, pool_maxsize=self.max_pool_size))
-        if self.api_key:
-            session.headers['Authorization'] = 'Bearer {0}'.format(
-                self.api_key)
-        self.session = session
-
-    def finish_launch(self,
-                      end_time: str,
-                      status: str = None,
-                      attributes: Optional[Union[List, Dict]] = None,
-                      **kwargs: Any) -> Optional[str]:
-        """Finish launch.
-
-        :param end_time:    Launch end time
-        :param status:      Launch status. Can be one of the followings:
-                            PASSED, FAILED, STOPPED, SKIPPED, RESETED,
-                            CANCELLED
-        :param attributes:  Launch attributes
-        """
-        self._log(self._log_batcher.flush())
-        if self.launch_uuid is NOT_FOUND or not self.launch_uuid:
-            logger.warning('Attempt to finish non-existent launch')
-            return
-        url = uri_join(self.base_url_v2, 'launch', self.launch_uuid, 'finish')
-        request_payload = LaunchFinishRequest(
-            end_time,
-            status=status,
-            attributes=attributes,
-            description=kwargs.get('description')
-        ).payload
-        response = HttpRequest(self.session.put, url=url, json=request_payload,
-                               verify_ssl=self.verify_ssl,
-                               name='Finish Launch').make()
-        if not response:
-            return
-        logger.debug('finish_launch - ID: %s', self.launch_uuid)
-        logger.debug('response message: %s', response.message)
-        return response.message
-
-    def finish_test_item(self,
-                         item_id: str,
-                         end_time: str,
-                         status: str = None,
-                         issue: Optional[Issue] = None,
-                         attributes: Optional[Union[List, Dict]] = None,
-                         description: str = None,
-                         retry: bool = False,
-                         **kwargs: Any) -> Optional[str]:
-        """Finish suite/case/step/nested step item.
-
-        :param item_id:     ID of the test item
-        :param end_time:    The item end time
-        :param status:      Test status. Allowable values: "passed",
-                            "failed", "stopped", "skipped", "interrupted",
-                            "cancelled" or None
-        :param attributes:  Test item attributes(tags). Pairs of key and value.
-                            Override attributes on start
-        :param description: Test item description. Overrides description
-                            from start request.
-        :param issue:       Issue of the current test item
-        :param retry:       Used to report retry of the test. Allowable values:
-                           "True" or "False"
-        """
-        if item_id is NOT_FOUND or not item_id:
-            logger.warning('Attempt to finish non-existent item')
-            return
-        url = uri_join(self.base_url_v2, 'item', item_id)
-        request_payload = ItemFinishRequest(
-            end_time,
-            self.launch_uuid,
-            status,
-            attributes=attributes,
-            description=description,
-            is_skipped_an_issue=self.is_skipped_an_issue,
-            issue=issue,
-            retry=retry
-        ).payload
-        response = HttpRequest(self.session.put, url=url, json=request_payload,
-                               verify_ssl=self.verify_ssl).make()
-        if not response:
-            return
-        self._remove_current_item()
-        logger.debug('finish_test_item - ID: %s', item_id)
-        logger.debug('response message: %s', response.message)
-        return response.message
-
-    def get_item_id_by_uuid(self, uuid: str) -> Optional[str]:
-        """Get test item ID by the given UUID.
-
-        :param uuid: UUID returned on the item start
-        :return:     Test item ID
-        """
-        url = uri_join(self.base_url_v1, 'item', 'uuid', uuid)
-        response = HttpRequest(self.session.get, url=url,
-                               verify_ssl=self.verify_ssl).make()
-        return response.id if response else None
-
-    def get_launch_info(self) -> Optional[Dict]:
-        """Get the current launch information.
-
-        :return dict: Launch information in dictionary
-        """
-        if self.launch_uuid is None:
-            return {}
-        url = uri_join(self.base_url_v1, 'launch', 'uuid', self.launch_uuid)
-        logger.debug('get_launch_info - ID: %s', self.launch_uuid)
-        response = HttpRequest(self.session.get, url=url,
-                               verify_ssl=self.verify_ssl).make()
-        if not response:
-            return
-        launch_info = None
-        if response.is_success:
-            launch_info = response.json
-            logger.debug(
-                'get_launch_info - Launch info: %s', response.json)
-        else:
-            logger.warning('get_launch_info - Launch info: '
-                           'Failed to fetch launch ID from the API.')
-        return launch_info
-
-    def get_launch_ui_id(self) -> Optional[int]:
-        """Get UI ID of the current launch.
-
-        :return: UI ID of the given launch. None if UI ID has not been found.
-        """
-        launch_info = self.get_launch_info()
-        return launch_info.get('id') if launch_info else None
-
-    def get_launch_ui_url(self) -> Optional[str]:
-        """Get UI URL of the current launch.
-
-        :return: launch URL or all launches URL.
-        """
-        launch_info = self.get_launch_info()
-        ui_id = launch_info.get('id') if launch_info else None
-        if not ui_id:
-            return
-        mode = launch_info.get('mode') if launch_info else None
-        if not mode:
-            mode = self.mode
-
-        launch_type = 'launches' if mode.upper() == 'DEFAULT' else 'userdebug'
-
-        path = 'ui/#{project_name}/{launch_type}/all/{launch_id}'.format(
-            project_name=self.project.lower(), launch_type=launch_type,
-            launch_id=ui_id)
-        url = uri_join(self.endpoint, path)
-        logger.debug('get_launch_ui_url - UUID: %s', self.launch_uuid)
-        return url
-
-    def get_project_settings(self) -> Optional[Dict]:
-        """Get project settings.
-
-        :return: HTTP response in dictionary
-        """
-        url = uri_join(self.base_url_v1, 'settings')
-        response = HttpRequest(self.session.get, url=url,
-                               verify_ssl=self.verify_ssl).make()
-        return response.json if response else None
-
-    def _log(self, batch: Optional[List[RPRequestLog]]) -> Optional[Tuple[str, ...]]:
-        url = uri_join(self.base_url_v2, 'log')
-        if batch:
-            response = HttpRequest(self.session.post, url, files=RPLogBatch(batch).payload,
-                                   verify_ssl=self.verify_ssl).make()
-            return response.messages
-
-    def log(self, time: str, message: str, level: Optional[Union[int, str]] = None,
-            attachment: Optional[Dict] = None, item_id: Optional[str] = None) -> Optional[Tuple[str, ...]]:
-        """Send log message to the Report Portal.
-
-        :param time:       Time in UTC
-        :param message:    Log message text
-        :param level:      Message's log level
-        :param attachment: Message's attachments
-        :param item_id:    ID of the RP item the message belongs to
-        """
-        if item_id is NOT_FOUND:
-            logger.warning("Attempt to log to non-existent item")
-            return
-        rp_file = RPFile(**attachment) if attachment else None
-        rp_log = RPRequestLog(self.launch_uuid, time, rp_file, item_id, level, message)
-        return self._log(self._log_batcher.append(rp_log))
-
-    def start(self) -> None:
-        """Start the client."""
-        pass
 
     def start_launch(self,
                      name: str,
@@ -603,7 +468,7 @@ class RPClient(RP):
         if not self._skip_analytics:
             send_event('start_launch', *agent_name_version(attributes))
 
-        self.launch_uuid = response.id
+        self.__launch_uuid = response.id
         logger.debug('start_launch - ID: %s', self.launch_uuid)
         if self.launch_uuid_print and self.print_output:
             print(f'Report Portal Launch UUID: {self.launch_uuid}', file=self.print_output)
@@ -678,9 +543,85 @@ class RPClient(RP):
                            str(response.json))
         return item_id
 
-    def terminate(self, *_: Any, **__: Any) -> None:
-        """Call this to terminate the client."""
-        pass
+    def finish_test_item(self,
+                         item_id: str,
+                         end_time: str,
+                         status: str = None,
+                         issue: Optional[Issue] = None,
+                         attributes: Optional[Union[List, Dict]] = None,
+                         description: str = None,
+                         retry: bool = False,
+                         **kwargs: Any) -> Optional[str]:
+        """Finish suite/case/step/nested step item.
+
+        :param item_id:     ID of the test item
+        :param end_time:    The item end time
+        :param status:      Test status. Allowable values: "passed",
+                            "failed", "stopped", "skipped", "interrupted",
+                            "cancelled" or None
+        :param attributes:  Test item attributes(tags). Pairs of key and value.
+                            Override attributes on start
+        :param description: Test item description. Overrides description
+                            from start request.
+        :param issue:       Issue of the current test item
+        :param retry:       Used to report retry of the test. Allowable values:
+                           "True" or "False"
+        """
+        if item_id is NOT_FOUND or not item_id:
+            logger.warning('Attempt to finish non-existent item')
+            return
+        url = uri_join(self.base_url_v2, 'item', item_id)
+        request_payload = ItemFinishRequest(
+            end_time,
+            self.launch_uuid,
+            status,
+            attributes=attributes,
+            description=description,
+            is_skipped_an_issue=self.is_skipped_an_issue,
+            issue=issue,
+            retry=retry
+        ).payload
+        response = HttpRequest(self.session.put, url=url, json=request_payload,
+                               verify_ssl=self.verify_ssl).make()
+        if not response:
+            return
+        self._remove_current_item()
+        logger.debug('finish_test_item - ID: %s', item_id)
+        logger.debug('response message: %s', response.message)
+        return response.message
+
+    def finish_launch(self,
+                      end_time: str,
+                      status: str = None,
+                      attributes: Optional[Union[List, Dict]] = None,
+                      **kwargs: Any) -> Optional[str]:
+        """Finish launch.
+
+        :param end_time:    Launch end time
+        :param status:      Launch status. Can be one of the followings:
+                            PASSED, FAILED, STOPPED, SKIPPED, RESETED,
+                            CANCELLED
+        :param attributes:  Launch attributes
+        """
+        self._log(self._log_batcher.flush())
+        if self.launch_uuid is NOT_FOUND or not self.launch_uuid:
+            logger.warning('Attempt to finish non-existent launch')
+            return
+        url = uri_join(self.base_url_v2, 'launch', self.launch_uuid, 'finish')
+        request_payload = LaunchFinishRequest(
+            end_time,
+            status=status,
+            attributes=attributes,
+            description=kwargs.get('description')
+        ).payload
+        response = HttpRequest(self.session.put, url=url, json=request_payload,
+                               verify_ssl=self.verify_ssl,
+                               name='Finish Launch').make()
+        if not response:
+            return
+        logger.debug('finish_launch - ID: %s', self.launch_uuid)
+        logger.debug('response message: %s', response.message)
+        return response.message
 
     def update_test_item(self, item_uuid: str, attributes: Optional[Union[List, Dict]] = None,
                          description: Optional[str] = None) -> Optional[str]:
@@ -704,6 +645,105 @@ class RPClient(RP):
         logger.debug('update_test_item - Item: %s', item_id)
         return response.message
 
+    def _log(self, batch: Optional[List[RPRequestLog]]) -> Optional[Tuple[str, ...]]:
+        if batch:
+            url = uri_join(self.base_url_v2, 'log')
+            response = HttpRequest(self.session.post, url, files=RPLogBatch(batch).payload,
+                                   verify_ssl=self.verify_ssl).make()
+            return response.messages
+
+    def log(self, time: str, message: str, level: Optional[Union[int, str]] = None,
+            attachment: Optional[Dict] = None, item_id: Optional[str] = None) -> Optional[Tuple[str, ...]]:
+        """Send log message to the Report Portal.
+
+        :param time:       Time in UTC
+        :param message:    Log message text
+        :param level:      Message's log level
+        :param attachment: Message's attachments
+        :param item_id:    ID of the RP item the message belongs to
+        """
+        if item_id is NOT_FOUND:
+            logger.warning("Attempt to log to non-existent item")
+            return
+        rp_file = RPFile(**attachment) if attachment else None
+        rp_log = RPRequestLog(self.launch_uuid, time, rp_file, item_id, level, message)
+        return self._log(self._log_batcher.append(rp_log))
+
+    def get_item_id_by_uuid(self, uuid: str) -> Optional[str]:
+        """Get test item ID by the given UUID.
+
+        :param uuid: UUID returned on the item start
+        :return:     Test item ID
+        """
+        url = uri_join(self.base_url_v1, 'item', 'uuid', uuid)
+        response = HttpRequest(self.session.get, url=url,
+                               verify_ssl=self.verify_ssl).make()
+        return response.id if response else None
+
+    def get_launch_info(self) -> Optional[Dict]:
+        """Get the current launch information.
+
+        :return dict: Launch information in dictionary
+        """
+        if self.launch_uuid is None:
+            return {}
+        url = uri_join(self.base_url_v1, 'launch', 'uuid', self.launch_uuid)
+        logger.debug('get_launch_info - ID: %s', self.launch_uuid)
+        response = HttpRequest(self.session.get, url=url,
+                               verify_ssl=self.verify_ssl).make()
+        if not response:
+            return
+        launch_info = None
+        if response.is_success:
+            launch_info = response.json
+            logger.debug(
+                'get_launch_info - Launch info: %s', response.json)
+        else:
+            logger.warning('get_launch_info - Launch info: '
+                           'Failed to fetch launch ID from the API.')
+        return launch_info
+
+    def get_launch_ui_id(self) -> Optional[int]:
+        """Get UI ID of the current launch.
+
+        :return: UI ID of the given launch. None if UI ID has not been found.
+        """
+        launch_info = self.get_launch_info()
+        return launch_info.get('id') if launch_info else None
+
+    def get_launch_ui_url(self) -> Optional[str]:
+        """Get UI URL of the current launch.
+
+        :return: launch URL or all launches URL.
+        """
+        launch_info = self.get_launch_info()
+        ui_id = launch_info.get('id') if launch_info else None
+        if not ui_id:
+            return
+        mode = launch_info.get('mode') if launch_info else None
+        if not mode:
+            mode = self.mode
+
+        launch_type = 'launches' if mode.upper() == 'DEFAULT' else 'userdebug'
+
+        path = 'ui/#{project_name}/{launch_type}/all/{launch_id}'.format(
+            project_name=self.__project.lower(), launch_type=launch_type,
+            launch_id=ui_id)
+        url = uri_join(self.__endpoint, path)
+        logger.debug('get_launch_ui_url - UUID: %s', self.launch_uuid)
+        return url
+
+    def get_project_settings(self) -> Optional[Dict]:
+        """Get project settings.
+
+        :return: HTTP response in dictionary
+        """
+        url = uri_join(self.base_url_v1, 'settings')
+        response = HttpRequest(self.session.get, url=url,
+                               verify_ssl=self.verify_ssl).make()
+        return response.json if response else None
+
+
     def _add_current_item(self, item: str) -> None:
         """Add the last item from the self._items queue."""
         self._item_stack.put(item)
@@ -726,8 +766,8 @@ class RPClient(RP):
         :rtype: RPClient
         """
         cloned = RPClient(
-            endpoint=self.endpoint,
-            project=self.project,
+            endpoint=self.__endpoint,
+            project=self.__project,
             api_key=self.api_key,
             log_batch_size=self.log_batch_size,
             is_skipped_an_issue=self.is_skipped_an_issue,
@@ -744,6 +784,14 @@ class RPClient(RP):
         if current_item:
             cloned._add_current_item(current_item)
         return cloned
+
+    def start(self) -> None:
+        """Start the client."""
+        pass
+
+    def terminate(self, *_: Any, **__: Any) -> None:
+        """Call this to terminate the client."""
+        pass
 
     def __getstate__(self) -> Dict[str, Any]:
         """Control object pickling and return object fields as Dictionary.

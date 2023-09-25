@@ -57,7 +57,7 @@ def invalid_response(*args, **kwargs):
 )
 def test_connection_errors(rp_client, requests_method, client_method,
                            client_params):
-    rp_client.launch_uuid = 'test_launch_id'
+    rp_client._RPClient_launch_uuid = 'test_launch_id'
     getattr(rp_client.session, requests_method).side_effect = connection_error
     result = getattr(rp_client, client_method)(*client_params)
     assert result is None
@@ -84,7 +84,7 @@ def test_connection_errors(rp_client, requests_method, client_method,
 )
 def test_invalid_responses(rp_client, requests_method, client_method,
                            client_params):
-    rp_client.launch_uuid = 'test_launch_id'
+    rp_client._RPClient_launch_uuid = 'test_launch_id'
     getattr(rp_client.session, requests_method).side_effect = invalid_response
     result = getattr(rp_client, client_method)(*client_params)
     assert result is None
@@ -107,8 +107,8 @@ EXPECTED_DEBUG_URL = 'http://endpoint/ui/#project/userdebug/all/' + str(
     ]
 )
 def test_launch_url_get(rp_client, launch_mode, project_name, expected_url):
-    rp_client.launch_uuid = 'test_launch_id'
-    rp_client.project = project_name
+    rp_client._RPClient_launch_uuid = 'test_launch_id'
+    rp_client.__project = project_name
 
     response = mock.Mock()
     response.is_success = True

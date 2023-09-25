@@ -459,13 +459,13 @@ class AsyncRPClient(RP):
     _log_batcher: LogBatcher
     __client: Client
     __launch_uuid: Optional[str]
+    __step_reporter: StepReporter
     use_own_launch: bool
-    step_reporter: StepReporter
 
     def __init__(self, endpoint: str, project: str, *, launch_uuid: Optional[str] = None,
                  client: Optional[Client] = None, **kwargs: Any) -> None:
         set_current(self)
-        self.step_reporter = StepReporter(self)
+        self.__step_reporter = StepReporter(self)
         self._item_stack = LifoQueue()
         self._log_batcher = LogBatcher()
         if client:
@@ -477,6 +477,18 @@ class AsyncRPClient(RP):
             self.use_own_launch = False
         else:
             self.use_own_launch = True
+
+    @property
+    def launch_uuid(self) -> Optional[str]:
+        return self.__launch_uuid
+
+    @launch_uuid.setter
+    def launch_uuid(self, value: Optional[str]) -> None:
+        self.__launch_uuid = value
+
+    @property
+    def step_reporter(self) -> StepReporter:
+        return self.__step_reporter
 
     async def start_launch(self,
                            name: str,
@@ -604,14 +616,6 @@ class AsyncRPClient(RP):
         rp_log = AsyncRPRequestLog(self.launch_uuid, time, rp_file, item_id, level, message)
         return await self.__client.log_batch(await self._log_batcher.append_async(rp_log))
 
-    @property
-    def launch_uuid(self) -> Optional[str]:
-        return self.__launch_uuid
-
-    @launch_uuid.setter
-    def launch_uuid(self, value: Optional[str]) -> None:
-        self.__launch_uuid = value
-
     def clone(self) -> 'AsyncRPClient':
         """Clone the client object, set current Item ID as cloned item ID.
 
@@ -644,7 +648,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
     __endpoint: str
     __project: str
     use_own_launch: bool
-    step_reporter: StepReporter
+    __step_reporter: StepReporter
 
     @property
     def client(self) -> Client:
@@ -654,10 +658,6 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
     def launch_uuid(self) -> Optional[Task[str]]:
         return self.__launch_uuid
 
-    @launch_uuid.setter
-    def launch_uuid(self, value: Optional[Task[str]]) -> None:
-        self.__launch_uuid = value
-
     @property
     def endpoint(self) -> str:
         return self.__endpoint
@@ -665,6 +665,10 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
     @property
     def project(self) -> str:
         return self.__project
+
+    @property
+    def step_reporter(self) -> StepReporter:
+        return self.__step_reporter
 
     def __init__(
             self,
@@ -680,7 +684,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
     ) -> None:
         self.__endpoint = endpoint
         self.__project = project
-        self.step_reporter = StepReporter(self)
+        self.__step_reporter = StepReporter(self)
         self._item_stack = LifoQueue()
         self._shutdown_timeout = shutdown_timeout
         self._task_timeout = task_timeout
@@ -693,7 +697,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
         else:
             self.__client = Client(endpoint, project, **kwargs)
         if launch_uuid:
-            self.launch_uuid = launch_uuid
+            self.__launch_uuid = launch_uuid
             self.use_own_launch = False
         else:
             self.use_own_launch = True
@@ -741,7 +745,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
         launch_uuid_coro = self.__client.start_launch(name, start_time, description=description,
                                                       attributes=attributes, rerun=rerun, rerun_of=rerun_of,
                                                       **kwargs)
-        self.launch_uuid = self.create_task(launch_uuid_coro)
+        self.__launch_uuid = self.create_task(launch_uuid_coro)
         return self.launch_uuid
 
     def start_test_item(self,

@@ -45,7 +45,7 @@ Usage with 'with' keyword:
 
 from functools import wraps
 
-from reportportal_client._local import current
+from reportportal_client import current
 from reportportal_client.helpers import get_function_params, timestamp
 
 NESTED_STEP_ITEMS = ('step', 'scenario', 'before_class', 'before_groups',
@@ -157,6 +157,7 @@ class Step:
 
         :param func: function reference
         """
+
         @wraps(func)
         def wrapper(*args, **kwargs):
             __tracebackhide__ = True
