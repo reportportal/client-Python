@@ -11,13 +11,12 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License
 
-from typing import Optional, Union
+from typing import Optional
 
-from reportportal_client.aio.client import RPClient as AsyncRPClient
-from reportportal_client.client import RPClient
-
-
-def current() -> Optional[RPClient]: ...
+from reportportal_client import RP
 
 
-def set_current(client: Optional[Union[RPClient, AsyncRPClient]]) -> None: ...
+def current() -> Optional[RP]: ...
+
+
+def set_current(client: Optional[RP]) -> None: ...

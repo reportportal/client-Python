@@ -23,8 +23,8 @@ from reportportal_client.steps import step
 __all__ = [
     'current',
     'RP',
+    'RPClient',
     'RPLogger',
     'RPLogHandler',
-    'RPClient',
     'step',
 ]
