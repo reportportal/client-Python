@@ -1,6 +1,13 @@
 # Changelog
 
 ## [Unreleased]
+### Changed
+- Unified ReportPortal product naming, by @HardNorth
+- `RPClient` internal item stack implementation changed to `LifoQueue` to maintain concurrency better, by @HardNorth
+### Removed
+- Unused `delayed_assert` dependency, by @HardNorth
+
+## [5.4.0]
 ### Added
 - `launch_uuid_print` and `print_output` arguments in `RPClient` class constructor, by @HardNorth
 ### Removed

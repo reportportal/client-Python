@@ -150,8 +150,8 @@ def test_clone():
               'http_timeout': (30, 30),
               'log_batch_payload_size': 1000000, 'mode': 'DEBUG'}
     client = RPClient(*args, **kwargs)
-    client._item_stack.append('test-321')
-    client._item_stack.append('test-322')
+    client._add_current_item('test-321')
+    client._add_current_item('test-322')
     cloned = client.clone()
     assert cloned is not None and client is not cloned
     assert cloned.endpoint == args[0] and cloned.project == args[1]
@@ -165,7 +165,7 @@ def test_clone():
                'launch_id'] and cloned.http_timeout == kwargs[
                'http_timeout'] and cloned.log_batch_payload_size == kwargs[
                'log_batch_payload_size'] and cloned.mode == kwargs['mode']
-    assert len(cloned._item_stack) == 1 \
+    assert cloned._item_stack.qsize() == 1 \
            and client.current_item() == cloned.current_item()
 
 
@@ -206,7 +206,7 @@ def test_launch_uuid_print():
     client.session = mock.Mock()
     client._skip_analytics = True
     client.start_launch('Test Launch', timestamp())
-    assert 'Report Portal Launch UUID: ' in str_io.getvalue()
+    assert 'ReportPortal Launch UUID: ' in str_io.getvalue()
 
 
 def test_no_launch_uuid_print():
@@ -216,7 +216,7 @@ def test_no_launch_uuid_print():
     client.session = mock.Mock()
     client._skip_analytics = True
     client.start_launch('Test Launch', timestamp())
-    assert 'Report Portal Launch UUID: ' not in str_io.getvalue()
+    assert 'ReportPortal Launch UUID: ' not in str_io.getvalue()
 
 
 @mock.patch('reportportal_client.client.sys.stdout', new_callable=StringIO)
@@ -227,7 +227,7 @@ def test_launch_uuid_print_default_io(mock_stdout):
     client._skip_analytics = True
     client.start_launch('Test Launch', timestamp())
 
-    assert 'Report Portal Launch UUID: ' in mock_stdout.getvalue()
+    assert 'ReportPortal Launch UUID: ' in mock_stdout.getvalue()
 
 
 @mock.patch('reportportal_client.client.sys.stdout', new_callable=StringIO)
@@ -238,4 +238,4 @@ def test_launch_uuid_print_default_print(mock_stdout):
     client._skip_analytics = True
     client.start_launch('Test Launch', timestamp())
 
-    assert 'Report Portal Launch UUID: ' not in mock_stdout.getvalue()
+    assert 'ReportPortal Launch UUID: ' not in mock_stdout.getvalue()

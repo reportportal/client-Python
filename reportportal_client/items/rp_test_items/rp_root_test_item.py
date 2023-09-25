@@ -29,7 +29,7 @@ class RPRootTestItem(RPBaseTestItem):
                  item_type, launch_uuid, generated_id, **kwargs):
         """Initialize instance attributes.
 
-        :param rp_url:        report portal url
+        :param rp_url:        ReportPortal url
         :param session:       Session object
         :param project_name:  RP project name
         :param item_name:     RP item name

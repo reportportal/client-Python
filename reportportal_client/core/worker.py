@@ -54,7 +54,7 @@ class ControlCommand(Enum):
 
 
 class APIWorker(object):
-    """Worker that makes HTTP requests to the Report Portal."""
+    """Worker that makes HTTP requests to the ReportPortal."""
 
     def __init__(self, task_queue):
         """Initialize instance attributes."""

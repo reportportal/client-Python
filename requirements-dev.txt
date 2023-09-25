@@ -1,3 +1,2 @@
-delayed-assert
 pytest
 pytest-cov
