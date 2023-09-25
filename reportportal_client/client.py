@@ -57,7 +57,7 @@ class RP(metaclass=AbstractBaseClass):
     def launch_uuid(self) -> Optional[Union[str, Task[str]]]:
         """Return current launch UUID.
 
-        :return: UUID string
+        :returns UUID string
         """
         raise NotImplementedError('"launch_uuid" property is not implemented!')
 
@@ -65,7 +65,7 @@ class RP(metaclass=AbstractBaseClass):
     def launch_id(self) -> Optional[Union[str, Task[str]]]:
         """Return current launch UUID.
 
-        :return: UUID string
+        :returns UUID string
         """
         warnings.warn(
             message='`launch_id` property is deprecated since 5.5.0 and will be subject for removing in the'
@@ -80,7 +80,7 @@ class RP(metaclass=AbstractBaseClass):
     def endpoint(self) -> str:
         """Return current base URL.
 
-        :return: base URL string
+        :returns base URL string
         """
         raise NotImplementedError('"endpoint" property is not implemented!')
 
@@ -89,7 +89,7 @@ class RP(metaclass=AbstractBaseClass):
     def project(self) -> str:
         """Return current Project name.
 
-        :return: Project name string
+        :returns Project name string
         """
         raise NotImplementedError('"project" property is not implemented!')
 
@@ -98,7 +98,7 @@ class RP(metaclass=AbstractBaseClass):
     def step_reporter(self) -> StepReporter:
         """Return StepReporter object for the current launch.
 
-        :return: StepReporter to report steps
+        :returns StepReporter to report steps
         """
         raise NotImplementedError('"step_reporter" property is not implemented!')
 
@@ -313,8 +313,6 @@ class RPClient(RP):
     official to make calls to Report Portal. It handles HTTP request and
     response bodies generation and serialization, connection retries and log
     batching.
-    NOTICE: the class is not thread-safe, use new class instance for every new
-    thread to avoid request/response messing and other issues.
     """
 
     api_v1: str
@@ -344,18 +342,34 @@ class RPClient(RP):
 
     @property
     def launch_uuid(self) -> Optional[str]:
+        """Return current launch UUID.
+
+        :returns UUID string
+        """
         return self.__launch_uuid
 
     @property
     def endpoint(self) -> str:
+        """Return current base URL.
+
+        :returns base URL string
+        """
         return self.__endpoint
 
     @property
     def project(self) -> str:
+        """Return current Project name.
+
+        :returns Project name string
+        """
         return self.__project
 
     @property
     def step_reporter(self) -> StepReporter:
+        """Return StepReporter object for the current launch.
+
+        :returns StepReporter to report steps
+        """
         return self.__step_reporter
 
     def __init_session(self) -> None:
@@ -761,7 +775,7 @@ class RPClient(RP):
     def get_launch_ui_url(self) -> Optional[str]:
         """Get UI URL of the current launch.
 
-        :return: launch URL or all launches URL.
+        :returns launch URL or all launches URL.
         """
         launch_info = self.get_launch_info()
         ui_id = launch_info.get('id') if launch_info else None
@@ -783,27 +797,32 @@ class RPClient(RP):
     def get_project_settings(self) -> Optional[dict]:
         """Get project settings.
 
-        :return: HTTP response in dictionary
+        :returns HTTP response in dictionary
         """
         url = uri_join(self.base_url_v1, 'settings')
         response = HttpRequest(self.session.get, url=url,
                                verify_ssl=self.verify_ssl).make()
         return response.json if response else None
 
-
     def _add_current_item(self, item: str) -> None:
         """Add the last item from the self._items queue."""
         self._item_stack.put(item)
 
     def _remove_current_item(self) -> Optional[str]:
-        """Remove the last item from the self._items queue."""
+        """Remove the last item from the self._items queue.
+
+        :returns Item UUID string
+        """
         try:
             return self._item_stack.get(timeout=0)
         except queue.Empty:
             return
 
     def current_item(self) -> Optional[str]:
-        """Retrieve the last item reported by the client."""
+        """Retrieve the last item reported by the client.
+
+        :returns Item UUID string
+        """
         return self._item_stack.last()
 
     def clone(self) -> 'RPClient':
@@ -831,14 +850,6 @@ class RPClient(RP):
         if current_item:
             cloned._add_current_item(current_item)
         return cloned
-
-    def start(self) -> None:
-        """Start the client."""
-        pass
-
-    def terminate(self, *_: Any, **__: Any) -> None:
-        """Call this to terminate the client."""
-        pass
 
     def __getstate__(self) -> Dict[str, Any]:
         """Control object pickling and return object fields as Dictionary.
