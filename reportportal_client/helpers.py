@@ -30,7 +30,7 @@ logger: logging.Logger = logging.getLogger(__name__)
 _T = TypeVar('_T')
 
 
-class LifoQueue(Generic[_T], queue.LifoQueue[_T]):
+class LifoQueue(Generic[_T], queue.LifoQueue):
     """This Queue adds 'last' method to original queue.LifoQueue.
 
     Unlike 'get' method in queue.LifoQueue the 'last' method do not remove an entity from the queue.
