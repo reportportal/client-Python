@@ -1,10 +1,3 @@
-"""This module includes classes representing RP API requests.
-
-Detailed information about requests wrapped up in that module
-can be found by the following link:
-https://github.com/reportportal/documentation/blob/master/src/md/src/DevGuides/reporting.md
-"""
-
 #  Copyright (c) 2022 EPAM Systems
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -17,6 +10,13 @@ https://github.com/reportportal/documentation/blob/master/src/md/src/DevGuides/r
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License
+
+"""This module includes classes representing RP API requests.
+
+Detailed information about requests wrapped up in that module
+can be found by the following link:
+https://github.com/reportportal/documentation/blob/master/src/md/src/DevGuides/reporting.md
+"""
 
 import asyncio
 import json as json_converter

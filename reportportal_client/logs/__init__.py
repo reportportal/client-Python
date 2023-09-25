@@ -10,6 +10,7 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License
+
 """ReportPortal logging handling module."""
 
 import logging
@@ -101,12 +102,11 @@ class RPLogHandler(logging.Handler):
 
         :param level:                level of logging
         :param filter_client_logs:   if True throw away logs emitted by a
-        ReportPortal client
-        :param endpoint:             ReportPortal endpoint URL, used to filter
-        out urllib3 logs, mutes ReportPortal HTTP logs if set, optional
-        parameter
-        :param ignored_record_names: a tuple of record names which will be
-        filtered out by the handler (with startswith method)
+                                     ReportPortal client
+        :param endpoint:             ReportPortal endpoint URL, used to filter out urllib3 logs, mutes
+                                     ReportPortal HTTP logs if set, optional parameter
+        :param ignored_record_names: a tuple of record names which will be filtered out by the handler
+                                     (with startswith method)
         """
         super(RPLogHandler, self).__init__(level)
         self.filter_client_logs = filter_client_logs
