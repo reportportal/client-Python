@@ -465,6 +465,8 @@ class AsyncRPClient(RP):
     def __init__(self, endpoint: str, project: str, *, launch_uuid: Optional[str] = None,
                  client: Optional[Client] = None, **kwargs: Any) -> None:
         set_current(self)
+        self.__endpoint = endpoint
+        self.__project = project
         self.__step_reporter = StepReporter(self)
         self._item_stack = LifoQueue()
         self._log_batcher = LogBatcher()
@@ -473,7 +475,7 @@ class AsyncRPClient(RP):
         else:
             self.__client = Client(endpoint, project, **kwargs)
         if launch_uuid:
-            self.launch_uuid = launch_uuid
+            self.__launch_uuid = launch_uuid
             self.use_own_launch = False
         else:
             self.use_own_launch = True
@@ -482,9 +484,13 @@ class AsyncRPClient(RP):
     def launch_uuid(self) -> Optional[str]:
         return self.__launch_uuid
 
-    @launch_uuid.setter
-    def launch_uuid(self, value: Optional[str]) -> None:
-        self.__launch_uuid = value
+    @property
+    def endpoint(self) -> str:
+        return self.__endpoint
+
+    @property
+    def project(self) -> str:
+        return self.__project
 
     @property
     def step_reporter(self) -> StepReporter:
@@ -503,7 +509,7 @@ class AsyncRPClient(RP):
         launch_uuid = await self.__client.start_launch(name, start_time, description=description,
                                                        attributes=attributes, rerun=rerun, rerun_of=rerun_of,
                                                        **kwargs)
-        self.launch_uuid = launch_uuid
+        self.__launch_uuid = launch_uuid
         return launch_uuid
 
     async def start_test_item(self,

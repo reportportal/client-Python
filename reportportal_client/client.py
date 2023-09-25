@@ -448,6 +448,8 @@ class RPClient(RP):
         :param rerun_of:    For rerun mode specifies which launch will be
                             re-run. Should be used with the 'rerun' option.
         """
+        if not self.use_own_launch:
+            return self.launch_uuid
         url = uri_join(self.base_url_v2, 'launch')
         request_payload = LaunchStartRequest(
             name=name,
@@ -604,6 +606,8 @@ class RPClient(RP):
         :param attributes:  Launch attributes
         """
         self._log(self._log_batcher.flush())
+        if not self.use_own_launch:
+            return ""
         if self.launch_uuid is NOT_FOUND or not self.launch_uuid:
             logger.warning('Attempt to finish non-existent launch')
             return
