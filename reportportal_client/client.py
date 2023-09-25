@@ -391,7 +391,7 @@ class RPClient(RP):
                     stacklevel=2
                 )
                 self.__launch_uuid = launch_id
-        self.use_own_launch = bool(self.__launch_uuid)
+        self.use_own_launch = not bool(self.__launch_uuid)
         self.log_batch_size = log_batch_size
         self.log_batch_payload_size = log_batch_payload_size
         self._log_batcher = log_batcher or LogBatcher(self.log_batch_size, self.log_batch_payload_size)
