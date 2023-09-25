@@ -10,9 +10,9 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License
-"""Report portal Nested Step handling module.
+"""ReportPortal Nested Step handling module.
 
-The module for handling and reporting Report Portal Nested Steps inside python
+The module for handling and reporting ReportPortal Nested Steps inside python
 test frameworks. Import 'step' function to use it as decorator or together with
 'with' keyword to divide your tests on smaller steps.
 
@@ -59,7 +59,7 @@ class StepReporter:
     def __init__(self, rp_client):
         """Initialize required attributes.
 
-        :param rp_client: Report Portal client which will be used to report
+        :param rp_client: ReportPortal client which will be used to report
                           steps
         """
         self.client = rp_client
@@ -69,7 +69,7 @@ class StepReporter:
                           start_time,
                           parameters=None,
                           **kwargs):
-        """Start Nested Step on Report Portal.
+        """Start Nested Step on ReportPortal.
 
         :param name:       Nested Step name
         :param start_time: Nested Step start time
@@ -88,7 +88,7 @@ class StepReporter:
                            end_time,
                            status=None,
                            **kwargs):
-        """Finish a Nested Step on Report Portal.
+        """Finish a Nested Step on ReportPortal.
 
         :param item_id:  Nested Step item ID
         :param end_time: Nested Step finish time
@@ -107,7 +107,7 @@ class Step:
         :param params:    Nested Step parameters
         :param status:    Nested Step status which will be reported on
                           successful step finish
-        :param rp_client: Report Portal client which will be used to report
+        :param rp_client: ReportPortal client which will be used to report
                           the step
         """
         self.name = name
@@ -170,16 +170,16 @@ class Step:
 def step(name_source, params=None, status='PASSED', rp_client=None):
     """Nested step report function.
 
-    Create a Nested Step inside a test method on Report Portal.
+    Create a Nested Step inside a test method on ReportPortal.
     :param name_source: a function or string which will be used as step's name
     :param params:      nested step parameters which will be reported as the
                         first step entry. If 'name_source' is a function
                         reference and this parameter is not specified, they
                         will be taken from the function.
     :param status:      the status which will be reported after the step
-                        passed. Can be any of legal Report Portal statuses.
+                        passed. Can be any of legal ReportPortal statuses.
                         E.G.: PASSED, WARN, INFO, etc. Default value is PASSED
-    :param rp_client:   overrides Report Portal client which will be used in
+    :param rp_client:   overrides ReportPortal client which will be used in
                         step reporting
     :return: a step context object
     """

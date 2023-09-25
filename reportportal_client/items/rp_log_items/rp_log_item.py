@@ -29,7 +29,7 @@ class RPLogItem(BaseRPItem):
                  launch_uuid, generated_id):
         """Initialize instance attributes.
 
-        :param rp_url:          report portal URL
+        :param rp_url:          ReportPortal URL
         :param session:         Session object
         :param project_name:    RP project name
         :param launch_uuid:     Parent launch UUID

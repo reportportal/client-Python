@@ -47,7 +47,7 @@ def dict_to_payload(dictionary):
     """Convert incoming dictionary to the list of dictionaries.
 
     This function transforms the given dictionary of tags/attributes into
-    the format required by the Report Portal API. Also, we add the system
+    the format required by the ReportPortal API. Also, we add the system
     key to every tag/attribute that indicates that the key should be hidden
     from the user in UI.
     :param dictionary:  Dictionary containing tags/attributes

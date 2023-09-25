@@ -1,4 +1,4 @@
-"""Report Portal client context storing and retrieving module."""
+"""ReportPortal client context storing and retrieving module."""
 
 #  Copyright (c) 2022 EPAM Systems
 #  Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,17 +19,17 @@ __INSTANCES = local()
 
 
 def current():
-    """Return current Report Portal client."""
+    """Return current ReportPortal client."""
     if hasattr(__INSTANCES, 'current'):
         return __INSTANCES.current
 
 
 def set_current(client):
-    """Save Report Portal client as current.
+    """Save ReportPortal client as current.
 
-    The method is not intended to use used by users. Report Portal client calls
+    The method is not intended to use used by users. ReportPortal client calls
     it itself when new client is created.
 
-    :param client: Report Portal client
+    :param client: ReportPortal client
     """
     __INSTANCES.current = client

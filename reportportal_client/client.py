@@ -1,4 +1,4 @@
-"""This module contains Report Portal Client class."""
+"""This module contains ReportPortal Client class."""
 
 #  Copyright (c) 2023 EPAM Systems
 #  Licensed under the Apache License, Version 2.0 (the "License");
@@ -50,10 +50,10 @@ class _LifoQueue(LifoQueue):
 
 
 class RPClient:
-    """Report portal client.
+    """ReportPortal client.
 
-    The class is supposed to use by Report Portal agents: both custom and
-    official to make calls to Report Portal. It handles HTTP request and
+    The class is supposed to use by ReportPortal agents: both custom and
+    official to make calls to RReportPortal. It handles HTTP request and
     response bodies generation and serialization, connection retries and log
     batching.
     NOTICE: the class is not thread-safe, use new class instance for every new
@@ -104,7 +104,7 @@ class RPClient:
     ) -> None:
         """Initialize required attributes.
 
-        :param endpoint:               Endpoint of the report portal service
+        :param endpoint:               Endpoint of the ReportPortal service
         :param project:                Project name to report to
         :param api_key:                Authorization API key
         :param log_batch_size:         Option to set the maximum number of
@@ -351,7 +351,7 @@ class RPClient:
 
     def log(self, time: str, message: str, level: Optional[Union[int, str]] = None,
             attachment: Optional[Dict] = None, item_id: Optional[str] = None) -> None:
-        """Send log message to the Report Portal.
+        """Send log message to the ReportPortal.
 
         :param time:       Time in UTC
         :param message:    Log message text
@@ -430,7 +430,7 @@ class RPClient:
         self._log_manager.launch_id = self.launch_id = response.id
         logger.debug('start_launch - ID: %s', self.launch_id)
         if self.launch_uuid_print and self.print_output:
-            print(f'Report Portal Launch UUID: {self.launch_id}', file=self.print_output)
+            print(f'ReportPortal Launch UUID: {self.launch_id}', file=self.print_output)
         return self.launch_id
 
     def start_test_item(self,
@@ -508,7 +508,7 @@ class RPClient:
 
     def update_test_item(self, item_uuid: str, attributes: Optional[Union[List, Dict]] = None,
                          description: Optional[str] = None) -> Optional[str]:
-        """Update existing test item at the Report Portal.
+        """Update existing test item at the ReportPortal.
 
         :param str item_uuid:   Test item UUID returned on the item start
         :param str description: Test item description

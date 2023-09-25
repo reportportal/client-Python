@@ -48,7 +48,7 @@ class TestManager(object):
 
         :param session:         Session object
         :param endpoint:        Endpoint url
-        :param launch_id:       Report portal launch UUID
+        :param launch_id:       ReportPortal launch UUID
         :param project_name:    RP project name
         """
         self.session = session
@@ -124,7 +124,7 @@ class TestManager(object):
 
     def update_test_item(self, api_version, item_uuid, attributes=None,
                          description=None, **kwargs):
-        """Update existing test item at the Report Portal.
+        """Update existing test item at the ReportPortal.
 
         :param api_version:     RP API version
         :param str item_uuid:   test item UUID returned on the item start
@@ -201,7 +201,7 @@ class TestManager(object):
         :param item_uuid:   test item uuid
         :return:            test item object if found else None
         """
-        # Todo: add 'force' parameter to get item from report portal server
+        # Todo: add 'force' parameter to get item from ReportPortal server
         #  instead of cache and update cache data according to this request
         return self._find_item(item_uuid, self.__storage)
 

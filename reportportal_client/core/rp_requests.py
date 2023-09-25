@@ -68,7 +68,7 @@ class HttpRequest:
         self.name = name
 
     def make(self):
-        """Make HTTP request to the Report Portal API."""
+        """Make HTTP request to the ReportPortal API."""
         try:
             return RPResponse(self.session_method(
                 self.url, data=self.data, json=self.json,
@@ -78,7 +78,7 @@ class HttpRequest:
             # https://github.com/reportportal/client-Python/issues/39
         except (KeyError, IOError, ValueError, TypeError) as exc:
             logger.warning(
-                "Report Portal %s request failed",
+                "ReportPortal %s request failed",
                 self.name,
                 exc_info=exc
             )
