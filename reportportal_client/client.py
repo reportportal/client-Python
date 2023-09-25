@@ -19,7 +19,7 @@ import sys
 import warnings
 from abc import abstractmethod
 from os import getenv
-from typing import Union, Tuple, List, Dict, Any, Optional, TextIO
+from typing import Union, Tuple, Any, Optional, TextIO, List, Dict
 
 import requests
 from requests.adapters import HTTPAdapter, Retry, DEFAULT_RETRIES
@@ -49,6 +49,7 @@ class RP(metaclass=AbstractBaseClass):
     This abstract class serves as common interface for different Report Portal clients. It's implemented to
     ease migration from version to version and to ensure that each particular client has the same methods.
     """
+
     __metaclass__ = AbstractBaseClass
 
     @property
@@ -77,11 +78,19 @@ class RP(metaclass=AbstractBaseClass):
     @property
     @abstractmethod
     def endpoint(self) -> str:
+        """Return current base URL.
+
+        :return: base URL string
+        """
         raise NotImplementedError('"endpoint" property is not implemented!')
 
     @property
     @abstractmethod
     def project(self) -> str:
+        """Return current Project name.
+
+        :return: Project name string
+        """
         raise NotImplementedError('"project" property is not implemented!')
 
     @property
@@ -98,7 +107,7 @@ class RP(metaclass=AbstractBaseClass):
                      name: str,
                      start_time: str,
                      description: Optional[str] = None,
-                     attributes: Optional[Union[List, Dict]] = None,
+                     attributes: Optional[Union[list, dict]] = None,
                      rerun: bool = False,
                      rerun_of: Optional[str] = None,
                      **kwargs) -> Union[Optional[str], Task[str]]:
@@ -122,8 +131,8 @@ class RP(metaclass=AbstractBaseClass):
                         item_type: str,
                         *,
                         description: Optional[str] = None,
-                        attributes: Optional[List[Dict]] = None,
-                        parameters: Optional[Dict] = None,
+                        attributes: Optional[List[dict]] = None,
+                        parameters: Optional[dict] = None,
                         parent_item_id: Union[Optional[str], Task[str]] = None,
                         has_stats: bool = True,
                         code_ref: Optional[str] = None,
@@ -160,7 +169,7 @@ class RP(metaclass=AbstractBaseClass):
                          *,
                          status: str = None,
                          issue: Optional[Issue] = None,
-                         attributes: Optional[Union[List, Dict]] = None,
+                         attributes: Optional[Union[list, dict]] = None,
                          description: str = None,
                          retry: bool = False,
                          **kwargs: Any) -> Union[Optional[str], Task[str]]:
@@ -185,7 +194,7 @@ class RP(metaclass=AbstractBaseClass):
     def finish_launch(self,
                       end_time: str,
                       status: str = None,
-                      attributes: Optional[Union[List, Dict]] = None,
+                      attributes: Optional[Union[list, dict]] = None,
                       **kwargs: Any) -> Union[Optional[str], Task[str]]:
         """Finish current launch.
 
@@ -200,7 +209,7 @@ class RP(metaclass=AbstractBaseClass):
     @abstractmethod
     def update_test_item(self,
                          item_uuid: Union[Optional[str], Task[str]],
-                         attributes: Optional[Union[List, Dict]] = None,
+                         attributes: Optional[Union[list, dict]] = None,
                          description: Optional[str] = None) -> Union[Optional[str], Task[str]]:
         """Update existing test item at the Report Portal.
 
@@ -213,27 +222,56 @@ class RP(metaclass=AbstractBaseClass):
 
     @abstractmethod
     def get_launch_info(self) -> Union[Optional[dict], Task[str]]:
+        """Get the current launch information.
+
+        :returns Launch information in dictionary
+        """
         raise NotImplementedError('"get_launch_info" method is not implemented!')
 
     @abstractmethod
     def get_item_id_by_uuid(self, item_uuid: Union[str, Task[str]]) -> Optional[str]:
+        """Get test item ID by the given UUID.
+
+        :param item_uuid: UUID returned on the item start
+        :returns          Test item ID
+        """
         raise NotImplementedError('"get_item_id_by_uuid" method is not implemented!')
 
     @abstractmethod
     def get_launch_ui_id(self) -> Optional[int]:
+        """Get UI ID of the current launch.
+
+        :returns UI ID of the given launch. None if UI ID has not been found.
+        """
         raise NotImplementedError('"get_launch_ui_id" method is not implemented!')
 
     @abstractmethod
     def get_launch_ui_url(self) -> Optional[str]:
+        """Get full quality URL of the current launch.
+
+        :returns launch URL string
+        """
         raise NotImplementedError('"get_launch_ui_id" method is not implemented!')
 
     @abstractmethod
-    def get_project_settings(self) -> Optional[Dict]:
+    def get_project_settings(self) -> Union[Optional[dict], Task[dict]]:
+        """Get project settings.
+
+        :returns HTTP response in dictionary
+        """
         raise NotImplementedError('"get_project_settings" method is not implemented!')
 
     @abstractmethod
     def log(self, datetime: str, message: str, level: Optional[Union[int, str]] = None,
-            attachment: Optional[Dict] = None, item_id: Union[Optional[str], Task[str]] = None) -> None:
+            attachment: Optional[dict] = None, item_id: Union[Optional[str], Task[str]] = None) -> None:
+        """Send log message to the Report Portal.
+
+        :param datetime:   Time in UTC
+        :param message:    Log message text
+        :param level:      Message's log level
+        :param attachment: Message's attachments
+        :param item_id:    ID of the RP item the message belongs to
+        """
         raise NotImplementedError('"log" method is not implemented!')
 
     def start(self) -> None:
@@ -260,7 +298,11 @@ class RP(metaclass=AbstractBaseClass):
         raise NotImplementedError('"current_item" method is not implemented!')
 
     @abstractmethod
-    def clone(self) -> 'RPClient':
+    def clone(self) -> 'RP':
+        """Clone the client object, set current Item ID as cloned root Item ID.
+
+        :returns: Cloned client object
+        """
         raise NotImplementedError('"clone" method is not implemented!')
 
 
@@ -274,6 +316,7 @@ class RPClient(RP):
     NOTICE: the class is not thread-safe, use new class instance for every new
     thread to avoid request/response messing and other issues.
     """
+
     api_v1: str
     api_v2: str
     base_url_v1: str
@@ -434,7 +477,7 @@ class RPClient(RP):
                      name: str,
                      start_time: str,
                      description: Optional[str] = None,
-                     attributes: Optional[Union[List, Dict]] = None,
+                     attributes: Optional[Union[list, dict]] = None,
                      rerun: bool = False,
                      rerun_of: Optional[str] = None,
                      **kwargs) -> Optional[str]:
@@ -482,7 +525,7 @@ class RPClient(RP):
                         item_type: str,
                         description: Optional[str] = None,
                         attributes: Optional[List[Dict]] = None,
-                        parameters: Optional[Dict] = None,
+                        parameters: Optional[dict] = None,
                         parent_item_id: Optional[str] = None,
                         has_stats: bool = True,
                         code_ref: Optional[str] = None,
@@ -550,7 +593,7 @@ class RPClient(RP):
                          end_time: str,
                          status: str = None,
                          issue: Optional[Issue] = None,
-                         attributes: Optional[Union[List, Dict]] = None,
+                         attributes: Optional[Union[list, dict]] = None,
                          description: str = None,
                          retry: bool = False,
                          **kwargs: Any) -> Optional[str]:
@@ -595,7 +638,7 @@ class RPClient(RP):
     def finish_launch(self,
                       end_time: str,
                       status: str = None,
-                      attributes: Optional[Union[List, Dict]] = None,
+                      attributes: Optional[Union[list, dict]] = None,
                       **kwargs: Any) -> Optional[str]:
         """Finish launch.
 
@@ -627,7 +670,7 @@ class RPClient(RP):
         logger.debug('response message: %s', response.message)
         return response.message
 
-    def update_test_item(self, item_uuid: str, attributes: Optional[Union[List, Dict]] = None,
+    def update_test_item(self, item_uuid: str, attributes: Optional[Union[list, dict]] = None,
                          description: Optional[str] = None) -> Optional[str]:
         """Update existing test item at the Report Portal.
 
@@ -657,7 +700,7 @@ class RPClient(RP):
             return response.messages
 
     def log(self, time: str, message: str, level: Optional[Union[int, str]] = None,
-            attachment: Optional[Dict] = None, item_id: Optional[str] = None) -> Optional[Tuple[str, ...]]:
+            attachment: Optional[dict] = None, item_id: Optional[str] = None) -> Optional[Tuple[str, ...]]:
         """Send log message to the Report Portal.
 
         :param time:       Time in UTC
@@ -673,21 +716,21 @@ class RPClient(RP):
         rp_log = RPRequestLog(self.launch_uuid, time, rp_file, item_id, level, message)
         return self._log(self._log_batcher.append(rp_log))
 
-    def get_item_id_by_uuid(self, uuid: str) -> Optional[str]:
+    def get_item_id_by_uuid(self, item_uuid: str) -> Optional[str]:
         """Get test item ID by the given UUID.
 
-        :param uuid: UUID returned on the item start
-        :return:     Test item ID
+        :param item_uuid: UUID returned on the item start
+        :returns          Test item ID
         """
-        url = uri_join(self.base_url_v1, 'item', 'uuid', uuid)
+        url = uri_join(self.base_url_v1, 'item', 'uuid', item_uuid)
         response = HttpRequest(self.session.get, url=url,
                                verify_ssl=self.verify_ssl).make()
         return response.id if response else None
 
-    def get_launch_info(self) -> Optional[Dict]:
+    def get_launch_info(self) -> Optional[dict]:
         """Get the current launch information.
 
-        :return dict: Launch information in dictionary
+        :returns Launch information in dictionary
         """
         if self.launch_uuid is None:
             return {}
@@ -737,7 +780,7 @@ class RPClient(RP):
         logger.debug('get_launch_ui_url - UUID: %s', self.launch_uuid)
         return url
 
-    def get_project_settings(self) -> Optional[Dict]:
+    def get_project_settings(self) -> Optional[dict]:
         """Get project settings.
 
         :return: HTTP response in dictionary
