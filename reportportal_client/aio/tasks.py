@@ -11,6 +11,8 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License
 
+"""This module contains customized asynchronous Tasks and Task Factories for the ReportPortal client."""
+
 import asyncio
 import sys
 import time
@@ -30,6 +32,12 @@ class BlockingOperationError(RuntimeError):
 
 
 class Task(Generic[_T], asyncio.Task, metaclass=AbstractBaseClass):
+    """Base class for ReportPortal client tasks.
+
+    Its main function to provide interface of 'blocking_result' method which is used to block current Thread
+    until the result computation.
+    """
+
     __metaclass__ = AbstractBaseClass
 
     def __init__(
@@ -39,14 +47,44 @@ class Task(Generic[_T], asyncio.Task, metaclass=AbstractBaseClass):
             loop: asyncio.AbstractEventLoop,
             name: Optional[str] = None
     ) -> None:
+        """Initialize an instance of the Task.
+
+        :param coro: Future, Coroutine or a Generator of these objects, which will be executed
+        :param loop: Event Loop which will be used to execute the Task
+        :param name: the name of the task
+        """
         super().__init__(coro, loop=loop, name=name)
 
     @abstractmethod
     def blocking_result(self) -> _T:
+        """Block current Thread and wait for the task result.
+
+        :return: execution result or raise an error
+        """
         raise NotImplementedError('"blocking_result" method is not implemented!')
+
+    def __repr__(self) -> str:
+        """Return the result's repr function output if the Task is completed, or the Task's if not.
+
+        :return: canonical string representation of the result or the current Task
+        """
+        if self.done():
+            return repr(self.result())
+        return super().__repr__()
+
+    def __str__(self):
+        """Return the result's str function output if the Task is completed, or the Task's if not.
+
+        :return: string object from the result or from the current Task
+        """
+        if self.done():
+            return str(self.result())
+        return super().__str__()
 
 
 class BatchedTask(Generic[_T], Task[_T]):
+    """Represents a Task which uses the current Thread to execute itself."""
+
     __loop: asyncio.AbstractEventLoop
 
     def __init__(
@@ -56,26 +94,28 @@ class BatchedTask(Generic[_T], Task[_T]):
             loop: asyncio.AbstractEventLoop,
             name: Optional[str] = None
     ) -> None:
+        """Initialize an instance of the Task.
+
+        :param coro: Future, Coroutine or a Generator of these objects, which will be executed
+        :param loop: Event Loop which will be used to execute the Task
+        :param name: the name of the task
+        """
         super().__init__(coro, loop=loop, name=name)
         self.__loop = loop
 
     def blocking_result(self) -> _T:
+        """Use current Thread to execute the Task and return the result if not yet executed.
+
+        :return: execution result or raise an error, or return immediately if already executed
+        """
         if self.done():
             return self.result()
         return self.__loop.run_until_complete(self)
 
-    def __repr__(self) -> str:
-        if self.done():
-            return repr(self.result())
-        return super().__repr__()
-
-    def __str__(self):
-        if self.done():
-            return str(self.result())
-        return super().__str__()
-
 
 class ThreadedTask(Generic[_T], Task[_T]):
+    """Represents a Task which runs is a separate Thread."""
+
     __loop: asyncio.AbstractEventLoop
     __wait_timeout: float
 
@@ -87,11 +127,21 @@ class ThreadedTask(Generic[_T], Task[_T]):
             loop: asyncio.AbstractEventLoop,
             name: Optional[str] = None
     ) -> None:
+        """Initialize an instance of the Task.
+
+        :param coro: Future, Coroutine or a Generator of these objects, which will be executed
+        :param loop: Event Loop which will be used to execute the Task
+        :param name: the name of the task
+        """
         super().__init__(coro, loop=loop, name=name)
         self.__loop = loop
         self.__wait_timeout = wait_timeout
 
     def blocking_result(self) -> _T:
+        """Pause current Thread until the Task completion and return the result if not yet executed.
+
+        :return: execution result or raise an error, or return immediately if already executed
+        """
         if self.done():
             return self.result()
         if not self.__loop.is_running() or self.__loop.is_closed():
@@ -104,22 +154,9 @@ class ThreadedTask(Generic[_T], Task[_T]):
             raise BlockingOperationError('Timed out waiting for the task execution')
         return self.result()
 
-    def __repr__(self) -> str:
-        if self.done():
-            return repr(self.result())
-        return super().__repr__()
-
-    def __str__(self):
-        if self.done():
-            return str(self.result())
-        return super().__str__()
-
 
 class BatchedTaskFactory:
-    __loop: asyncio.AbstractEventLoop
-
-    def __init__(self, loop: asyncio.AbstractEventLoop):
-        self.__loop = loop
+    """Factory protocol which creates Batched Tasks."""
 
     def __call__(
             self,
@@ -127,15 +164,22 @@ class BatchedTaskFactory:
             factory: Union[Coroutine[Any, Any, _T], Generator[Any, None, _T]],
             **_
     ) -> Task[_T]:
-        return BatchedTask(factory, loop=self.__loop)
+        """Create Batched Task in appropriate Event Loop.
+
+        :param loop:    Event Loop which will be used to execute the Task
+        :param factory: Future, Coroutine or a Generator of these objects, which will be executed
+        """
+        return BatchedTask(factory, loop=loop)
 
 
 class ThreadedTaskFactory:
-    __loop: asyncio.AbstractEventLoop
     __wait_timeout: float
 
-    def __init__(self, loop: asyncio.AbstractEventLoop, wait_timeout: float):
-        self.__loop = loop
+    def __init__(self, wait_timeout: float):
+        """Initialize an instance of the Factory.
+
+        :param wait_timeout: Task wait timeout in case of blocking result get
+        """
         self.__wait_timeout = wait_timeout
 
     def __call__(
@@ -144,10 +188,17 @@ class ThreadedTaskFactory:
             factory: Union[Coroutine[Any, Any, _T], Generator[Any, None, _T]],
             **_
     ) -> Task[_T]:
-        return ThreadedTask(factory, self.__wait_timeout, loop=self.__loop)
+        """Create Threaded Task in appropriate Event Loop.
+
+        :param loop:    Event Loop which will be used to execute the Task
+        :param factory: Future, Coroutine or a Generator of these objects, which will be executed
+        """
+        return ThreadedTask(factory, self.__wait_timeout, loop=loop)
 
 
-class TriggerTaskList(Generic[_T]):
+class TriggerTaskBatcher(Generic[_T]):
+    """Batching class which compile its batches by object number or by passed time."""
+
     __task_list: List[_T]
     __last_run_time: float
     __trigger_num: int
@@ -155,7 +206,12 @@ class TriggerTaskList(Generic[_T]):
 
     def __init__(self,
                  trigger_num: int = DEFAULT_TASK_TRIGGER_NUM,
-                 trigger_interval: float = DEFAULT_TASK_TRIGGER_INTERVAL):
+                 trigger_interval: float = DEFAULT_TASK_TRIGGER_INTERVAL) -> None:
+        """Initialize an instance of the Batcher.
+
+        :param trigger_num: object number threshold which triggers batch return and reset
+        :param trigger_interval: amount of time after which return and reset batch
+        """
         self.__task_list = []
         self.__last_run_time = time.time()
         self.__trigger_num = trigger_num
@@ -173,6 +229,11 @@ class TriggerTaskList(Generic[_T]):
         return False
 
     def append(self, value: _T) -> Optional[List[_T]]:
+        """Add an object to internal batch and return the batch if it's triggered.
+
+        :param   value: an object to add to the batch
+        :return: a batch or None
+        """
         self.__task_list.append(value)
         if self.__ready_to_run():
             tasks = self.__task_list
@@ -180,16 +241,23 @@ class TriggerTaskList(Generic[_T]):
             return tasks
 
     def flush(self) -> Optional[List[_T]]:
+        """Immediately return everything what's left in the internal batch.
+
+        :return: a batch or None
+        """
         if len(self.__task_list) > 0:
             tasks = self.__task_list
             self.__task_list = []
             return tasks
 
 
-class BackgroundTaskList(Generic[_T]):
+class BackgroundTaskBatcher(Generic[_T]):
+    """Batching class which collects Tasks into internal batch and removes when they complete."""
+
     __task_list: List[_T]
 
     def __init__(self):
+        """Initialize an instance of the Batcher."""
         self.__task_list = []
 
     def __remove_finished(self):
@@ -201,10 +269,18 @@ class BackgroundTaskList(Generic[_T]):
         self.__task_list = self.__task_list[i + 1:]
 
     def append(self, value: _T) -> None:
+        """Add an object to internal batch.
+
+        :param value: an object to add to the batch
+        """
         self.__remove_finished()
         self.__task_list.append(value)
 
     def flush(self) -> Optional[List[_T]]:
+        """Immediately return everything what's left unfinished in the internal batch.
+
+        :return: a batch or None
+        """
         self.__remove_finished()
         if len(self.__task_list) > 0:
             tasks = self.__task_list

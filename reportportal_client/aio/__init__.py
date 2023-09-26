@@ -11,18 +11,17 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License
 
-from reportportal_client.aio.tasks import (Task, TriggerTaskList, BatchedTask, BatchedTaskFactory,
+from reportportal_client.aio.tasks import (Task, TriggerTaskBatcher, BatchedTask, BatchedTaskFactory,
                                            ThreadedTask, ThreadedTaskFactory, BlockingOperationError,
-                                           BackgroundTaskList, DEFAULT_TASK_TRIGGER_NUM,
+                                           BackgroundTaskBatcher, DEFAULT_TASK_TRIGGER_NUM,
                                            DEFAULT_TASK_TRIGGER_INTERVAL)
-
-DEFAULT_TASK_TIMEOUT: float = 60.0
-DEFAULT_SHUTDOWN_TIMEOUT: float = 120.0
+from reportportal_client.aio.client import (ThreadedRPClient, BatchedRPClient, AsyncRPClient,
+                                            DEFAULT_TASK_TIMEOUT, DEFAULT_SHUTDOWN_TIMEOUT)
 
 __all__ = [
     'Task',
-    'TriggerTaskList',
-    'BackgroundTaskList',
+    'TriggerTaskBatcher',
+    'BackgroundTaskBatcher',
     'BatchedTask',
     'BatchedTaskFactory',
     'ThreadedTask',
@@ -31,5 +30,8 @@ __all__ = [
     'DEFAULT_TASK_TIMEOUT',
     'DEFAULT_SHUTDOWN_TIMEOUT',
     'DEFAULT_TASK_TRIGGER_NUM',
-    'DEFAULT_TASK_TRIGGER_INTERVAL'
+    'DEFAULT_TASK_TRIGGER_INTERVAL',
+    'AsyncRPClient',
+    'BatchedRPClient',
+    'ThreadedRPClient'
 ]

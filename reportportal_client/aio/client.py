@@ -29,9 +29,9 @@ import certifi
 from reportportal_client import RP
 # noinspection PyProtectedMember
 from reportportal_client._local import set_current
-from reportportal_client.aio import (Task, BatchedTaskFactory, ThreadedTaskFactory, DEFAULT_TASK_TIMEOUT,
-                                     DEFAULT_SHUTDOWN_TIMEOUT, DEFAULT_TASK_TRIGGER_NUM, TriggerTaskList,
-                                     DEFAULT_TASK_TRIGGER_INTERVAL, BackgroundTaskList)
+from reportportal_client.aio.tasks import (Task, BatchedTaskFactory, ThreadedTaskFactory, TriggerTaskBatcher,
+                                           BackgroundTaskBatcher, DEFAULT_TASK_TRIGGER_NUM,
+                                           DEFAULT_TASK_TRIGGER_INTERVAL)
 from reportportal_client.aio.http import RetryingClientSession
 from reportportal_client.core.rp_issues import Issue
 from reportportal_client.core.rp_requests import (LaunchStartRequest, AsyncHttpRequest, AsyncItemStartRequest,
@@ -53,6 +53,9 @@ logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
 _T = TypeVar('_T')
+
+DEFAULT_TASK_TIMEOUT: float = 60.0
+DEFAULT_SHUTDOWN_TIMEOUT: float = 120.0
 
 
 class Client:
@@ -882,7 +885,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
 
 class ThreadedRPClient(_RPClient):
     _loop: Optional[asyncio.AbstractEventLoop]
-    __task_list: BackgroundTaskList[Task[_T]]
+    __task_list: BackgroundTaskBatcher[Task[_T]]
     __task_mutex: threading.RLock
     __thread: Optional[threading.Thread]
 
@@ -894,21 +897,21 @@ class ThreadedRPClient(_RPClient):
             launch_uuid: Optional[Task[str]] = None,
             client: Optional[Client] = None,
             log_batcher: Optional[LogBatcher] = None,
-            task_list: Optional[BackgroundTaskList[Task[_T]]] = None,
+            task_list: Optional[BackgroundTaskBatcher[Task[_T]]] = None,
             task_mutex: Optional[threading.RLock] = None,
             loop: Optional[asyncio.AbstractEventLoop] = None,
             **kwargs: Any
     ) -> None:
         super().__init__(endpoint, project, launch_uuid=launch_uuid, client=client, log_batcher=log_batcher,
                          **kwargs)
-        self.__task_list = task_list or BackgroundTaskList()
+        self.__task_list = task_list or BackgroundTaskBatcher()
         self.__task_mutex = task_mutex or threading.RLock()
         self.__thread = None
         if loop:
             self._loop = loop
         else:
             self._loop = asyncio.new_event_loop()
-            self._loop.set_task_factory(ThreadedTaskFactory(self._loop, self._task_timeout))
+            self._loop.set_task_factory(ThreadedTaskFactory(self._task_timeout))
             self.__heartbeat()
             self.__thread = threading.Thread(target=self._loop.run_forever, name='RP-Async-Client',
                                              daemon=True)
@@ -966,7 +969,7 @@ class ThreadedRPClient(_RPClient):
 
 class BatchedRPClient(_RPClient):
     _loop: asyncio.AbstractEventLoop
-    __task_list: TriggerTaskList[Task[_T]]
+    __task_list: TriggerTaskBatcher[Task[_T]]
     __task_mutex: threading.RLock
     __last_run_time: float
     __trigger_num: int
@@ -979,7 +982,7 @@ class BatchedRPClient(_RPClient):
             launch_uuid: Optional[Task[str]] = None,
             client: Optional[Client] = None,
             log_batcher: Optional[LogBatcher] = None,
-            task_list: Optional[TriggerTaskList] = None,
+            task_list: Optional[TriggerTaskBatcher] = None,
             task_mutex: Optional[threading.RLock] = None,
             loop: Optional[asyncio.AbstractEventLoop] = None,
             trigger_num: int = DEFAULT_TASK_TRIGGER_NUM,
@@ -988,14 +991,14 @@ class BatchedRPClient(_RPClient):
     ) -> None:
         super().__init__(endpoint, project, launch_uuid=launch_uuid, client=client, log_batcher=log_batcher,
                          **kwargs)
-        self.__task_list = task_list or TriggerTaskList()
+        self.__task_list = task_list or TriggerTaskBatcher()
         self.__task_mutex = task_mutex or threading.RLock()
         self.__last_run_time = datetime.time()
         if loop:
             self._loop = loop
         else:
             self._loop = asyncio.new_event_loop()
-            self._loop.set_task_factory(BatchedTaskFactory(self._loop))
+            self._loop.set_task_factory(BatchedTaskFactory())
         self.__trigger_num = trigger_num
         self.__trigger_interval = trigger_interval
 

@@ -26,7 +26,6 @@ from requests.adapters import HTTPAdapter, Retry, DEFAULT_RETRIES
 
 # noinspection PyProtectedMember
 from reportportal_client._local import set_current
-from reportportal_client.aio import Task
 from reportportal_client.core.rp_issues import Issue
 from reportportal_client.core.rp_requests import (HttpRequest, ItemStartRequest, ItemFinishRequest, RPFile,
                                                   LaunchStartRequest, LaunchFinishRequest, RPRequestLog,
@@ -54,7 +53,7 @@ class RP(metaclass=AbstractBaseClass):
 
     @property
     @abstractmethod
-    def launch_uuid(self) -> Optional[Union[str, Task[str]]]:
+    def launch_uuid(self) -> Optional[str]:
         """Return current launch UUID.
 
         :return: UUID string
@@ -62,7 +61,7 @@ class RP(metaclass=AbstractBaseClass):
         raise NotImplementedError('"launch_uuid" property is not implemented!')
 
     @property
-    def launch_id(self) -> Optional[Union[str, Task[str]]]:
+    def launch_id(self) -> Optional[str]:
         """Return current launch UUID.
 
         :return: UUID string
@@ -110,7 +109,7 @@ class RP(metaclass=AbstractBaseClass):
                      attributes: Optional[Union[list, dict]] = None,
                      rerun: bool = False,
                      rerun_of: Optional[str] = None,
-                     **kwargs) -> Union[Optional[str], Task[str]]:
+                     **kwargs) -> Optional[str]:
         """Start a new launch with the given parameters.
 
         :param name:        Launch name
@@ -133,12 +132,12 @@ class RP(metaclass=AbstractBaseClass):
                         description: Optional[str] = None,
                         attributes: Optional[List[dict]] = None,
                         parameters: Optional[dict] = None,
-                        parent_item_id: Union[Optional[str], Task[str]] = None,
+                        parent_item_id: Optional[str] = None,
                         has_stats: bool = True,
                         code_ref: Optional[str] = None,
                         retry: bool = False,
                         test_case_id: Optional[str] = None,
-                        **kwargs: Any) -> Union[Optional[str], Task[str]]:
+                        **kwargs: Any) -> Optional[str]:
         """Start case/step/nested step item.
 
         :param name:           Name of the test item
@@ -164,7 +163,7 @@ class RP(metaclass=AbstractBaseClass):
 
     @abstractmethod
     def finish_test_item(self,
-                         item_id: Union[str, Task[str]],
+                         item_id: str,
                          end_time: str,
                          *,
                          status: str = None,
@@ -172,7 +171,7 @@ class RP(metaclass=AbstractBaseClass):
                          attributes: Optional[Union[list, dict]] = None,
                          description: str = None,
                          retry: bool = False,
-                         **kwargs: Any) -> Union[Optional[str], Task[str]]:
+                         **kwargs: Any) -> Optional[str]:
         """Finish suite/case/step/nested step item.
 
         :param item_id:     ID of the test item
@@ -195,7 +194,7 @@ class RP(metaclass=AbstractBaseClass):
                       end_time: str,
                       status: str = None,
                       attributes: Optional[Union[list, dict]] = None,
-                      **kwargs: Any) -> Union[Optional[str], Task[str]]:
+                      **kwargs: Any) -> Optional[str]:
         """Finish current launch.
 
         :param end_time:    Launch end time
@@ -208,9 +207,9 @@ class RP(metaclass=AbstractBaseClass):
 
     @abstractmethod
     def update_test_item(self,
-                         item_uuid: Union[Optional[str], Task[str]],
+                         item_uuid: Optional[str],
                          attributes: Optional[Union[list, dict]] = None,
-                         description: Optional[str] = None) -> Union[Optional[str], Task[str]]:
+                         description: Optional[str] = None) -> Optional[str]:
         """Update existing test item at the ReportPortal.
 
         :param item_uuid:   Test item UUID returned on the item start
@@ -221,7 +220,7 @@ class RP(metaclass=AbstractBaseClass):
         raise NotImplementedError('"update_test_item" method is not implemented!')
 
     @abstractmethod
-    def get_launch_info(self) -> Union[Optional[dict], Task[str]]:
+    def get_launch_info(self) -> Optional[dict]:
         """Get the current launch information.
 
         :return: Launch information in dictionary
@@ -229,7 +228,7 @@ class RP(metaclass=AbstractBaseClass):
         raise NotImplementedError('"get_launch_info" method is not implemented!')
 
     @abstractmethod
-    def get_item_id_by_uuid(self, item_uuid: Union[str, Task[str]]) -> Optional[str]:
+    def get_item_id_by_uuid(self, item_uuid: str) -> Optional[str]:
         """Get test item ID by the given UUID.
 
         :param item_uuid: UUID returned on the item start
@@ -254,7 +253,7 @@ class RP(metaclass=AbstractBaseClass):
         raise NotImplementedError('"get_launch_ui_id" method is not implemented!')
 
     @abstractmethod
-    def get_project_settings(self) -> Union[Optional[dict], Task[dict]]:
+    def get_project_settings(self) -> Optional[dict]:
         """Get project settings.
 
         :return: HTTP response in dictionary
@@ -263,7 +262,7 @@ class RP(metaclass=AbstractBaseClass):
 
     @abstractmethod
     def log(self, datetime: str, message: str, level: Optional[Union[int, str]] = None,
-            attachment: Optional[dict] = None, item_id: Union[Optional[str], Task[str]] = None) -> None:
+            attachment: Optional[dict] = None, item_id: Optional[str] = None) -> None:
         """Send log message to the ReportPortal.
 
         :param datetime:   Time in UTC
@@ -293,7 +292,7 @@ class RP(metaclass=AbstractBaseClass):
         )
 
     @abstractmethod
-    def current_item(self) -> Optional[Union[str, Task[str]]]:
+    def current_item(self) -> Optional[str]:
         """Retrieve the last item reported by the client."""
         raise NotImplementedError('"current_item" method is not implemented!')
 
