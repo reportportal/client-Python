@@ -67,7 +67,7 @@ class HttpRequest:
                  verify_ssl: Optional[Union[bool, str]] = None,
                  http_timeout: Union[float, Tuple[float, float]] = (10, 10),
                  name: Optional[str] = None) -> None:
-        """Initialize instance attributes.
+        """Initialize an instance of the request with attributes.
 
         :param session_method: Method of the requests.Session instance
         :param url:            Request URL
@@ -138,7 +138,7 @@ class AsyncHttpRequest(HttpRequest):
                  data: Optional[Any] = None,
                  json: Optional[Any] = None,
                  name: Optional[str] = None) -> None:
-        """Initialize instance attributes.
+        """Initialize an instance of the request with attributes.
 
         :param session_method: Method of the requests.Session instance
         :param url:            Request URL or async coroutine returning the URL

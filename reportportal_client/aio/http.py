@@ -11,6 +11,8 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License
 
+"""This module designed to help with asynchronous HTTP request/response handling."""
+
 import asyncio
 import sys
 from typing import Coroutine
@@ -26,12 +28,16 @@ RETRY_STATUSES: set = {408, 500, 502, 503, 507}.union(THROTTLING_STATUSES)
 
 
 class RetryClass(int, Enum):
+    """Enum contains error types and their retry delay multiply factor as values."""
+
     SERVER_ERROR = 1
     CONNECTION_ERROR = 2
     THROTTLING = 3
 
 
 class RetryingClientSession(ClientSession):
+    """Class extends aiohttp.ClientSession functionality with request retry logic."""
+
     __retry_number: int
     __retry_delay: float
 
@@ -42,6 +48,17 @@ class RetryingClientSession(ClientSession):
             base_retry_delay: float = DEFAULT_RETRY_DELAY,
             **kwargs
     ):
+        """Initialize an instance of the session with arguments.
+
+        To obtain the full list of arguments please see aiohttp.ClientSession.__init__() method. This class
+        just bypass everything to the base method, except two local arguments 'max_retry_number' and
+        'base_retry_delay'.
+
+        :param max_retry_number: the maximum number of the request retries if it was unsuccessful
+        :param base_retry_delay: base value for retry delay, determine how much time the class will wait after
+                                 an error. Real value highly depends on Retry Class and Retry attempt number,
+                                 since retries are performed in exponential delay manner
+        """
         super().__init__(*args, **kwargs)
         self.__retry_number = max_retry_number
         self.__retry_delay = base_retry_delay
@@ -61,6 +78,13 @@ class RetryingClientSession(ClientSession):
             *args,
             **kwargs
     ) -> ClientResponse:
+        """Make a request and retry if necessary.
+
+        The method overrides aiohttp.ClientSession._request() method and bypass all arguments to it, so
+        please refer it for detailed argument description. The method retries requests depending on error
+        class and retry number. For no-retry errors, such as 400 Bad Request it just returns result, for cases
+        where it's reasonable to retry it does it in exponential manner.
+        """
         result = None
         exceptions = []
         for i in range(self.__retry_number + 1):  # add one for the first attempt, which is not a retry
