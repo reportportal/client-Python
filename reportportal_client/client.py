@@ -57,7 +57,7 @@ class RP(metaclass=AbstractBaseClass):
     def launch_uuid(self) -> Optional[Union[str, Task[str]]]:
         """Return current launch UUID.
 
-        :returns UUID string
+        :return: UUID string
         """
         raise NotImplementedError('"launch_uuid" property is not implemented!')
 
@@ -65,7 +65,7 @@ class RP(metaclass=AbstractBaseClass):
     def launch_id(self) -> Optional[Union[str, Task[str]]]:
         """Return current launch UUID.
 
-        :returns UUID string
+        :return: UUID string
         """
         warnings.warn(
             message='`launch_id` property is deprecated since 5.5.0 and will be subject for removing in the'
@@ -80,7 +80,7 @@ class RP(metaclass=AbstractBaseClass):
     def endpoint(self) -> str:
         """Return current base URL.
 
-        :returns base URL string
+        :return: base URL string
         """
         raise NotImplementedError('"endpoint" property is not implemented!')
 
@@ -89,7 +89,7 @@ class RP(metaclass=AbstractBaseClass):
     def project(self) -> str:
         """Return current Project name.
 
-        :returns Project name string
+        :return: Project name string
         """
         raise NotImplementedError('"project" property is not implemented!')
 
@@ -98,7 +98,7 @@ class RP(metaclass=AbstractBaseClass):
     def step_reporter(self) -> StepReporter:
         """Return StepReporter object for the current launch.
 
-        :returns StepReporter to report steps
+        :return: StepReporter to report steps
         """
         raise NotImplementedError('"step_reporter" property is not implemented!')
 
@@ -120,7 +120,7 @@ class RP(metaclass=AbstractBaseClass):
         :param rerun:       Start launch in rerun mode
         :param rerun_of:    For rerun mode specifies which launch will be
                             re-run. Should be used with the 'rerun' option.
-        :returns            Launch UUID
+        :return:            Launch UUID
         """
         raise NotImplementedError('"start_launch" method is not implemented!')
 
@@ -158,7 +158,7 @@ class RP(metaclass=AbstractBaseClass):
         :param retry:          Used to report retry of the test. Allowable
                                values: "True" or "False"
         :param test_case_id:   A unique ID of the current step
-        :returns               Test Item UUID
+        :return:               Test Item UUID
         """
         raise NotImplementedError('"start_test_item" method is not implemented!')
 
@@ -186,7 +186,7 @@ class RP(metaclass=AbstractBaseClass):
                             from start request.
         :param retry:       Used to report retry of the test. Allowable values:
                             "True" or "False"
-        :returns            Response message
+        :return:            Response message
         """
         raise NotImplementedError('"finish_test_item" method is not implemented!')
 
@@ -202,7 +202,7 @@ class RP(metaclass=AbstractBaseClass):
         :param status:      Launch status. Can be one of the followings:
                             PASSED, FAILED, STOPPED, SKIPPED, INTERRUPTED, CANCELLED
         :param attributes:  Launch attributes
-        :returns            Response message
+        :return:            Response message
         """
         raise NotImplementedError('"finish_launch" method is not implemented!')
 
@@ -216,7 +216,7 @@ class RP(metaclass=AbstractBaseClass):
         :param item_uuid:   Test item UUID returned on the item start
         :param attributes: Test item attributes: [{'key': 'k_name', 'value': 'k_value'}, ...]
         :param description: Test item description
-        :returns            Response message
+        :return:            Response message
         """
         raise NotImplementedError('"update_test_item" method is not implemented!')
 
@@ -224,7 +224,7 @@ class RP(metaclass=AbstractBaseClass):
     def get_launch_info(self) -> Union[Optional[dict], Task[str]]:
         """Get the current launch information.
 
-        :returns Launch information in dictionary
+        :return: Launch information in dictionary
         """
         raise NotImplementedError('"get_launch_info" method is not implemented!')
 
@@ -233,7 +233,7 @@ class RP(metaclass=AbstractBaseClass):
         """Get test item ID by the given UUID.
 
         :param item_uuid: UUID returned on the item start
-        :returns          Test item ID
+        :return:          Test item ID
         """
         raise NotImplementedError('"get_item_id_by_uuid" method is not implemented!')
 
@@ -241,7 +241,7 @@ class RP(metaclass=AbstractBaseClass):
     def get_launch_ui_id(self) -> Optional[int]:
         """Get UI ID of the current launch.
 
-        :returns UI ID of the given launch. None if UI ID has not been found.
+        :return: UI ID of the given launch. None if UI ID has not been found.
         """
         raise NotImplementedError('"get_launch_ui_id" method is not implemented!')
 
@@ -249,7 +249,7 @@ class RP(metaclass=AbstractBaseClass):
     def get_launch_ui_url(self) -> Optional[str]:
         """Get full quality URL of the current launch.
 
-        :returns launch URL string
+        :return: launch URL string
         """
         raise NotImplementedError('"get_launch_ui_id" method is not implemented!')
 
@@ -257,7 +257,7 @@ class RP(metaclass=AbstractBaseClass):
     def get_project_settings(self) -> Union[Optional[dict], Task[dict]]:
         """Get project settings.
 
-        :returns HTTP response in dictionary
+        :return: HTTP response in dictionary
         """
         raise NotImplementedError('"get_project_settings" method is not implemented!')
 
@@ -301,7 +301,7 @@ class RP(metaclass=AbstractBaseClass):
     def clone(self) -> 'RP':
         """Clone the client object, set current Item ID as cloned root Item ID.
 
-        :returns: Cloned client object
+        :return: Cloned client object
         """
         raise NotImplementedError('"clone" method is not implemented!')
 
@@ -344,7 +344,7 @@ class RPClient(RP):
     def launch_uuid(self) -> Optional[str]:
         """Return current launch UUID.
 
-        :returns UUID string
+        :return: UUID string
         """
         return self.__launch_uuid
 
@@ -352,7 +352,7 @@ class RPClient(RP):
     def endpoint(self) -> str:
         """Return current base URL.
 
-        :returns base URL string
+        :return: base URL string
         """
         return self.__endpoint
 
@@ -360,7 +360,7 @@ class RPClient(RP):
     def project(self) -> str:
         """Return current Project name.
 
-        :returns Project name string
+        :return: Project name string
         """
         return self.__project
 
@@ -368,7 +368,7 @@ class RPClient(RP):
     def step_reporter(self) -> StepReporter:
         """Return StepReporter object for the current launch.
 
-        :returns StepReporter to report steps
+        :return: StepReporter to report steps
         """
         return self.__step_reporter
 
@@ -734,7 +734,7 @@ class RPClient(RP):
         """Get test item ID by the given UUID.
 
         :param item_uuid: UUID returned on the item start
-        :returns          Test item ID
+        :return:          Test item ID
         """
         url = uri_join(self.base_url_v1, 'item', 'uuid', item_uuid)
         response = HttpRequest(self.session.get, url=url,
@@ -744,7 +744,7 @@ class RPClient(RP):
     def get_launch_info(self) -> Optional[dict]:
         """Get the current launch information.
 
-        :returns Launch information in dictionary
+        :return: Launch information in dictionary
         """
         if self.launch_uuid is None:
             return {}
@@ -775,7 +775,7 @@ class RPClient(RP):
     def get_launch_ui_url(self) -> Optional[str]:
         """Get UI URL of the current launch.
 
-        :returns launch URL or all launches URL.
+        :return: launch URL or all launches URL.
         """
         launch_info = self.get_launch_info()
         ui_id = launch_info.get('id') if launch_info else None
@@ -797,7 +797,7 @@ class RPClient(RP):
     def get_project_settings(self) -> Optional[dict]:
         """Get project settings.
 
-        :returns HTTP response in dictionary
+        :return: HTTP response in dictionary
         """
         url = uri_join(self.base_url_v1, 'settings')
         response = HttpRequest(self.session.get, url=url,
@@ -811,7 +811,7 @@ class RPClient(RP):
     def _remove_current_item(self) -> Optional[str]:
         """Remove the last item from the self._items queue.
 
-        :returns Item UUID string
+        :return: Item UUID string
         """
         try:
             return self._item_stack.get(timeout=0)
@@ -821,14 +821,14 @@ class RPClient(RP):
     def current_item(self) -> Optional[str]:
         """Retrieve the last item reported by the client.
 
-        :returns Item UUID string
+        :return: Item UUID string
         """
         return self._item_stack.last()
 
     def clone(self) -> 'RPClient':
         """Clone the client object, set current Item ID as cloned item ID.
 
-        :returns: Cloned client object
+        :return: Cloned client object
         :rtype: RPClient
         """
         cloned = RPClient(
@@ -854,7 +854,7 @@ class RPClient(RP):
     def __getstate__(self) -> Dict[str, Any]:
         """Control object pickling and return object fields as Dictionary.
 
-        :returns: object state dictionary
+        :return: object state dictionary
         :rtype: dict
         """
         state = self.__dict__.copy()

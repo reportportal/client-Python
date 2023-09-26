@@ -432,7 +432,7 @@ class Client:
     def clone(self) -> 'Client':
         """Clone the client object, set current Item ID as cloned item ID.
 
-        :returns: Cloned client object
+        :return: Cloned client object
         :rtype: AsyncRPClient
         """
         cloned = Client(
@@ -625,7 +625,7 @@ class AsyncRPClient(RP):
     def clone(self) -> 'AsyncRPClient':
         """Clone the client object, set current Item ID as cloned item ID.
 
-        :returns: Cloned client object
+        :return: Cloned client object
         :rtype: AsyncRPClient
         """
         cloned_client = self.__client.clone()
@@ -943,7 +943,7 @@ class ThreadedRPClient(_RPClient):
     def clone(self) -> 'ThreadedRPClient':
         """Clone the client object, set current Item ID as cloned item ID.
 
-        :returns: Cloned client object
+        :return: Cloned client object
         :rtype: ThreadedRPClient
         """
         cloned_client = self.client.clone()
@@ -1023,7 +1023,7 @@ class BatchedRPClient(_RPClient):
     def clone(self) -> 'BatchedRPClient':
         """Clone the client object, set current Item ID as cloned item ID.
 
-        :returns: Cloned client object
+        :return: Cloned client object
         :rtype: BatchedRPClient
         """
         cloned_client = self.client.clone()
