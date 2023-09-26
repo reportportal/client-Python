@@ -31,6 +31,7 @@ class LogBatcher(Generic[T_co]):
     The class accepts the maximum number of log entries in desired batches and maximum batch size to conform
     with maximum request size limits, configured on servers. The class implementation is thread-safe.
     """
+
     entry_num: int
     payload_limit: int
     _lock: threading.Lock
