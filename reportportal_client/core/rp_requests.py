@@ -11,7 +11,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License
 
-"""This module includes classes representing RP API requests.
+"""This module includes classes representing ReportPortal API requests.
 
 Detailed information about requests wrapped up in that module
 can be found by the following link:
@@ -22,7 +22,7 @@ import asyncio
 import json as json_converter
 import logging
 from dataclasses import dataclass
-from typing import Callable, Text, Optional, Union, List, Tuple, Any, TypeVar
+from typing import Callable, Optional, Union, List, Tuple, Any, TypeVar
 
 import aiohttp
 
@@ -46,7 +46,7 @@ T = TypeVar("T")
 
 
 class HttpRequest:
-    """This model stores attributes related to RP HTTP requests."""
+    """This model stores attributes related to ReportPortal HTTP requests."""
 
     session_method: Callable
     url: Any
@@ -66,19 +66,18 @@ class HttpRequest:
                  files: Optional[Any] = None,
                  verify_ssl: Optional[Union[bool, str]] = None,
                  http_timeout: Union[float, Tuple[float, float]] = (10, 10),
-                 name: Optional[Text] = None) -> None:
+                 name: Optional[str] = None) -> None:
         """Initialize instance attributes.
 
         :param session_method: Method of the requests.Session instance
         :param url:            Request URL
-        :param data:           Dictionary, list of tuples, bytes, or file-like
-                               object to send in the body of the request
+        :param data:           Dictionary, list of tuples, bytes, or file-like object to send in the body of
+                               the request
         :param json:           JSON to be sent in the body of the request
-        :param files           Dictionary for multipart encoding upload.
+        :param files           Dictionary for multipart encoding upload
         :param verify_ssl:     Is SSL certificate verification required
-        :param http_timeout:   a float in seconds for connect and read
-                               timeout. Use a Tuple to specific connect and
-                               read separately.
+        :param http_timeout:   a float in seconds for connect and read timeout. Use a Tuple to specific
+                               connect and read separately
         :param name:           request name
         """
         self.data = data
@@ -91,22 +90,38 @@ class HttpRequest:
         self.name = name
         self._priority = DEFAULT_PRIORITY
 
-    def __lt__(self, other) -> bool:
-        """Priority protocol for the PriorityQueue."""
+    def __lt__(self, other: 'HttpRequest') -> bool:
+        """Priority protocol for the PriorityQueue.
+
+        :param other: another object to compare
+        :return:      if current object is less than other
+        """
         return self.priority < other.priority
 
     @property
     def priority(self) -> Priority:
-        """Get the priority of the request."""
+        """Get the priority of the request.
+
+        :return: the object priority
+        """
         return self._priority
 
     @priority.setter
     def priority(self, value: Priority) -> None:
-        """Set the priority of the request."""
+        """Set the priority of the request.
+
+        :param value: the object priority
+        """
         self._priority = value
 
     def make(self) -> Optional[RPResponse]:
-        """Make HTTP request to the ReportPortal API."""
+        """Make HTTP request to the ReportPortal API.
+
+        The method catches any request preparation error to not fail reporting. Since we are reporting tool
+        and should not fail tests.
+
+        :return: wrapped HTTP response or None in case of failure
+        """
         try:
             return RPResponse(self.session_method(self.url, data=self.data, json=self.json, files=self.files,
                                                   verify=self.verify_ssl, timeout=self.http_timeout))
@@ -115,27 +130,33 @@ class HttpRequest:
 
 
 class AsyncHttpRequest(HttpRequest):
-    """This model stores attributes related to RP HTTP requests."""
+    """This model stores attributes related to asynchronous ReportPortal HTTP requests."""
 
     def __init__(self,
                  session_method: Callable,
                  url: Any,
                  data: Optional[Any] = None,
                  json: Optional[Any] = None,
-                 name: Optional[Text] = None) -> None:
+                 name: Optional[str] = None) -> None:
         """Initialize instance attributes.
 
         :param session_method: Method of the requests.Session instance
-        :param url:            Request URL
-        :param data:           Dictionary, list of tuples, bytes, or file-like object to send in the body of
-                               the request
-        :param json:           JSON to be sent in the body of the request
+        :param url:            Request URL or async coroutine returning the URL
+        :param data:           Dictionary, list of tuples, bytes, or file-like object, or async coroutine to
+                               send in the body of the request
+        :param json:           JSON to be sent in the body of the request as Dictionary or async coroutine
         :param name:           request name
         """
         super().__init__(session_method=session_method, url=url, data=data, json=json, name=name)
 
     async def make(self) -> Optional[AsyncRPResponse]:
-        """Make HTTP request to the ReportPortal API."""
+        """Asynchronously make HTTP request to the ReportPortal API.
+
+        The method catches any request preparation error to not fail reporting. Since we are reporting tool
+        and should not fail tests.
+
+        :return: wrapped HTTP response or None in case of failure
+        """
         url = await await_if_necessary(self.url)
         if not url:
             return
@@ -148,22 +169,30 @@ class AsyncHttpRequest(HttpRequest):
 
 
 class RPRequestBase(metaclass=AbstractBaseClass):
-    """Base class for the rest of the RP request models."""
+    """Base class for specific ReportPortal request models.
+
+    Its main function to provide interface of 'payload' method which is used to generate HTTP request payload.
+    """
 
     __metaclass__ = AbstractBaseClass
 
+    @property
     @abstractmethod
     def payload(self) -> dict:
-        """Abstract interface for getting HTTP request payload."""
+        """Abstract interface for getting HTTP request payload.
+
+        :return: JSON representation in the form of a Dictionary
+        """
         raise NotImplementedError('Payload interface is not implemented!')
 
 
 @dataclass(frozen=True)
 class LaunchStartRequest(RPRequestBase):
-    """RP start launch request model.
+    """ReportPortal start launch request model.
 
     https://github.com/reportportal/documentation/blob/master/src/md/src/DevGuides/reporting.md#start-launch
     """
+
     name: str
     start_time: str
     attributes: Optional[Union[list, dict]] = None
@@ -175,7 +204,10 @@ class LaunchStartRequest(RPRequestBase):
 
     @property
     def payload(self) -> dict:
-        """Get HTTP payload for the request."""
+        """Get HTTP payload for the request.
+
+        :return: JSON representation in the form of a Dictionary
+        """
         my_attributes = self.attributes
         if my_attributes and isinstance(self.attributes, dict):
             my_attributes = dict_to_payload(self.attributes)
@@ -195,19 +227,22 @@ class LaunchStartRequest(RPRequestBase):
 
 @dataclass(frozen=True)
 class LaunchFinishRequest(RPRequestBase):
-    """RP finish launch request model.
+    """ReportPortal finish launch request model.
 
     https://github.com/reportportal/documentation/blob/master/src/md/src/DevGuides/reporting.md#finish-launch
     """
 
     end_time: str
-    status: Optional[Text] = None
+    status: Optional[str] = None
     attributes: Optional[Union[list, dict]] = None
     description: Optional[str] = None
 
     @property
     def payload(self) -> dict:
-        """Get HTTP payload for the request."""
+        """Get HTTP payload for the request.
+
+        :return: JSON representation in the form of a Dictionary
+        """
         my_attributes = self.attributes
         if my_attributes and isinstance(self.attributes, dict):
             my_attributes = dict_to_payload(self.attributes)
@@ -221,24 +256,25 @@ class LaunchFinishRequest(RPRequestBase):
 
 @dataclass(frozen=True)
 class ItemStartRequest(RPRequestBase):
-    """RP start test item request model.
+    """ReportPortal start test item request model.
 
     https://github.com/reportportal/documentation/blob/master/src/md/src/DevGuides/reporting.md#start-rootsuite-item
     """
+
     name: str
     start_time: str
     type_: str
     launch_uuid: Any
     attributes: Optional[Union[list, dict]]
-    code_ref: Optional[Text]
-    description: Optional[Text]
+    code_ref: Optional[str]
+    description: Optional[str]
     has_stats: bool
     parameters: Optional[Union[list, dict]]
     retry: bool
-    test_case_id: Optional[Text]
+    test_case_id: Optional[str]
 
     @staticmethod
-    def create_request(**kwargs) -> dict:
+    def _create_request(**kwargs) -> dict:
         request = {
             'codeRef': kwargs.get('code_ref'),
             'description': kwargs.get('description'),
@@ -262,32 +298,44 @@ class ItemStartRequest(RPRequestBase):
 
     @property
     def payload(self) -> dict:
-        """Get HTTP payload for the request."""
+        """Get HTTP payload for the request.
+
+        :return: JSON representation in the form of a Dictionary
+        """
         data = self.__dict__.copy()
         data['type'] = data.pop('type_')
-        return ItemStartRequest.create_request(**data)
+        return ItemStartRequest._create_request(**data)
 
 
 class AsyncItemStartRequest(ItemStartRequest):
+    """ReportPortal start test item request asynchronous model.
+
+    https://github.com/reportportal/documentation/blob/master/src/md/src/DevGuides/reporting.md#start-rootsuite-item
+    """
 
     def __int__(self, *args, **kwargs) -> None:
+        """Initialize an instance of the request with attributes."""
         super.__init__(*args, **kwargs)
 
     @property
     async def payload(self) -> dict:
-        """Get HTTP payload for the request."""
+        """Get HTTP payload for the request.
+
+        :return: JSON representation in the form of a Dictionary
+        """
         data = self.__dict__.copy()
         data['type'] = data.pop('type_')
         data['launch_uuid'] = await await_if_necessary(data.pop('launch_uuid'))
-        return ItemStartRequest.create_request(**data)
+        return ItemStartRequest._create_request(**data)
 
 
 @dataclass(frozen=True)
 class ItemFinishRequest(RPRequestBase):
-    """RP finish test item request model.
+    """ReportPortal finish test item request model.
 
     https://github.com/reportportal/documentation/blob/master/src/md/src/DevGuides/reporting.md#finish-child-item
     """
+
     end_time: str
     launch_uuid: Any
     status: str
@@ -298,7 +346,7 @@ class ItemFinishRequest(RPRequestBase):
     retry: bool
 
     @staticmethod
-    def create_request(**kwargs) -> dict:
+    def _create_request(**kwargs) -> dict:
         request = {
             'description': kwargs.get('description'),
             'endTime': kwargs['end_time'],
@@ -324,29 +372,41 @@ class ItemFinishRequest(RPRequestBase):
 
     @property
     def payload(self) -> dict:
-        """Get HTTP payload for the request."""
-        return ItemFinishRequest.create_request(**self.__dict__)
+        """Get HTTP payload for the request.
+
+        :return: JSON representation in the form of a Dictionary
+        """
+        return ItemFinishRequest._create_request(**self.__dict__)
 
 
 class AsyncItemFinishRequest(ItemFinishRequest):
+    """ReportPortal finish test item request asynchronous model.
+
+    https://github.com/reportportal/documentation/blob/master/src/md/src/DevGuides/reporting.md#finish-child-item
+    """
 
     def __int__(self, *args, **kwargs) -> None:
+        """Initialize an instance of the request with attributes."""
         super.__init__(*args, **kwargs)
 
     @property
     async def payload(self) -> dict:
-        """Get HTTP payload for the request."""
+        """Get HTTP payload for the request.
+
+        :return: JSON representation in the form of a Dictionary
+        """
         data = self.__dict__.copy()
         data['launch_uuid'] = await await_if_necessary(data.pop('launch_uuid'))
-        return ItemFinishRequest.create_request(**data)
+        return ItemFinishRequest._create_request(**data)
 
 
 @dataclass(frozen=True)
 class RPRequestLog(RPRequestBase):
-    """RP log save request model.
+    """ReportPortal log save request model.
 
     https://github.com/reportportal/documentation/blob/master/src/md/src/DevGuides/reporting.md#save-single-log-without-attachment
     """
+
     launch_uuid: Any
     time: str
     file: Optional[RPFile] = None
@@ -355,7 +415,7 @@ class RPRequestLog(RPRequestBase):
     message: Optional[str] = None
 
     @staticmethod
-    def create_request(**kwargs) -> dict:
+    def _create_request(**kwargs) -> dict:
         request = {
             'launchUuid': kwargs['launch_uuid'],
             'level': kwargs['level'],
@@ -370,8 +430,11 @@ class RPRequestLog(RPRequestBase):
 
     @property
     def payload(self) -> dict:
-        """Get HTTP payload for the request."""
-        return RPRequestLog.create_request(**self.__dict__)
+        """Get HTTP payload for the request.
+
+        :return: JSON representation in the form of a Dictionary
+        """
+        return RPRequestLog._create_request(**self.__dict__)
 
     @staticmethod
     def _multipart_size(payload: dict, file: Optional[RPFile]):
@@ -381,36 +444,51 @@ class RPRequestLog(RPRequestBase):
 
     @property
     def multipart_size(self) -> int:
-        """Calculate request size how it would transfer in Multipart HTTP."""
+        """Calculate request size how it would be transfer in Multipart HTTP.
+
+        :return: estimate request size
+        """
         return RPRequestLog._multipart_size(self.payload, self.file)
 
 
 class AsyncRPRequestLog(RPRequestLog):
+    """ReportPortal log save request asynchronous model.
+
+    https://github.com/reportportal/documentation/blob/master/src/md/src/DevGuides/reporting.md#save-single-log-without-attachment
+    """
 
     def __int__(self, *args, **kwargs) -> None:
+        """Initialize an instance of the request with attributes."""
         super.__init__(*args, **kwargs)
 
     @property
     async def payload(self) -> dict:
-        """Get HTTP payload for the request."""
+        """Get HTTP payload for the request.
+
+        :return: JSON representation in the form of a Dictionary
+        """
         data = self.__dict__.copy()
         uuids = await asyncio.gather(await_if_necessary(data.pop('launch_uuid')),
                                      await_if_necessary(data.pop('item_uuid')))
         data['launch_uuid'] = uuids[0]
         data['item_uuid'] = uuids[1]
-        return RPRequestLog.create_request(**data)
+        return RPRequestLog._create_request(**data)
 
     @property
     async def multipart_size(self) -> int:
-        """Calculate request size how it would transfer in Multipart HTTP."""
+        """Calculate request size how it would be transfer in Multipart HTTP.
+
+        :return: estimate request size
+        """
         return RPRequestLog._multipart_size(await self.payload, self.file)
 
 
 class RPLogBatch(RPRequestBase):
-    """RP log save batches with attachments request model.
+    """ReportPortal log save batches with attachments request model.
 
     https://github.com/reportportal/documentation/blob/master/src/md/src/DevGuides/reporting.md#batch-save-logs
     """
+
     default_content: str
     log_reqs: List[Union[RPRequestLog, AsyncRPRequestLog]]
     priority: Priority
@@ -474,8 +552,13 @@ class RPLogBatch(RPRequestBase):
 
 
 class AsyncRPLogBatch(RPLogBatch):
+    """ReportPortal log save batches with attachments request asynchronous model.
+
+    https://github.com/reportportal/documentation/blob/master/src/md/src/DevGuides/reporting.md#batch-save-logs
+    """
 
     def __int__(self, *args, **kwargs) -> None:
+        """Initialize an instance of the request with attributes."""
         super.__init__(*args, **kwargs)
 
     async def __get_request_part(self) -> List[dict]:
@@ -484,12 +567,15 @@ class AsyncRPLogBatch(RPLogBatch):
 
     @property
     async def payload(self) -> aiohttp.MultipartWriter:
-        """Get HTTP payload for the request."""
+        """Get HTTP payload for the request.
+
+        :return: Multipart request object capable to send with AIOHTTP
+        """
         json_payload = aiohttp.JsonPayload(await self.__get_request_part())
         json_payload.set_content_disposition('form-data', name='json_request_part')
-        mpwriter = aiohttp.MultipartWriter('form-data')
-        mpwriter.append_payload(json_payload)
+        mp_writer = aiohttp.MultipartWriter('form-data')
+        mp_writer.append_payload(json_payload)
         for _, file in self._get_files():
             file_payload = aiohttp.Payload(file[1], content_type=file[2], filename=file[0])
-            mpwriter.append_payload(file_payload)
-        return mpwriter
+            mp_writer.append_payload(file_payload)
+        return mp_writer
