@@ -23,7 +23,6 @@ setup(
     name='reportportal-client',
     packages=find_packages(exclude=('tests', 'tests.*')),
     package_data={
-        'reportportal_client': TYPE_STUBS,
         'reportportal_client.steps': TYPE_STUBS,
         'reportportal_client.core': TYPE_STUBS,
         'reportportal_client.logs': TYPE_STUBS,
