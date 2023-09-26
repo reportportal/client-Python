@@ -173,6 +173,8 @@ class BatchedTaskFactory:
 
 
 class ThreadedTaskFactory:
+    """Factory protocol which creates Threaded Tasks."""
+
     __wait_timeout: float
 
     def __init__(self, wait_timeout: float):

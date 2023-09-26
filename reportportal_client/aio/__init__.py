@@ -11,6 +11,8 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License
 
+"""Common package for Asynchronous I/O clients and utilities."""
+
 from reportportal_client.aio.tasks import (Task, TriggerTaskBatcher, BatchedTask, BatchedTaskFactory,
                                            ThreadedTask, ThreadedTaskFactory, BlockingOperationError,
                                            BackgroundTaskBatcher, DEFAULT_TASK_TRIGGER_NUM,
