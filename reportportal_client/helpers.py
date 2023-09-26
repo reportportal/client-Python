@@ -259,6 +259,11 @@ def calculate_file_part_size(file: Optional[RPFile]) -> int:
 
 
 def agent_name_version(attributes: Optional[Union[List, Dict]] = None) -> Tuple[Optional[str], Optional[str]]:
+    """Extract Agent name and version from given Launch attributes.
+
+    :param attributes: Launch attributes as they provided to Start Launch call
+    :return: Tuple of (agent name, version)
+    """
     agent_name, agent_version = None, None
     agent_attribute = [a for a in attributes if a.get('key') == 'agent'] if attributes else []
     if len(agent_attribute) > 0 and agent_attribute[0].get('value'):
@@ -266,7 +271,12 @@ def agent_name_version(attributes: Optional[Union[List, Dict]] = None) -> Tuple[
     return agent_name, agent_version
 
 
-async def await_if_necessary(obj: Optional[Any]) -> Any:
+async def await_if_necessary(obj: Optional[Any]) -> Optional[Any]:
+    """Await Coroutine, Feature or coroutine Function if given argument is one of them, or return immediately.
+
+    :param obj: value, Coroutine, Feature or coroutine Function
+    :return: result which was returned by Coroutine, Feature or coroutine Function
+    """
     if obj:
         if asyncio.isfuture(obj) or asyncio.iscoroutine(obj):
             return await obj
