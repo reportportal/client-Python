@@ -79,7 +79,7 @@ class Client:
     print_output: Optional[TextIO]
     _skip_analytics: str
     __session: Optional[aiohttp.ClientSession]
-    __stat_task: Optional[asyncio.Task[aiohttp.ClientResponse]]
+    __stat_task: Optional[asyncio.Task]
 
     def __init__(
             self,
