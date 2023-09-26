@@ -13,13 +13,13 @@
 
 """This module sends statistics events to a statistics service."""
 
-import ssl
-import certifi
 import logging
+import ssl
 from platform import python_version
 from typing import Optional, Tuple
 
 import aiohttp
+import certifi
 import requests
 from pkg_resources import get_distribution
 
@@ -48,7 +48,14 @@ def _get_platform_info() -> str:
     return 'Python ' + python_version()
 
 
-def get_payload(event_name: str, agent_name: Optional[str], agent_version: Optional[str]) -> dict:
+def _get_payload(event_name: str, agent_name: Optional[str], agent_version: Optional[str]) -> dict:
+    """Format Statistics service request as it should be sent.
+
+    :param event_name:    name of the event as it will be displayed
+    :param agent_name:    current Agent name
+    :param agent_version: current Agent version
+    :return: JSON representation of the request as Dictionary
+    """
     client_name, client_version = _get_client_info()
     request_params = {
         'client_name': client_name,
@@ -87,14 +94,14 @@ def send_event(event_name: str, agent_name: Optional[str], agent_version: Option
         'api_secret': KEY
     }
     try:
-        return requests.post(url=ENDPOINT, json=get_payload(event_name, agent_name, agent_version),
+        return requests.post(url=ENDPOINT, json=_get_payload(event_name, agent_name, agent_version),
                              headers=headers, params=query_params)
     except requests.exceptions.RequestException as err:
         logger.debug('Failed to send data to Statistics service: %s', str(err))
 
 
 async def async_send_event(event_name: str, agent_name: Optional[str],
-                           agent_version: Optional[str]) -> aiohttp.ClientResponse:
+                           agent_version: Optional[str]) -> Optional[aiohttp.ClientResponse]:
     """Send an event to statistics service.
 
      Use client and agent versions with their names.
@@ -110,8 +117,13 @@ async def async_send_event(event_name: str, agent_name: Optional[str],
     }
     ssl_context = ssl.create_default_context(cafile=certifi.where())
     async with aiohttp.ClientSession() as session:
-        result = await session.post(url=ENDPOINT, json=get_payload(event_name, agent_name, agent_version),
-                                    headers=headers, params=query_params, ssl=ssl_context)
+        try:
+            result = await session.post(url=ENDPOINT,
+                                        json=_get_payload(event_name, agent_name, agent_version),
+                                        headers=headers, params=query_params, ssl=ssl_context)
+        except aiohttp.ClientError as exc:
+            logger.debug('Failed to send data to Statistics service: connection error', exc)
+            return
         if not result.ok:
-            logger.debug('Failed to send data to Statistics service: %s', result.reason)
+            logger.debug(f'Failed to send data to Statistics service: {result.reason}')
         return result
