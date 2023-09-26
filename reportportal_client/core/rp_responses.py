@@ -11,7 +11,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License
 
-"""This module contains models for the RP response objects.
+"""This module contains models for the ReportPortal response objects.
 
 Detailed information about responses wrapped up in that module
 can be found by the following link:
@@ -35,18 +35,19 @@ def _iter_json_messages(json: Any) -> Generator[str, None, None]:
         return
     data = json.get('responses', [json])
     for chunk in data:
-        message = chunk.get('message', chunk.get('error_code'))
+        message = chunk.get('message', chunk.get('error_code', NOT_FOUND))
         if message:
             yield message
 
 
 class RPResponse:
-    """Class representing RP API response."""
+    """Class representing ReportPortal API response."""
+
     _resp: Response
     __json: Any
 
     def __init__(self, data: Response) -> None:
-        """Initialize instance attributes.
+        """Initialize an instance with attributes.
 
         :param data: requests.Response object
         """
@@ -55,19 +56,28 @@ class RPResponse:
 
     @property
     def id(self) -> Optional[str]:
-        """Get value of the 'id' key."""
+        """Get value of the 'id' key in the response.
+
+        :return: ID as string or NOT_FOUND, or None if the response is not JSON
+        """
         if self.json is None:
             return
         return self.json.get('id', NOT_FOUND)
 
     @property
     def is_success(self) -> bool:
-        """Check if response to API has been successful."""
+        """Check if response to API has been successful.
+
+        :return: is response successful
+        """
         return self._resp.ok
 
     @property
     def json(self) -> Any:
-        """Get the response in dictionary."""
+        """Get the response in Dictionary or List.
+
+        :return: JSON represented as Dictionary or List, or None if the response is not JSON
+        """
         if self.__json is NOT_SET:
             try:
                 self.__json = self._resp.json()
@@ -77,35 +87,45 @@ class RPResponse:
 
     @property
     def message(self) -> Optional[str]:
-        """Get value of the 'message' key."""
+        """Get value of the 'message' key in the response.
+
+        :return: message as string or NOT_FOUND, or None if the response is not JSON
+        """
         if self.json is None:
             return
         return self.json.get('message')
 
     @property
     def messages(self) -> Optional[Tuple[str, ...]]:
-        """Get list of messages received."""
+        """Get list of messages received in the response.
+
+        :return: a variable size tuple of strings or NOT_FOUND, or None if the response is not JSON
+        """
         if self.json is None:
             return
         return tuple(_iter_json_messages(self.json))
 
 
 class AsyncRPResponse:
-    """Class representing RP API response."""
+    """Class representing ReportPortal API asynchronous response."""
+
     _resp: ClientResponse
     __json: Any
 
     def __init__(self, data: ClientResponse) -> None:
-        """Initialize instance attributes.
+        """Initialize an instance with attributes.
 
-        :param data: requests.Response object
+        :param data: aiohttp.ClientResponse object
         """
         self._resp = data
         self.__json = NOT_SET
 
     @property
     async def id(self) -> Optional[str]:
-        """Get value of the 'id' key."""
+        """Get value of the 'id' key in the response.
+
+        :return: ID as string or NOT_FOUND, or None if the response is not JSON
+        """
         json = await self.json
         if json is None:
             return
@@ -113,12 +133,18 @@ class AsyncRPResponse:
 
     @property
     def is_success(self) -> bool:
-        """Check if response to API has been successful."""
+        """Check if response to API has been successful.
+
+        :return: is response successful
+        """
         return self._resp.ok
 
     @property
     async def json(self) -> Any:
-        """Get the response in dictionary."""
+        """Get the response in Dictionary or List.
+
+        :return: JSON represented as Dictionary or List, or None if the response is not JSON
+        """
         if self.__json is NOT_SET:
             try:
                 self.__json = await self._resp.json()
@@ -128,15 +154,21 @@ class AsyncRPResponse:
 
     @property
     async def message(self) -> Optional[str]:
-        """Get value of the 'message' key."""
+        """Get value of the 'message' key in the response.
+
+        :return: message as string or NOT_FOUND, or None if the response is not JSON
+        """
         json = await self.json
         if json is None:
             return
-        return json.get('message')
+        return json.get('message', NOT_FOUND)
 
     @property
     async def messages(self) -> Optional[Tuple[str, ...]]:
-        """Get list of messages received."""
+        """Get list of messages received in the response.
+
+        :return: a variable size tuple of strings or NOT_FOUND, or None if the response is not JSON
+        """
         json = await self.json
         if json is None:
             return
