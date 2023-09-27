@@ -160,6 +160,10 @@ class Client:
 
     @property
     def session(self) -> aiohttp.ClientSession:
+        """Return aiohttp.ClientSession class instance, initialize it if necessary.
+
+        :return: aiohttp.ClientSession instance
+        """
         if self.__session:
             return self.__session
 
@@ -201,7 +205,8 @@ class Client:
         self.__session = RetryingClientSession(self.endpoint, **session_params)
         return self.__session
 
-    async def close(self):
+    async def close(self) -> None:
+        """Gracefully close internal aiohttp.ClientSession class instance and reset it."""
         if self.__session:
             await self.__session.close()
             self.__session = None
@@ -229,15 +234,16 @@ class Client:
                            rerun: bool = False,
                            rerun_of: Optional[str] = None,
                            **kwargs) -> Optional[str]:
-        """Start a new launch with the given parameters.
+        """Start a new launch with the given arguments.
 
         :param name:        Launch name
         :param start_time:  Launch start time
         :param description: Launch description
         :param attributes:  Launch attributes
         :param rerun:       Start launch in rerun mode
-        :param rerun_of:    For rerun mode specifies which launch will be
-                            re-run. Should be used with the 'rerun' option.
+        :param rerun_of:    For rerun mode specifies which launch will be re-run. Should be used with the
+                            'rerun' option.
+        :return:            Launch UUID if successfully started or None
         """
         url = root_uri_join(self.base_url_v2, 'launch')
         request_payload = LaunchStartRequest(
@@ -247,7 +253,7 @@ class Client:
             description=description,
             mode=self.mode,
             rerun=rerun,
-            rerun_of=rerun_of or kwargs.get('rerunOf')
+            rerun_of=rerun_of
         ).payload
 
         response = await AsyncHttpRequest(self.session.post, url=url, json=request_payload).make()
@@ -270,15 +276,34 @@ class Client:
                               start_time: str,
                               item_type: str,
                               *,
+                              parent_item_id: Optional[Union[str, Task[str]]] = None,
                               description: Optional[str] = None,
                               attributes: Optional[List[Dict]] = None,
                               parameters: Optional[Dict] = None,
-                              parent_item_id: Optional[Union[str, Task[str]]] = None,
-                              has_stats: bool = True,
                               code_ref: Optional[str] = None,
-                              retry: bool = False,
                               test_case_id: Optional[str] = None,
+                              has_stats: bool = True,
+                              retry: bool = False,
                               **_: Any) -> Optional[str]:
+        """Start test case/step/nested step item.
+
+        :param launch_uuid:    A launch UUID where to start the Test Item.
+        :param name:           Name of the Test Item.
+        :param start_time:     The Item start time.
+        :param item_type:      Type of the Test Item. Allowed values:
+                               "suite", "story", "test", "scenario", "step", "before_class", "before_groups",
+                               "before_method", "before_suite", "before_test", "after_class", "after_groups",
+                               "after_method", "after_suite", "after_test".
+        :param parent_item_id: A UUID of a parent SUITE / STEP
+        :param description:    The Item description
+        :param attributes:     Test Item attributes
+        :param parameters:     Set of parameters (for parametrized test items)
+        :param code_ref:       Physical location of the Test Item
+        :param test_case_id: A unique ID of the current step
+        :param has_stats:      Set to False if test item is a nested step
+        :param retry:          Used to report retry of the test. Allowed values: "True" or "False"
+        :return:               Test Item UUID if successfully started or None
+        """
         if parent_item_id:
             url = self.__get_item_url(parent_item_id)
         else:
@@ -313,11 +338,25 @@ class Client:
                                end_time: str,
                                *,
                                status: str = None,
-                               issue: Optional[Issue] = None,
-                               attributes: Optional[Union[List, Dict]] = None,
                                description: str = None,
+                               attributes: Optional[Union[List, Dict]] = None,
+                               issue: Optional[Issue] = None,
                                retry: bool = False,
                                **kwargs: Any) -> Optional[str]:
+        """Finish test case/step/nested step item.
+
+        :param launch_uuid: A launch UUID where to finish the Test Item.
+        :param item_id:     ID of the Test Item.
+        :param end_time:    The Item end time.
+        :param status:      Test status. Allowed values:
+                            PASSED, FAILED, STOPPED, SKIPPED, INTERRUPTED, CANCELLED, INFO, WARN or None.
+        :param description: Test Item description. Overrides description from start request.
+        :param attributes:  Test Item attributes(tags). Pairs of key and value. These attributes override
+                            attributes on start Test Item call.
+        :param issue:       Issue which will be attached to the current Item.
+        :param retry:       Used to report retry of the test. Allowed values: "True" or "False".
+        :return:            Response message.
+        """
         url = self.__get_item_url(item_id)
         request_payload = AsyncItemFinishRequest(
             end_time,
@@ -344,6 +383,15 @@ class Client:
                             status: str = None,
                             attributes: Optional[Union[List, Dict]] = None,
                             **kwargs: Any) -> Optional[str]:
+        """Finish a launch.
+
+        :param launch_uuid: A launch UUID to finish.
+        :param end_time:    Launch end time.
+        :param status:      Launch status. Can be one of the followings:
+                            PASSED, FAILED, STOPPED, SKIPPED, INTERRUPTED, CANCELLED.
+        :param attributes:  Launch attributes. These attributes override attributes on Start Launch call.
+        :return:            Response message.
+        """
         url = self.__get_launch_url(launch_uuid)
         request_payload = LaunchFinishRequest(
             end_time,
@@ -365,6 +413,13 @@ class Client:
                                *,
                                attributes: Optional[Union[List, Dict]] = None,
                                description: Optional[str] = None) -> Optional[str]:
+        """Update existing Test Item at the ReportPortal.
+
+        :param item_uuid:   Test Item UUID returned on the item start.
+        :param attributes:  Test Item attributes: [{'key': 'k_name', 'value': 'k_value'}, ...].
+        :param description: Test Item description.
+        :return:            Response message.
+        """
         data = {
             'description': description,
             'attributes': verify_value_length(attributes),
@@ -377,23 +432,6 @@ class Client:
         logger.debug('update_test_item - Item: %s', item_id)
         return await response.message
 
-    async def __get_item_uuid_url(self, item_uuid_future: Union[str, Task[str]]) -> Optional[str]:
-        item_uuid = await await_if_necessary(item_uuid_future)
-        if item_uuid is NOT_FOUND:
-            logger.warning('Attempt to make request for non-existent UUID.')
-            return
-        return root_uri_join(self.base_url_v1, 'item', 'uuid', item_uuid)
-
-    async def get_item_id_by_uuid(self, item_uuid_future: Union[str, Task[str]]) -> Optional[str]:
-        """Get test Item ID by the given Item UUID.
-
-        :param item_uuid_future: Str or Task UUID returned on the Item start
-        :return:                 Test item ID
-        """
-        url = self.__get_item_uuid_url(item_uuid_future)
-        response = await AsyncHttpRequest(self.session.get, url=url).make()
-        return response.id if response else None
-
     async def __get_launch_uuid_url(self, launch_uuid_future: Union[str, Task[str]]) -> Optional[str]:
         launch_uuid = await await_if_necessary(launch_uuid_future)
         if launch_uuid is NOT_FOUND:
@@ -405,8 +443,8 @@ class Client:
     async def get_launch_info(self, launch_uuid_future: Union[str, Task[str]]) -> Optional[Dict]:
         """Get the launch information by Launch UUID.
 
-        :param launch_uuid_future: Str or Task UUID returned on the Launch start
-        :return dict:              Launch information in dictionary
+        :param launch_uuid_future: Str or Task UUID returned on the Launch start.
+        :return:                   Launch information in dictionary.
         """
         url = self.__get_launch_uuid_url(launch_uuid_future)
         response = await AsyncHttpRequest(self.session.get, url=url).make()
@@ -420,15 +458,42 @@ class Client:
             launch_info = {}
         return launch_info
 
+    async def __get_item_uuid_url(self, item_uuid_future: Union[str, Task[str]]) -> Optional[str]:
+        item_uuid = await await_if_necessary(item_uuid_future)
+        if item_uuid is NOT_FOUND:
+            logger.warning('Attempt to make request for non-existent UUID.')
+            return
+        return root_uri_join(self.base_url_v1, 'item', 'uuid', item_uuid)
+
+    async def get_item_id_by_uuid(self, item_uuid_future: Union[str, Task[str]]) -> Optional[str]:
+        """Get Test Item ID by the given Item UUID.
+
+        :param item_uuid_future: Str or Task UUID returned on the Item start.
+        :return:                 Test Item ID.
+        """
+        url = self.__get_item_uuid_url(item_uuid_future)
+        response = await AsyncHttpRequest(self.session.get, url=url).make()
+        return response.id if response else None
+
     async def get_launch_ui_id(self, launch_uuid_future: Union[str, Task[str]]) -> Optional[int]:
+        """Get Launch ID of the given Launch.
+
+        :param launch_uuid_future: Str or Task UUID returned on the Launch start.
+        :return:                   Launch ID of the Launch. None if not found.
+        """
         launch_info = await self.get_launch_info(launch_uuid_future)
         return launch_info.get('id') if launch_info else None
 
     async def get_launch_ui_url(self, launch_uuid_future: Union[str, Task[str]]) -> Optional[str]:
+        """Get full quality URL of the given launch.
+
+        :param launch_uuid_future: Str or Task UUID returned on the Launch start.
+        :return:                   Launch URL string.
+        """
         launch_uuid = await await_if_necessary(launch_uuid_future)
         launch_info = await self.get_launch_info(launch_uuid)
-        ui_id = launch_info.get('id') if launch_info else None
-        if not ui_id:
+        launch_id = launch_info.get('id') if launch_info else None
+        if not launch_id:
             return
         mode = launch_info.get('mode') if launch_info else None
         if not mode:
@@ -438,17 +503,26 @@ class Client:
 
         path = 'ui/#{project_name}/{launch_type}/all/{launch_id}'.format(
             project_name=self.project.lower(), launch_type=launch_type,
-            launch_id=ui_id)
+            launch_id=launch_id)
         url = root_uri_join(self.endpoint, path)
         logger.debug('get_launch_ui_url - ID: %s', launch_uuid)
         return url
 
     async def get_project_settings(self) -> Optional[Dict]:
+        """Get settings of the current project.
+
+        :return: Settings response in Dictionary.
+        """
         url = root_uri_join(self.base_url_v1, 'settings')
         response = await AsyncHttpRequest(self.session.get, url=url).make()
         return await response.json if response else None
 
     async def log_batch(self, log_batch: Optional[List[AsyncRPRequestLog]]) -> Tuple[str, ...]:
+        """Send batch logging message to the ReportPortal.
+
+        :param log_batch: A list of log message objects.
+        :return:          Completion message tuple of variable size (depending on request size).
+        """
         url = root_uri_join(self.base_url_v2, 'log')
         if log_batch:
             response = await AsyncHttpRequest(self.session.post, url=url,

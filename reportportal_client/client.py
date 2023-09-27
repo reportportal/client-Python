@@ -128,7 +128,6 @@ class RP(metaclass=AbstractBaseClass):
                         name: str,
                         start_time: str,
                         item_type: str,
-                        *,
                         description: Optional[str] = None,
                         attributes: Optional[List[dict]] = None,
                         parameters: Optional[dict] = None,
@@ -140,22 +139,19 @@ class RP(metaclass=AbstractBaseClass):
                         **kwargs: Any) -> Optional[str]:
         """Start case/step/nested step item.
 
-        :param name:           Name of the test item
-        :param start_time:     The item start time
-        :param item_type:      Type of the test item. Allowable values:
-                               "suite", "story", "test", "scenario", "step",
-                               "before_class", "before_groups",
-                               "before_method", "before_suite",
-                               "before_test", "after_class", "after_groups",
-                               "after_method", "after_suite", "after_test"
+        :param name:           Name of the Test Item.
+        :param start_time:     The Item start time.
+        :param item_type:      Type of the Test Item. Allowed values:
+                               "suite", "story", "test", "scenario", "step", "before_class", "before_groups",
+                               "before_method", "before_suite", "before_test", "after_class", "after_groups",
+                               "after_method", "after_suite", "after_test".
         :param description:    The item description
         :param attributes:     Test item attributes
         :param parameters:     Set of parameters (for parametrized test items)
         :param parent_item_id: An ID of a parent SUITE / STEP
         :param has_stats:      Set to False if test item is nested step
         :param code_ref:       Physical location of the test item
-        :param retry:          Used to report retry of the test. Allowable
-                               values: "True" or "False"
+        :param retry:          Used to report retry of the test. Allowed values: "True" or "False"
         :param test_case_id:   A unique ID of the current step
         :return:               Test Item UUID
         """
@@ -165,7 +161,6 @@ class RP(metaclass=AbstractBaseClass):
     def finish_test_item(self,
                          item_id: str,
                          end_time: str,
-                         *,
                          status: str = None,
                          issue: Optional[Issue] = None,
                          attributes: Optional[Union[list, dict]] = None,
@@ -174,17 +169,15 @@ class RP(metaclass=AbstractBaseClass):
                          **kwargs: Any) -> Optional[str]:
         """Finish suite/case/step/nested step item.
 
-        :param item_id:     ID of the test item
-        :param end_time:    The item end time
-        :param status:      Test status. Allowable values:
-                            PASSED, FAILED, STOPPED, SKIPPED, INTERRUPTED, CANCELLED, INFO, WARN or None
-        :param issue:       Issue which will be attached to the current item
-        :param attributes:  Test item attributes(tags). Pairs of key and value.
-                            Override attributes on start
-        :param description: Test item description. Overrides description
-                            from start request.
-        :param retry:       Used to report retry of the test. Allowable values:
-                            "True" or "False"
+        :param item_id:     ID of the Test Item.
+        :param end_time:    The Item end time.
+        :param status:      Test status. Allowed values:
+                            PASSED, FAILED, STOPPED, SKIPPED, INTERRUPTED, CANCELLED, INFO, WARN or None.
+        :param issue:       Issue which will be attached to the current Item.
+        :param attributes:  Test Item attributes(tags). Pairs of key and value. These are override attributes
+                            on start Test Item call.
+        :param description: Test Item description. Overrides description from start request.
+        :param retry:       Used to report retry of the test. Allowed values: "True" or "False".
         :return:            Response message
         """
         raise NotImplementedError('"finish_test_item" method is not implemented!')
@@ -197,11 +190,11 @@ class RP(metaclass=AbstractBaseClass):
                       **kwargs: Any) -> Optional[str]:
         """Finish current launch.
 
-        :param end_time:    Launch end time
+        :param end_time:    Launch end time.
         :param status:      Launch status. Can be one of the followings:
-                            PASSED, FAILED, STOPPED, SKIPPED, INTERRUPTED, CANCELLED
-        :param attributes:  Launch attributes
-        :return:            Response message
+                            PASSED, FAILED, STOPPED, SKIPPED, INTERRUPTED, CANCELLED.
+        :param attributes:  Launch attributes. These attributes override attributes on Start Launch call.
+        :return:            Response message.
         """
         raise NotImplementedError('"finish_launch" method is not implemented!')
 
@@ -210,12 +203,12 @@ class RP(metaclass=AbstractBaseClass):
                          item_uuid: Optional[str],
                          attributes: Optional[Union[list, dict]] = None,
                          description: Optional[str] = None) -> Optional[str]:
-        """Update existing test item at the ReportPortal.
+        """Update existing Test Item at the ReportPortal.
 
-        :param item_uuid:   Test item UUID returned on the item start
-        :param attributes: Test item attributes: [{'key': 'k_name', 'value': 'k_value'}, ...]
-        :param description: Test item description
-        :return:            Response message
+        :param item_uuid:   Test Item UUID returned on the item start.
+        :param attributes:  Test Item attributes: [{'key': 'k_name', 'value': 'k_value'}, ...].
+        :param description: Test Item description.
+        :return:            Response message.
         """
         raise NotImplementedError('"update_test_item" method is not implemented!')
 
@@ -229,18 +222,18 @@ class RP(metaclass=AbstractBaseClass):
 
     @abstractmethod
     def get_item_id_by_uuid(self, item_uuid: str) -> Optional[str]:
-        """Get test item ID by the given UUID.
+        """Get Test Item ID by the given UUID.
 
-        :param item_uuid: UUID returned on the item start
-        :return:          Test item ID
+        :param item_uuid: UUID returned on the Item start.
+        :return:          Test Item ID.
         """
         raise NotImplementedError('"get_item_id_by_uuid" method is not implemented!')
 
     @abstractmethod
     def get_launch_ui_id(self) -> Optional[int]:
-        """Get UI ID of the current launch.
+        """Get Launch ID of the current launch.
 
-        :return: UI ID of the given launch. None if UI ID has not been found.
+        :return: Launch ID of the Launch. None if not found.
         """
         raise NotImplementedError('"get_launch_ui_id" method is not implemented!')
 
@@ -248,28 +241,31 @@ class RP(metaclass=AbstractBaseClass):
     def get_launch_ui_url(self) -> Optional[str]:
         """Get full quality URL of the current launch.
 
-        :return: launch URL string
+        :return: Launch URL string.
         """
         raise NotImplementedError('"get_launch_ui_id" method is not implemented!')
 
     @abstractmethod
     def get_project_settings(self) -> Optional[dict]:
-        """Get project settings.
+        """Get settings of the current project.
 
-        :return: HTTP response in dictionary
+        :return: Settings response in Dictionary.
         """
         raise NotImplementedError('"get_project_settings" method is not implemented!')
 
     @abstractmethod
-    def log(self, datetime: str, message: str, level: Optional[Union[int, str]] = None,
-            attachment: Optional[dict] = None, item_id: Optional[str] = None) -> None:
+    def log(self,
+            datetime: str, message: str,
+            level: Optional[Union[int, str]] = None,
+            attachment: Optional[dict] = None,
+            item_id: Optional[str] = None) -> None:
         """Send log message to the ReportPortal.
 
-        :param datetime:   Time in UTC
-        :param message:    Log message text
-        :param level:      Message's log level
-        :param attachment: Message's attachments
-        :param item_id:    ID of the RP item the message belongs to
+        :param datetime:   Time in UTC.
+        :param message:    Log message text.
+        :param level:      Message's log level.
+        :param attachment: Message's attachments.
+        :param item_id:    UUID of the ReportPortal Item the message belongs to.
         """
         raise NotImplementedError('"log" method is not implemented!')
 
@@ -493,7 +489,7 @@ class RPClient(RP):
                      rerun: bool = False,
                      rerun_of: Optional[str] = None,
                      **kwargs) -> Optional[str]:
-        """Start a new launch with the given parameters.
+        """Start a new launch with the given arguments.
 
         :param name:        Launch name
         :param start_time:  Launch start time
@@ -502,6 +498,7 @@ class RPClient(RP):
         :param rerun:       Start launch in rerun mode
         :param rerun_of:    For rerun mode specifies which launch will be
                             re-run. Should be used with the 'rerun' option.
+        :return:            Launch UUID if successfully started or None
         """
         if not self.use_own_launch:
             return self.launch_uuid
@@ -513,11 +510,9 @@ class RPClient(RP):
             description=description,
             mode=self.mode,
             rerun=rerun,
-            rerun_of=rerun_of or kwargs.get('rerunOf')
+            rerun_of=rerun_of
         ).payload
-        response = HttpRequest(self.session.post,
-                               url=url,
-                               json=request_payload,
+        response = HttpRequest(self.session.post, url=url, json=request_payload,
                                verify_ssl=self.verify_ssl).make()
         if not response:
             return
