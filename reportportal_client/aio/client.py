@@ -563,19 +563,43 @@ class AsyncRPClient(RP):
     use_own_launch: bool
 
     @property
+    def client(self) -> Client:
+        """Return current Client instance.
+
+        :return: Client instance.
+        """
+        return self.__client
+
+    @property
     def launch_uuid(self) -> Optional[str]:
+        """Return current Launch UUID.
+
+        :return: UUID string.
+        """
         return self.__launch_uuid
 
     @property
     def endpoint(self) -> str:
+        """Return current base URL.
+
+        :return: base URL string.
+        """
         return self.__endpoint
 
     @property
     def project(self) -> str:
+        """Return current Project name.
+
+        :return: Project name string.
+        """
         return self.__project
 
     @property
     def step_reporter(self) -> StepReporter:
+        """Return StepReporter object for the current launch.
+
+        :return: StepReporter to report steps.
+        """
         return self.__step_reporter
 
     def __init__(
@@ -798,22 +822,42 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
 
     @property
     def client(self) -> Client:
+        """Return current Client instance.
+
+        :return: Client instance.
+        """
         return self.__client
 
     @property
     def launch_uuid(self) -> Optional[Task[str]]:
+        """Return current Launch UUID.
+
+        :return: UUID string.
+        """
         return self.__launch_uuid
 
     @property
     def endpoint(self) -> str:
+        """Return current base URL.
+
+        :return: base URL string.
+        """
         return self.__endpoint
 
     @property
     def project(self) -> str:
+        """Return current Project name.
+
+        :return: Project name string.
+        """
         return self.__project
 
     @property
     def step_reporter(self) -> StepReporter:
+        """Return StepReporter object for the current launch.
+
+        :return: StepReporter to report steps.
+        """
         return self.__step_reporter
 
     def __init__(

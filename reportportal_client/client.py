@@ -54,17 +54,17 @@ class RP(metaclass=AbstractBaseClass):
     @property
     @abstractmethod
     def launch_uuid(self) -> Optional[str]:
-        """Return current launch UUID.
+        """Return current Launch UUID.
 
-        :return: UUID string
+        :return: UUID string.
         """
         raise NotImplementedError('"launch_uuid" property is not implemented!')
 
     @property
     def launch_id(self) -> Optional[str]:
-        """Return current launch UUID.
+        """Return current Launch UUID.
 
-        :return: UUID string
+        :return: UUID string.
         """
         warnings.warn(
             message='`launch_id` property is deprecated since 5.5.0 and will be subject for removing in the'
@@ -79,7 +79,7 @@ class RP(metaclass=AbstractBaseClass):
     def endpoint(self) -> str:
         """Return current base URL.
 
-        :return: base URL string
+        :return: base URL string.
         """
         raise NotImplementedError('"endpoint" property is not implemented!')
 
@@ -88,7 +88,7 @@ class RP(metaclass=AbstractBaseClass):
     def project(self) -> str:
         """Return current Project name.
 
-        :return: Project name string
+        :return: Project name string.
         """
         raise NotImplementedError('"project" property is not implemented!')
 
@@ -97,7 +97,7 @@ class RP(metaclass=AbstractBaseClass):
     def step_reporter(self) -> StepReporter:
         """Return StepReporter object for the current launch.
 
-        :return: StepReporter to report steps
+        :return: StepReporter to report steps.
         """
         raise NotImplementedError('"step_reporter" property is not implemented!')
 
