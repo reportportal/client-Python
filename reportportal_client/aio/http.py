@@ -24,7 +24,7 @@ from aiohttp import ClientSession, ClientResponse, ServerConnectionError, \
 DEFAULT_RETRY_NUMBER: int = 5
 DEFAULT_RETRY_DELAY: float = 0.005
 THROTTLING_STATUSES: set = {425, 429}
-RETRY_STATUSES: set = {408, 500, 502, 503, 507}.union(THROTTLING_STATUSES)
+RETRY_STATUSES: set = {408, 500, 502, 503, 504, 507}.union(THROTTLING_STATUSES)
 
 
 class RetryClass(int, Enum):

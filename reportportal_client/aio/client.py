@@ -11,7 +11,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License
 
-"""This module contains asynchronous implementation of ReportPortal Client."""
+"""This module contains asynchronous implementations of ReportPortal Client."""
 
 import asyncio
 import logging
@@ -29,10 +29,10 @@ import certifi
 from reportportal_client import RP
 # noinspection PyProtectedMember
 from reportportal_client._local import set_current
+from reportportal_client.aio.http import RetryingClientSession
 from reportportal_client.aio.tasks import (Task, BatchedTaskFactory, ThreadedTaskFactory, TriggerTaskBatcher,
                                            BackgroundTaskBatcher, DEFAULT_TASK_TRIGGER_NUM,
                                            DEFAULT_TASK_TRIGGER_INTERVAL)
-from reportportal_client.aio.http import RetryingClientSession
 from reportportal_client.core.rp_issues import Issue
 from reportportal_client.core.rp_requests import (LaunchStartRequest, AsyncHttpRequest, AsyncItemStartRequest,
                                                   AsyncItemFinishRequest, LaunchFinishRequest, RPFile,
@@ -59,14 +59,19 @@ DEFAULT_SHUTDOWN_TIMEOUT: float = 120.0
 
 
 class Client:
+    """Stateless asynchronous ReportPortal Client.
+
+    This class intentionally made to not store any data or context from ReportPortal. It provides basic
+    reporting and data read functions in asynchronous manner. Use it whenever you want to handle item IDs, log
+    batches, future tasks on your own.
+    """
+
     api_v1: str
     api_v2: str
     base_url_v1: str
     base_url_v2: str
     endpoint: str
     is_skipped_an_issue: bool
-    log_batch_size: int
-    log_batch_payload_size: int
     project: str
     api_key: str
     verify_ssl: Union[bool, str]
@@ -75,8 +80,8 @@ class Client:
     http_timeout: Union[float, Tuple[float, float]]
     keepalive_timeout: Optional[float]
     mode: str
-    launch_uuid_print: Optional[bool]
-    print_output: Optional[TextIO]
+    launch_uuid_print: bool
+    print_output: TextIO
     _skip_analytics: str
     __session: Optional[aiohttp.ClientSession]
     __stat_task: Optional[asyncio.Task]
@@ -87,27 +92,40 @@ class Client:
             project: str,
             *,
             api_key: str = None,
-            log_batch_size: int = 20,
             is_skipped_an_issue: bool = True,
             verify_ssl: Union[bool, str] = True,
             retries: int = None,
             max_pool_size: int = 50,
             http_timeout: Union[float, Tuple[float, float]] = (10, 10),
             keepalive_timeout: Optional[float] = None,
-            log_batch_payload_size: int = MAX_LOG_BATCH_PAYLOAD_SIZE,
             mode: str = 'DEFAULT',
             launch_uuid_print: bool = False,
             print_output: Optional[TextIO] = None,
             **kwargs: Any
     ) -> None:
+        """Initialize the class instance with arguments.
+
+        :param endpoint:               Endpoint of the ReportPortal service.
+        :param project:                Project name to report to.
+        :param api_key:                Authorization API key.
+        :param is_skipped_an_issue:    Option to mark skipped tests as not 'To Investigate' items on the
+                                       server side.
+        :param verify_ssl:             Option to skip ssl verification.
+        :param retries:                Number of retry attempts to make in case of connection / server errors.
+        :param max_pool_size:          Option to set the maximum number of connections to save the pool.
+        :param http_timeout:           A float in seconds for connect and read timeout. Use a Tuple to
+                                       specific connect and read separately.
+        :param keepalive_timeout:      Maximum amount of idle time in seconds before force connection closing.
+        :param mode:                   Launch mode, all Launches started by the client will be in that mode.
+        :param launch_uuid_print:      Print Launch UUID into passed TextIO or by default to stdout.
+        :param print_output:           Set output stream for Launch UUID printing.
+        """
         self.api_v1, self.api_v2 = 'v1', 'v2'
         self.endpoint = endpoint
         self.project = project
         self.base_url_v1 = root_uri_join(f'api/{self.api_v1}', self.project)
         self.base_url_v2 = root_uri_join(f'api/{self.api_v2}', self.project)
         self.is_skipped_an_issue = is_skipped_an_issue
-        self.log_batch_size = log_batch_size
-        self.log_batch_payload_size = log_batch_payload_size
         self.verify_ssl = verify_ssl
         self.retries = retries
         self.max_pool_size = max_pool_size
@@ -124,9 +142,8 @@ class Client:
         if not self.api_key:
             if 'token' in kwargs:
                 warnings.warn(
-                    message='Argument `token` is deprecated since 5.3.5 and '
-                            'will be subject for removing in the next major '
-                            'version. Use `api_key` argument instead.',
+                    message='Argument `token` is deprecated since 5.3.5 and will be subject for removing in '
+                            'the next major version. Use `api_key` argument instead.',
                     category=DeprecationWarning,
                     stacklevel=2
                 )
@@ -134,10 +151,9 @@ class Client:
 
             if not self.api_key:
                 warnings.warn(
-                    message='Argument `api_key` is `None` or empty string, '
-                            'that is not supposed to happen because Report '
-                            'Portal is usually requires an authorization key. '
-                            'Please check your code.',
+                    message='Argument `api_key` is `None` or empty string, that is not supposed to happen '
+                            'because Report Portal is usually requires an authorization key. Please check '
+                            'your code.',
                     category=RuntimeWarning,
                     stacklevel=2
                 )
@@ -155,27 +171,34 @@ class Client:
             else:
                 ssl_config = ssl.create_default_context(cafile=certifi.where())
 
-        params = {
+        connection_params = {
             'ssl': ssl_config,
             'limit': self.max_pool_size
         }
         if self.keepalive_timeout:
-            params['keepalive_timeout'] = self.keepalive_timeout
-        connector = aiohttp.TCPConnector(**params)
+            connection_params['keepalive_timeout'] = self.keepalive_timeout
+        connector = aiohttp.TCPConnector(**connection_params)
 
-        timeout = None
+        headers = {}
+        if self.api_key:
+            headers['Authorization'] = f'Bearer {self.api_key}'
+
+        session_params = {
+            headers: headers,
+            connector: connector
+        }
+
         if self.http_timeout:
             if type(self.http_timeout) == tuple:
                 connect_timeout, read_timeout = self.http_timeout
             else:
                 connect_timeout, read_timeout = self.http_timeout, self.http_timeout
-            timeout = aiohttp.ClientTimeout(connect=connect_timeout, sock_read=read_timeout)
+            session_params['timeout'] = aiohttp.ClientTimeout(connect=connect_timeout, sock_read=read_timeout)
 
-        headers = {}
-        if self.api_key:
-            headers['Authorization'] = f'Bearer {self.api_key}'
-        self.__session = RetryingClientSession(self.endpoint, connector=connector, headers=headers,
-                                               timeout=timeout)
+        if self.retries:
+            session_params['max_retry_number'] = self.retries
+
+        self.__session = RetryingClientSession(self.endpoint, **session_params)
         return self.__session
 
     async def close(self):
@@ -442,14 +465,12 @@ class Client:
             endpoint=self.endpoint,
             project=self.project,
             api_key=self.api_key,
-            log_batch_size=self.log_batch_size,
             is_skipped_an_issue=self.is_skipped_an_issue,
             verify_ssl=self.verify_ssl,
             retries=self.retries,
             max_pool_size=self.max_pool_size,
             http_timeout=self.http_timeout,
             keepalive_timeout=self.keepalive_timeout,
-            log_batch_payload_size=self.log_batch_payload_size,
             mode=self.mode,
             launch_uuid_print=self.launch_uuid_print,
             print_output=self.print_output
@@ -458,30 +479,14 @@ class Client:
 
 
 class AsyncRPClient(RP):
+    log_batch_size: int
+    log_batch_payload_limit: int
     _item_stack: LifoQueue
     _log_batcher: LogBatcher
     __client: Client
     __launch_uuid: Optional[str]
     __step_reporter: StepReporter
     use_own_launch: bool
-
-    def __init__(self, endpoint: str, project: str, *, launch_uuid: Optional[str] = None,
-                 client: Optional[Client] = None, **kwargs: Any) -> None:
-        set_current(self)
-        self.__endpoint = endpoint
-        self.__project = project
-        self.__step_reporter = StepReporter(self)
-        self._item_stack = LifoQueue()
-        self._log_batcher = LogBatcher()
-        if client:
-            self.__client = client
-        else:
-            self.__client = Client(endpoint, project, **kwargs)
-        if launch_uuid:
-            self.__launch_uuid = launch_uuid
-            self.use_own_launch = False
-        else:
-            self.use_own_launch = True
 
     @property
     def launch_uuid(self) -> Optional[str]:
@@ -498,6 +503,61 @@ class AsyncRPClient(RP):
     @property
     def step_reporter(self) -> StepReporter:
         return self.__step_reporter
+
+    def __init__(
+            self,
+            endpoint: str,
+            project: str,
+            *,
+            client: Optional[Client] = None,
+            launch_uuid: Optional[str] = None,
+            log_batch_size: int = 20,
+            log_batch_payload_limit: int = MAX_LOG_BATCH_PAYLOAD_SIZE,
+            log_batcher: Optional[LogBatcher] = None,
+            **kwargs: Any
+    ) -> None:
+        """Initialize the class instance with arguments.
+
+        :param endpoint:                Endpoint of the ReportPortal service.
+        :param project:                 Project name to report to.
+        :param api_key:                 Authorization API key.
+        :param is_skipped_an_issue:     Option to mark skipped tests as not 'To Investigate' items on the
+                                        server side.
+        :param verify_ssl:              Option to skip ssl verification.
+        :param retries:                 Number of retry attempts to make in case of connection / server errors.
+        :param max_pool_size:           Option to set the maximum number of connections to save the pool.
+        :param http_timeout:            A float in seconds for connect and read timeout. Use a Tuple to
+                                        specific connect and read separately.
+        :param keepalive_timeout:       Maximum amount of idle time in seconds before force connection closing.
+        :param mode:                    Launch mode, all Launches started by the client will be in that mode.
+        :param launch_uuid_print:       Print Launch UUID into passed TextIO or by default to stdout.
+        :param print_output:            Set output stream for Launch UUID printing.
+        :param client:                  ReportPortal async Client instance to use. If set, all above arguments
+                                        will be ignored.
+        :param launch_uuid:             A launch UUID to use instead of starting own one.
+        :param log_batch_size:          Option to set the maximum number of logs that can be processed in one
+                                        batch.
+        :param log_batch_payload_limit: maximum size in bytes of logs that can be processed in one batch
+        :param log_batcher:             ReportPortal log batcher instance to use. If set, 'log_batch'
+                                        arguments above will be ignored.
+        """
+        self.__endpoint = endpoint
+        self.__project = project
+        self.__step_reporter = StepReporter(self)
+        self._item_stack = LifoQueue()
+        self.log_batch_size = log_batch_size
+        self.log_batch_payload_limit = log_batch_payload_limit
+        self._log_batcher = log_batcher or LogBatcher(log_batch_size, log_batch_payload_limit)
+        if client:
+            self.__client = client
+        else:
+            self.__client = Client(endpoint, project, **kwargs)
+        if launch_uuid:
+            self.__launch_uuid = launch_uuid
+            self.use_own_launch = False
+        else:
+            self.use_own_launch = True
+        set_current(self)
 
     async def start_launch(self,
                            name: str,
@@ -634,10 +694,13 @@ class AsyncRPClient(RP):
         cloned_client = self.__client.clone()
         # noinspection PyTypeChecker
         cloned = AsyncRPClient(
-            endpoint=None,
-            project=None,
+            endpoint=self.endpoint,
+            project=self.project,
             client=cloned_client,
-            launch_uuid=self.launch_uuid
+            launch_uuid=self.launch_uuid,
+            log_batch_size=self.log_batch_size,
+            log_batch_payload_limit=self.log_batch_payload_limit,
+            log_batcher=self._log_batcher
         )
         current_item = self.current_item()
         if current_item:

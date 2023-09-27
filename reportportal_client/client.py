@@ -407,25 +407,26 @@ class RPClient(RP):
             log_batcher: Optional[LogBatcher[RPRequestLog]] = None,
             **kwargs: Any
     ) -> None:
-        """Initialize required attributes.
+        """Initialize the class instance with arguments.
 
-        :param endpoint:               Endpoint of the ReportPortal service
-        :param project:                Project name to report to
-        :param api_key:                Authorization API key
-        :param log_batch_size:         Option to set the maximum number of
-                                       logs that can be processed in one batch
-        :param is_skipped_an_issue:    Option to mark skipped tests as not
-                                       'To Investigate' items on the server
-                                       side
-        :param verify_ssl:             Option to skip ssl verification
-        :param max_pool_size:          Option to set the maximum number of
-                                       connections to save the pool.
-        :param launch_uuid:            a launch UUID to use instead of starting own one
-        :param http_timeout:           a float in seconds for connect and read
-                                       timeout. Use a Tuple to specific connect
-                                       and read separately.
-        :param log_batch_payload_size: maximum size in bytes of logs that can
-                                       be processed in one batch
+        :param endpoint:               Endpoint of the ReportPortal service.
+        :param project:                Project name to report to.
+        :param api_key:                Authorization API key.
+        :param log_batch_size:         Option to set the maximum number of logs that can be processed in one
+                                       batch.
+        :param is_skipped_an_issue:    Option to mark skipped tests as not 'To Investigate' items on the
+                                       server side.
+        :param verify_ssl:             Option to skip ssl verification.
+        :param retries:                Number of retry attempts to make in case of connection / server errors.
+        :param max_pool_size:          Option to set the maximum number of connections to save the pool.
+        :param launch_uuid:            A launch UUID to use instead of starting own one.
+        :param http_timeout:           A float in seconds for connect and read timeout. Use a Tuple to
+                                       specific connect and read separately.
+        :param log_batch_payload_size: Maximum size in bytes of logs that can be processed in one batch.
+        :param mode:                   Launch mode, all Launches started by the client will be in that mode.
+        :param launch_uuid_print:      Print Launch UUID into passed TextIO or by default to stdout.
+        :param print_output:           Set output stream for Launch UUID printing.
+        :param log_batcher:            Use existing LogBatcher instance instead of creation of own one.
         """
         set_current(self)
         self.api_v1, self.api_v2 = 'v1', 'v2'
@@ -466,9 +467,8 @@ class RPClient(RP):
         if not self.api_key:
             if 'token' in kwargs:
                 warnings.warn(
-                    message='Argument `token` is deprecated since 5.3.5 and '
-                            'will be subject for removing in the next major '
-                            'version. Use `api_key` argument instead.',
+                    message='Argument `token` is deprecated since 5.3.5 and will be subject for removing in '
+                            'the next major version. Use `api_key` argument instead.',
                     category=DeprecationWarning,
                     stacklevel=2
                 )
@@ -476,10 +476,9 @@ class RPClient(RP):
 
             if not self.api_key:
                 warnings.warn(
-                    message='Argument `api_key` is `None` or empty string, '
-                            'that is not supposed to happen because Report '
-                            'Portal is usually requires an authorization key. '
-                            'Please check your code.',
+                    message='Argument `api_key` is `None` or empty string, that is not supposed to happen '
+                            'because Report Portal is usually requires an authorization key. Please check '
+                            'your code.',
                     category=RuntimeWarning,
                     stacklevel=2
                 )
