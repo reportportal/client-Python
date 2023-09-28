@@ -485,7 +485,7 @@ class Client:
         return launch_info.get('id') if launch_info else None
 
     async def get_launch_ui_url(self, launch_uuid_future: Union[str, Task[str]]) -> Optional[str]:
-        """Get full quality URL of the given launch.
+        """Get full quality URL of the given Launch.
 
         :param launch_uuid_future: Str or Task UUID returned on the Launch start.
         :return:                   Launch URL string.
@@ -509,7 +509,7 @@ class Client:
         return url
 
     async def get_project_settings(self) -> Optional[Dict]:
-        """Get settings of the current project.
+        """Get settings of the current Project.
 
         :return: Settings response in Dictionary.
         """
@@ -807,7 +807,10 @@ class AsyncRPClient(RP):
         return self._item_stack.get()
 
     def current_item(self) -> Optional[str]:
-        """Retrieve the last item reported by the client."""
+        """Retrieve the last Item reported by the client (based on the internal FILO queue).
+
+        :return: Item UUID string.
+        """
         return self._item_stack.last()
 
     async def get_launch_info(self) -> Optional[dict]:
@@ -820,31 +823,57 @@ class AsyncRPClient(RP):
         return await self.__client.get_launch_info(self.launch_uuid)
 
     async def get_item_id_by_uuid(self, item_uuid: str) -> Optional[str]:
+        """Get Test Item ID by the given Item UUID.
+
+        :param item_uuid: String UUID returned on the Item start.
+        :return:          Test Item ID.
+        """
         return await self.__client.get_item_id_by_uuid(item_uuid)
 
     async def get_launch_ui_id(self) -> Optional[int]:
+        """Get Launch ID of the current Launch.
+
+        :return: Launch ID of the Launch. None if not found.
+        """
         if not self.launch_uuid:
             return
         return await self.__client.get_launch_ui_id(self.launch_uuid)
 
     async def get_launch_ui_url(self) -> Optional[str]:
+        """Get full quality URL of the current Launch.
+
+        :return: Launch URL string.
+        """
         if not self.launch_uuid:
             return
         return await self.__client.get_launch_ui_url(self.launch_uuid)
 
     async def get_project_settings(self) -> Optional[Dict]:
+        """Get settings of the current Project.
+
+        :return: Settings response in Dictionary.
+        """
         return await self.__client.get_project_settings()
 
-    async def log(self, time: str, message: str, level: Optional[Union[int, str]] = None,
-                  attachment: Optional[Dict] = None,
-                  item_id: Optional[str] = None) -> Optional[Tuple[str, ...]]:
-        """Log message. Can be added to test item in any state.
+    async def log(
+            self,
+            time: str,
+            message: str,
+            level: Optional[Union[int, str]] = None,
+            attachment: Optional[Dict] = None,
+            item_id: Optional[str] = None
+    ) -> Optional[Tuple[str, ...]]:
+        """Send Log message to the ReportPortal and attach it to a Test Item or Launch.
 
-        :param time:    Log time
-        :param message:     Log message
-        :param level:       Log level
-        :param attachment:  Attachments(images,files,etc.)
-        :param item_id: Parent item UUID
+        This method stores Log messages in internal batch and sent it when batch is full, so not every method
+        call will return any response.
+
+        :param time:       Time in UTC.
+        :param message:    Log message text.
+        :param level:      Message's Log level.
+        :param attachment: Message's attachments(images,files,etc.).
+        :param item_id:    UUID of the ReportPortal Item the message belongs to.
+        :return:           Response message Tuple if Log message batch was sent or None.
         """
         if item_id is NOT_FOUND:
             logger.warning("Attempt to log to non-existent item")
@@ -854,10 +883,10 @@ class AsyncRPClient(RP):
         return await self.__client.log_batch(await self._log_batcher.append_async(rp_log))
 
     def clone(self) -> 'AsyncRPClient':
-        """Clone the client object, set current Item ID as cloned item ID.
+        """Clone the Client object, set current Item ID as cloned Item ID.
 
         :return: Cloned client object
-        :rtype: AsyncRPClient
+        :rtype: AsyncRPClient.
         """
         cloned_client = self.__client.clone()
         # noinspection PyTypeChecker
@@ -967,22 +996,37 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
 
     @abstractmethod
     def create_task(self, coro: Coroutine[Any, Any, _T]) -> Optional[Task[_T]]:
+        """Create a Task from given Coroutine.
+
+        :param coro: Coroutine which will be used for the Task creation.
+        :return:     Task instance.
+        """
         raise NotImplementedError('"create_task" method is not implemented!')
 
     @abstractmethod
     def finish_tasks(self) -> None:
+        """Ensure all pending Tasks are finished, block current Thread if necessary."""
         raise NotImplementedError('"create_task" method is not implemented!')
 
     def _add_current_item(self, item: Task[_T]) -> None:
-        """Add the last item from the self._items queue."""
+        """Add the last Item to the internal FILO queue.
+
+        :param item: Future Task of the Item UUID.
+        """
         self._item_stack.put(item)
 
     def _remove_current_item(self) -> Task[_T]:
-        """Remove the last item from the self._items queue."""
+        """Remove the last Item from the internal FILO queue.
+
+        :return: Future Task of the Item UUID.
+        """
         return self._item_stack.get()
 
     def current_item(self) -> Task[_T]:
-        """Retrieve the last item reported by the client."""
+        """Retrieve the last Item reported by the client (based on the internal FILO queue).
+
+        :return: Future Task of the Item UUID.
+        """
         return self._item_stack.last()
 
     async def __empty_str(self):
@@ -1143,11 +1187,20 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
         return result_task
 
     def get_item_id_by_uuid(self, item_uuid_future: Task[str]) -> Task[str]:
+        """Get Test Item ID by the given Item UUID.
+
+        :param item_uuid_future: Str or Task UUID returned on the Item start.
+        :return:                 Test Item ID.
+        """
         result_coro = self.__client.get_item_id_by_uuid(item_uuid_future)
         result_task = self.create_task(result_coro)
         return result_task
 
     def get_launch_ui_id(self) -> Task[int]:
+        """Get Launch ID of the current Launch.
+
+        :return: Launch ID of the Launch. None if not found.
+        """
         if not self.launch_uuid:
             return self.create_task(self.__int_value())
         result_coro = self.__client.get_launch_ui_id(self.launch_uuid)
@@ -1155,6 +1208,10 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
         return result_task
 
     def get_launch_ui_url(self) -> Task[str]:
+        """Get full quality URL of the current Launch.
+
+        :return: Launch URL string.
+        """
         if not self.launch_uuid:
             return self.create_task(self.__empty_str())
         result_coro = self.__client.get_launch_ui_url(self.launch_uuid)
@@ -1162,6 +1219,10 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
         return result_task
 
     def get_project_settings(self) -> Task[dict]:
+        """Get settings of the current Project.
+
+        :return: Settings response in Dictionary.
+        """
         result_coro = self.__client.get_project_settings()
         result_task = self.create_task(result_coro)
         return result_task
@@ -1174,13 +1235,17 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
 
     def log(self, time: str, message: str, level: Optional[Union[int, str]] = None,
             attachment: Optional[Dict] = None, item_id: Optional[Task[str]] = None) -> None:
-        """Log message. Can be added to test item in any state.
+        """Send Log message to the ReportPortal and attach it to a Test Item or Launch.
 
-        :param time:    Log time
-        :param message:     Log message
-        :param level:       Log level
-        :param attachment:  Attachments(images,files,etc.)
-        :param item_id: Parent item UUID
+        This method stores Log messages in internal batch and sent it when batch is full, so not every method
+        call will return any response.
+
+        :param time:       Time in UTC.
+        :param message:    Log message text.
+        :param level:      Message's Log level.
+        :param attachment: Message's attachments(images,files,etc.).
+        :param item_id:    UUID of the ReportPortal Item the message belongs to.
+        :return:           Response message Tuple if Log message batch was sent or None.
         """
         if item_id is NOT_FOUND:
             logger.warning("Attempt to log to non-existent item")
@@ -1234,6 +1299,11 @@ class ThreadedRPClient(_RPClient):
         self._loop.call_at(self._loop.time() + 0.1, self.__heartbeat)
 
     def create_task(self, coro: Coroutine[Any, Any, _T]) -> Optional[Task[_T]]:
+        """Create a Task from given Coroutine.
+
+        :param coro: Coroutine which will be used for the Task creation.
+        :return:     Task instance.
+        """
         if not getattr(self, '_loop', None):
             return
         result = self._loop.create_task(coro)
@@ -1242,6 +1312,7 @@ class ThreadedRPClient(_RPClient):
         return result
 
     def finish_tasks(self):
+        """Ensure all pending Tasks are finished, block current Thread if necessary."""
         shutdown_start_time = datetime.time()
         with self.__task_mutex:
             tasks = self.__task_list.flush()
@@ -1255,9 +1326,9 @@ class ThreadedRPClient(_RPClient):
         self._loop.create_task(self._close()).blocking_result()
 
     def clone(self) -> 'ThreadedRPClient':
-        """Clone the client object, set current Item ID as cloned item ID.
+        """Clone the Client object, set current Item ID as cloned Item ID.
 
-        :return: Cloned client object
+        :return: Cloned client object.
         :rtype: ThreadedRPClient
         """
         cloned_client = self.client.clone()
@@ -1314,6 +1385,11 @@ class BatchedRPClient(_RPClient):
         self.__trigger_interval = trigger_interval
 
     def create_task(self, coro: Coroutine[Any, Any, _T]) -> Optional[Task[_T]]:
+        """Create a Task from given Coroutine.
+
+        :param coro: Coroutine which will be used for the Task creation.
+        :return:     Task instance.
+        """
         if not getattr(self, '_loop', None):
             return
         result = self._loop.create_task(coro)
@@ -1324,6 +1400,7 @@ class BatchedRPClient(_RPClient):
         return result
 
     def finish_tasks(self) -> None:
+        """Ensure all pending Tasks are finished, block current Thread if necessary."""
         with self.__task_mutex:
             tasks = self.__task_list.flush()
             if tasks:
@@ -1335,9 +1412,9 @@ class BatchedRPClient(_RPClient):
             self._loop.run_until_complete(self._close())
 
     def clone(self) -> 'BatchedRPClient':
-        """Clone the client object, set current Item ID as cloned item ID.
+        """Clone the Client object, set current Item ID as cloned Item ID.
 
-        :return: Cloned client object
+        :return: Cloned client object.
         :rtype: BatchedRPClient
         """
         cloned_client = self.client.clone()

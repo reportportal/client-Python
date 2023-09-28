@@ -222,16 +222,16 @@ class RP(metaclass=AbstractBaseClass):
 
     @abstractmethod
     def get_item_id_by_uuid(self, item_uuid: str) -> Optional[str]:
-        """Get Test Item ID by the given UUID.
+        """Get Test Item ID by the given Item UUID.
 
-        :param item_uuid: UUID returned on the Item start.
+        :param item_uuid: String UUID returned on the Item start.
         :return:          Test Item ID.
         """
         raise NotImplementedError('"get_item_id_by_uuid" method is not implemented!')
 
     @abstractmethod
     def get_launch_ui_id(self) -> Optional[int]:
-        """Get Launch ID of the current launch.
+        """Get Launch ID of the current Launch.
 
         :return: Launch ID of the Launch. None if not found.
         """
@@ -239,7 +239,7 @@ class RP(metaclass=AbstractBaseClass):
 
     @abstractmethod
     def get_launch_ui_url(self) -> Optional[str]:
-        """Get full quality URL of the current launch.
+        """Get full quality URL of the current Launch.
 
         :return: Launch URL string.
         """
@@ -247,7 +247,7 @@ class RP(metaclass=AbstractBaseClass):
 
     @abstractmethod
     def get_project_settings(self) -> Optional[dict]:
-        """Get settings of the current project.
+        """Get settings of the current Project.
 
         :return: Settings response in Dictionary.
         """
@@ -255,17 +255,21 @@ class RP(metaclass=AbstractBaseClass):
 
     @abstractmethod
     def log(self,
-            datetime: str, message: str,
+            time: str, message: str,
             level: Optional[Union[int, str]] = None,
             attachment: Optional[dict] = None,
-            item_id: Optional[str] = None) -> None:
-        """Send log message to the ReportPortal.
+            item_id: Optional[str] = None) -> Optional[Tuple[str, ...]]:
+        """Send Log message to the ReportPortal and attach it to a Test Item or Launch.
 
-        :param datetime:   Time in UTC.
+        This method stores Log messages in internal batch and sent it when batch is full, so not every method
+        call will return any response.
+
+        :param time:       Time in UTC.
         :param message:    Log message text.
-        :param level:      Message's log level.
-        :param attachment: Message's attachments.
+        :param level:      Message's Log level.
+        :param attachment: Message's attachments(images,files,etc.).
         :param item_id:    UUID of the ReportPortal Item the message belongs to.
+        :return:           Response message Tuple if Log message batch was sent or None.
         """
         raise NotImplementedError('"log" method is not implemented!')
 
@@ -289,14 +293,18 @@ class RP(metaclass=AbstractBaseClass):
 
     @abstractmethod
     def current_item(self) -> Optional[str]:
-        """Retrieve the last item reported by the client."""
+        """Retrieve the last Item reported by the client (based on the internal FILO queue).
+
+        :return: Item UUID string.
+        """
         raise NotImplementedError('"current_item" method is not implemented!')
 
     @abstractmethod
     def clone(self) -> 'RP':
-        """Clone the client object, set current Item ID as cloned root Item ID.
+        """Clone the Client object, set current Item ID as cloned Item ID.
 
-        :return: Cloned client object
+        :return: Cloned client object.
+        :rtype: RP
         """
         raise NotImplementedError('"clone" method is not implemented!')
 
@@ -701,15 +709,23 @@ class RPClient(RP):
                                    verify_ssl=self.verify_ssl).make()
             return response.messages
 
-    def log(self, time: str, message: str, level: Optional[Union[int, str]] = None,
-            attachment: Optional[dict] = None, item_id: Optional[str] = None) -> Optional[Tuple[str, ...]]:
-        """Send log message to the ReportPortal.
+    def log(self,
+            time: str,
+            message: str,
+            level: Optional[Union[int, str]] = None,
+            attachment: Optional[dict] = None,
+            item_id: Optional[str] = None) -> Optional[Tuple[str, ...]]:
+        """Send Log message to the ReportPortal and attach it to a Test Item or Launch.
 
-        :param time:       Time in UTC
-        :param message:    Log message text
-        :param level:      Message's log level
-        :param attachment: Message's attachments
-        :param item_id:    ID of the RP item the message belongs to
+        This method stores Log messages in internal batch and sent it when batch is full, so not every method
+        call will return any response.
+
+        :param time:       Time in UTC.
+        :param message:    Log message text.
+        :param level:      Message's Log level.
+        :param attachment: Message's attachments(images,files,etc.).
+        :param item_id:    UUID of the ReportPortal Item the message belongs to.
+        :return:           Response message Tuple if Log message batch was sent or None.
         """
         if item_id is NOT_FOUND:
             logger.warning("Attempt to log to non-existent item")
@@ -719,10 +735,10 @@ class RPClient(RP):
         return self._log(self._log_batcher.append(rp_log))
 
     def get_item_id_by_uuid(self, item_uuid: str) -> Optional[str]:
-        """Get test item ID by the given UUID.
+        """Get Test Item ID by the given Item UUID.
 
-        :param item_uuid: UUID returned on the item start
-        :return:          Test item ID
+        :param item_uuid: String UUID returned on the Item start.
+        :return:          Test Item ID.
         """
         url = uri_join(self.base_url_v1, 'item', 'uuid', item_uuid)
         response = HttpRequest(self.session.get, url=url,
@@ -753,17 +769,17 @@ class RPClient(RP):
         return launch_info
 
     def get_launch_ui_id(self) -> Optional[int]:
-        """Get UI ID of the current launch.
+        """Get Launch ID of the current Launch.
 
-        :return: UI ID of the given launch. None if UI ID has not been found.
+        :return: Launch ID of the Launch. None if not found.
         """
         launch_info = self.get_launch_info()
         return launch_info.get('id') if launch_info else None
 
     def get_launch_ui_url(self) -> Optional[str]:
-        """Get UI URL of the current launch.
+        """Get full quality URL of the current Launch.
 
-        :return: launch URL or all launches URL.
+        :return: Launch URL string.
         """
         launch_info = self.get_launch_info()
         ui_id = launch_info.get('id') if launch_info else None
@@ -783,9 +799,9 @@ class RPClient(RP):
         return url
 
     def get_project_settings(self) -> Optional[dict]:
-        """Get project settings.
+        """Get settings of the current Project.
 
-        :return: HTTP response in dictionary
+        :return: Settings response in Dictionary.
         """
         url = uri_join(self.base_url_v1, 'settings')
         response = HttpRequest(self.session.get, url=url,
@@ -807,16 +823,16 @@ class RPClient(RP):
             return
 
     def current_item(self) -> Optional[str]:
-        """Retrieve the last item reported by the client.
+        """Retrieve the last item reported by the client (based on the internal FILO queue).
 
-        :return: Item UUID string
+        :return: Item UUID string.
         """
         return self._item_stack.last()
 
     def clone(self) -> 'RPClient':
-        """Clone the client object, set current Item ID as cloned item ID.
+        """Clone the Client object, set current Item ID as cloned Item ID.
 
-        :return: Cloned client object
+        :return: Cloned client object.
         :rtype: RPClient
         """
         cloned = RPClient(
