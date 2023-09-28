@@ -80,7 +80,7 @@ def get_http_server(server_class=SERVER_CLASS, server_address=SERVER_ADDRESS,
 
 
 @pytest.mark.skipif(sys.version_info < (3, 8),
-                    reason="the test requires Python 3.8 or higher")
+                    reason="the test requires AsyncMock which was introduced in Python 3.8")
 @pytest.mark.parametrize(
     'server_class, port, expected_delay, timeout_seconds, is_exception',
     [
@@ -121,6 +121,8 @@ async def test_retry_on_request_error(server_class, port, expected_delay, timeou
     assert total_time < expected_delay * 1.5
 
 
+@pytest.mark.skipif(sys.version_info < (3, 8),
+                    reason="the test requires AsyncMock which was introduced in Python 3.8")
 @pytest.mark.asyncio
 async def test_no_retry_on_ok_request():
     retry_number = 5
