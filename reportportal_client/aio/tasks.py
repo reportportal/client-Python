@@ -253,8 +253,8 @@ class TriggerTaskBatcher(Generic[_T]):
             return tasks
 
 
-class BackgroundTaskBatcher(Generic[_T]):
-    """Batching class which collects Tasks into internal batch and removes when they complete."""
+class BackgroundTaskList(Generic[_T]):
+    """Task list class which collects Tasks into internal batch and removes when they complete."""
 
     __task_list: List[_T]
 

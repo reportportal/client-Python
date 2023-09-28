@@ -31,7 +31,7 @@ from reportportal_client import RP
 from reportportal_client._local import set_current
 from reportportal_client.aio.http import RetryingClientSession
 from reportportal_client.aio.tasks import (Task, BatchedTaskFactory, ThreadedTaskFactory, TriggerTaskBatcher,
-                                           BackgroundTaskBatcher, DEFAULT_TASK_TRIGGER_NUM,
+                                           BackgroundTaskList, DEFAULT_TASK_TRIGGER_NUM,
                                            DEFAULT_TASK_TRIGGER_INTERVAL)
 from reportportal_client.core.rp_issues import Issue
 from reportportal_client.core.rp_requests import (LaunchStartRequest, AsyncHttpRequest, AsyncItemStartRequest,
@@ -553,7 +553,7 @@ class Client:
 
 
 class AsyncRPClient(RP):
-    """Stateful asynchronous ReportPortal Client.
+    """Asynchronous ReportPortal Client.
 
     This class implements common RP client interface but all its methods are async, so it capable to use in
     asynchronous ReportPortal agents. It handles HTTP request and response bodies generation and
@@ -910,10 +910,10 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
 
     __metaclass__ = AbstractBaseClass
 
+    log_batch_size: int
+    log_batch_payload_limit: int
     _item_stack: LifoQueue
     _log_batcher: LogBatcher
-    _shutdown_timeout: float
-    _task_timeout: float
     __client: Client
     __launch_uuid: Optional[Task[str]]
     __endpoint: str
@@ -966,32 +966,61 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
             endpoint: str,
             project: str,
             *,
-            launch_uuid: Optional[Task[str]] = None,
             client: Optional[Client] = None,
+            launch_uuid: Optional[Task[str]] = None,
+            log_batch_size: int = 20,
+            log_batch_payload_limit: int = MAX_LOG_BATCH_PAYLOAD_SIZE,
             log_batcher: Optional[LogBatcher] = None,
-            task_timeout: float = DEFAULT_TASK_TIMEOUT,
-            shutdown_timeout: float = DEFAULT_SHUTDOWN_TIMEOUT,
             **kwargs: Any
     ) -> None:
+        """Initialize the class instance with arguments.
+
+        :param endpoint:                Endpoint of the ReportPortal service.
+        :param project:                 Project name to report to.
+        :param api_key:                 Authorization API key.
+        :param is_skipped_an_issue:     Option to mark skipped tests as not 'To Investigate' items on the
+                                        server side.
+        :param verify_ssl:              Option to skip ssl verification.
+        :param retries:                 Number of retry attempts to make in case of connection / server errors.
+        :param max_pool_size:           Option to set the maximum number of connections to save the pool.
+        :param http_timeout:            A float in seconds for connect and read timeout. Use a Tuple to
+                                        specific connect and read separately.
+        :param keepalive_timeout:       Maximum amount of idle time in seconds before force connection closing.
+        :param mode:                    Launch mode, all Launches started by the client will be in that mode.
+        :param launch_uuid_print:       Print Launch UUID into passed TextIO or by default to stdout.
+        :param print_output:            Set output stream for Launch UUID printing.
+        :param client:                  ReportPortal async Client instance to use. If set, all above arguments
+                                        will be ignored.
+        :param launch_uuid:             A launch UUID to use instead of starting own one.
+        :param log_batch_size:          Option to set the maximum number of logs that can be processed in one
+                                        batch.
+        :param log_batch_payload_limit: maximum size in bytes of logs that can be processed in one batch
+        :param log_batcher:             ReportPortal log batcher instance to use. If set, 'log_batch'
+                                        arguments above will be ignored.
+        """
         self.__endpoint = endpoint
         self.__project = project
         self.__step_reporter = StepReporter(self)
         self._item_stack = LifoQueue()
-        self._shutdown_timeout = shutdown_timeout
-        self._task_timeout = task_timeout
+
+        self.log_batch_size = log_batch_size
+        self.log_batch_payload_limit = log_batch_payload_limit
         if log_batcher:
             self._log_batcher = log_batcher
         else:
-            self._log_batcher = LogBatcher()
+            self._log_batcher = LogBatcher(log_batch_size, log_batch_payload_limit)
+
         if client:
             self.__client = client
         else:
             self.__client = Client(endpoint, project, **kwargs)
+
         if launch_uuid:
             self.__launch_uuid = launch_uuid
             self.use_own_launch = False
         else:
             self.use_own_launch = True
+
         set_current(self)
 
     @abstractmethod
@@ -1260,8 +1289,17 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
 
 
 class ThreadedRPClient(_RPClient):
+    """Synchronous-asynchronous ReportPortal Client which uses background Thread to execute async coroutines.
+
+    This class implements common RP client interface, so it capable to use in synchronous ReportPortal Agents
+    if you want to achieve async performance level with synchronous code. It handles HTTP request and response
+    bodies generation and serialization, connection retries and log batching.
+    """
+
+    _task_timeout: float
+    _shutdown_timeout: float
     _loop: Optional[asyncio.AbstractEventLoop]
-    __task_list: BackgroundTaskBatcher[Task[_T]]
+    __task_list: BackgroundTaskList[Task[_T]]
     __task_mutex: threading.RLock
     __thread: Optional[threading.Thread]
 
@@ -1270,17 +1308,59 @@ class ThreadedRPClient(_RPClient):
             endpoint: str,
             project: str,
             *,
-            launch_uuid: Optional[Task[str]] = None,
-            client: Optional[Client] = None,
-            log_batcher: Optional[LogBatcher] = None,
-            task_list: Optional[BackgroundTaskBatcher[Task[_T]]] = None,
+            task_timeout: float = DEFAULT_TASK_TIMEOUT,
+            shutdown_timeout: float = DEFAULT_SHUTDOWN_TIMEOUT,
+            task_list: Optional[BackgroundTaskList[Task[_T]]] = None,
             task_mutex: Optional[threading.RLock] = None,
             loop: Optional[asyncio.AbstractEventLoop] = None,
             **kwargs: Any
     ) -> None:
-        super().__init__(endpoint, project, launch_uuid=launch_uuid, client=client, log_batcher=log_batcher,
-                         **kwargs)
-        self.__task_list = task_list or BackgroundTaskBatcher()
+        """Initialize the class instance with arguments.
+
+        :param endpoint:                Endpoint of the ReportPortal service.
+        :param project:                 Project name to report to.
+        :param api_key:                 Authorization API key.
+        :param is_skipped_an_issue:     Option to mark skipped tests as not 'To Investigate' items on the
+                                        server side.
+        :param verify_ssl:              Option to skip ssl verification.
+        :param retries:                 Number of retry attempts to make in case of connection / server errors.
+        :param max_pool_size:           Option to set the maximum number of connections to save the pool.
+        :param http_timeout:            A float in seconds for connect and read timeout. Use a Tuple to
+                                        specific connect and read separately.
+        :param keepalive_timeout:       Maximum amount of idle time in seconds before force connection closing.
+        :param mode:                    Launch mode, all Launches started by the client will be in that mode.
+        :param launch_uuid_print:       Print Launch UUID into passed TextIO or by default to stdout.
+        :param print_output:            Set output stream for Launch UUID printing.
+        :param client:                  ReportPortal async Client instance to use. If set, all above arguments
+                                        will be ignored.
+        :param launch_uuid:             A launch UUID to use instead of starting own one.
+        :param log_batch_size:          Option to set the maximum number of logs that can be processed in one
+                                        batch.
+        :param log_batch_payload_limit: maximum size in bytes of logs that can be processed in one batch
+        :param log_batcher:             ReportPortal log batcher instance to use. If set, 'log_batch'
+                                        arguments above will be ignored.
+        :param task_timeout:            Time limit in seconds for a Task processing.
+        :param shutdown_timeout:        Time limit in seconds for shutting down internal Tasks.
+        :param task_list:               Thread-safe Task list to have one task storage for multiple Clients
+                                        which guarantees their processing on Launch finish. The Client creates
+                                        own Task list if this argument is None.
+        :param task_mutex:              Mutex object which is responsible for synchronization of the passed
+                                        task_list. The Client creates own one if this argument is None.
+        :param loop:                    Event Loop which is used to process Tasks. The Client creates own one
+                                        if this argument is None.
+        """
+        super().__init__(endpoint, project, **kwargs)
+        self._task_timeout = task_timeout
+        self._shutdown_timeout = shutdown_timeout
+        if task_list:
+            if not task_mutex:
+                warnings.warn(
+                    '"task_list" argument is set, but not "task_mutex". This usually indicates '
+                    'invalid use, since "task_mutex" is used to synchronize on "task_list".',
+                    RuntimeWarning,
+                    2
+                )
+        self.__task_list = task_list or BackgroundTaskList()
         self.__task_mutex = task_mutex or threading.RLock()
         self.__thread = None
         if loop:
@@ -1338,7 +1418,11 @@ class ThreadedRPClient(_RPClient):
             project=None,
             launch_uuid=self.launch_uuid,
             client=cloned_client,
+            log_batch_size=self.log_batch_size,
+            log_batch_payload_limit=self.log_batch_payload_limit,
             log_batcher=self._log_batcher,
+            task_timeout=self._task_timeout,
+            shutdown_timeout=self._shutdown_timeout,
             task_mutex=self.__task_mutex,
             task_list=self.__task_list,
             loop=self._loop
@@ -1350,6 +1434,15 @@ class ThreadedRPClient(_RPClient):
 
 
 class BatchedRPClient(_RPClient):
+    """Synchronous-asynchronous ReportPortal Client which uses the same Thread to execute async coroutines.
+
+    This class implements common RP client interface, so it capable to use in synchronous ReportPortal Agents
+    if you want to achieve async performance level with synchronous code. It handles HTTP request and response
+    bodies generation and serialization, connection retries and log batching.
+    """
+
+    _task_timeout: float
+    _shutdown_timeout: float
     _loop: asyncio.AbstractEventLoop
     __task_list: TriggerTaskBatcher[Task[_T]]
     __task_mutex: threading.RLock
@@ -1358,12 +1451,12 @@ class BatchedRPClient(_RPClient):
     __trigger_interval: float
 
     def __init__(
-            self, endpoint: str,
+            self,
+            endpoint: str,
             project: str,
             *,
-            launch_uuid: Optional[Task[str]] = None,
-            client: Optional[Client] = None,
-            log_batcher: Optional[LogBatcher] = None,
+            task_timeout: float = DEFAULT_TASK_TIMEOUT,
+            shutdown_timeout: float = DEFAULT_SHUTDOWN_TIMEOUT,
             task_list: Optional[TriggerTaskBatcher] = None,
             task_mutex: Optional[threading.RLock] = None,
             loop: Optional[asyncio.AbstractEventLoop] = None,
@@ -1371,9 +1464,56 @@ class BatchedRPClient(_RPClient):
             trigger_interval: float = DEFAULT_TASK_TRIGGER_INTERVAL,
             **kwargs: Any
     ) -> None:
-        super().__init__(endpoint, project, launch_uuid=launch_uuid, client=client, log_batcher=log_batcher,
-                         **kwargs)
-        self.__task_list = task_list or TriggerTaskBatcher()
+        """Initialize the class instance with arguments.
+
+        :param endpoint:                Endpoint of the ReportPortal service.
+        :param project:                 Project name to report to.
+        :param api_key:                 Authorization API key.
+        :param is_skipped_an_issue:     Option to mark skipped tests as not 'To Investigate' items on the
+                                        server side.
+        :param verify_ssl:              Option to skip ssl verification.
+        :param retries:                 Number of retry attempts to make in case of connection / server errors.
+        :param max_pool_size:           Option to set the maximum number of connections to save the pool.
+        :param http_timeout:            A float in seconds for connect and read timeout. Use a Tuple to
+                                        specific connect and read separately.
+        :param keepalive_timeout:       Maximum amount of idle time in seconds before force connection closing.
+        :param mode:                    Launch mode, all Launches started by the client will be in that mode.
+        :param launch_uuid_print:       Print Launch UUID into passed TextIO or by default to stdout.
+        :param print_output:            Set output stream for Launch UUID printing.
+        :param client:                  ReportPortal async Client instance to use. If set, all above arguments
+                                        will be ignored.
+        :param launch_uuid:             A launch UUID to use instead of starting own one.
+        :param log_batch_size:          Option to set the maximum number of logs that can be processed in one
+                                        batch.
+        :param log_batch_payload_limit: maximum size in bytes of logs that can be processed in one batch
+        :param log_batcher:             ReportPortal log batcher instance to use. If set, 'log_batch'
+                                        arguments above will be ignored.
+        :param task_timeout:            Time limit in seconds for a Task processing.
+        :param shutdown_timeout:        Time limit in seconds for shutting down internal Tasks.
+        :param task_list:               Batching Task list to have one task storage for multiple Clients
+                                        which guarantees their processing on Launch finish. The Client creates
+                                        own Task list if this argument is None.
+        :param task_mutex:              Mutex object which is responsible for synchronization of the passed
+                                        task_list. The Client creates own one if this argument is None.
+        :param loop:                    Event Loop which is used to process Tasks. The Client creates own one
+                                        if this argument is None.
+        :param trigger_num:             Number of tasks which triggers Task batch execution.
+        :param trigger_interval:        Time limit which triggers Task batch execution.
+        """
+        super().__init__(endpoint, project, **kwargs)
+        self._task_timeout = task_timeout
+        self._shutdown_timeout = shutdown_timeout
+        self.__trigger_num = trigger_num
+        self.__trigger_interval = trigger_interval
+        if task_list:
+            if not task_mutex:
+                warnings.warn(
+                    '"task_list" argument is set, but not "task_mutex". This usually indicates '
+                    'invalid use, since "task_mutex" is used to synchronize on "task_list".',
+                    RuntimeWarning,
+                    2
+                )
+        self.__task_list = task_list or TriggerTaskBatcher(trigger_num, trigger_interval)
         self.__task_mutex = task_mutex or threading.RLock()
         self.__last_run_time = datetime.time()
         if loop:
@@ -1381,8 +1521,6 @@ class BatchedRPClient(_RPClient):
         else:
             self._loop = asyncio.new_event_loop()
             self._loop.set_task_factory(BatchedTaskFactory())
-        self.__trigger_num = trigger_num
-        self.__trigger_interval = trigger_interval
 
     def create_task(self, coro: Coroutine[Any, Any, _T]) -> Optional[Task[_T]]:
         """Create a Task from given Coroutine.
@@ -1424,10 +1562,16 @@ class BatchedRPClient(_RPClient):
             project=None,
             launch_uuid=self.launch_uuid,
             client=cloned_client,
+            log_batch_size=self.log_batch_size,
+            log_batch_payload_limit=self.log_batch_payload_limit,
             log_batcher=self._log_batcher,
+            task_timeout=self._task_timeout,
+            shutdown_timeout=self._shutdown_timeout,
             task_list=self.__task_list,
             task_mutex=self.__task_mutex,
-            loop=self._loop
+            loop=self._loop,
+            trigger_num=self.__trigger_num,
+            trigger_interval=self.__trigger_interval
         )
         current_item = self.current_item()
         if current_item:
