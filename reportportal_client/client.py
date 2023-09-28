@@ -110,16 +110,16 @@ class RP(metaclass=AbstractBaseClass):
                      rerun: bool = False,
                      rerun_of: Optional[str] = None,
                      **kwargs) -> Optional[str]:
-        """Start a new launch with the given parameters.
+        """Start a new Launch with the given arguments.
 
-        :param name:        Launch name
-        :param start_time:  Launch start time
-        :param description: Launch description
-        :param attributes:  Launch attributes
-        :param rerun:       Start launch in rerun mode
-        :param rerun_of:    For rerun mode specifies which launch will be
-                            re-run. Should be used with the 'rerun' option.
-        :return:            Launch UUID
+        :param name:        Launch name.
+        :param start_time:  Launch start time.
+        :param description: Launch description.
+        :param attributes:  Launch attributes.
+        :param rerun:       Start launch in rerun mode.
+        :param rerun_of:    For rerun mode specifies which launch will be re-run. Should be used with the
+                            'rerun' option.
+        :return:            Launch UUID if successfully started or None.
         """
         raise NotImplementedError('"start_launch" method is not implemented!')
 
@@ -137,7 +137,7 @@ class RP(metaclass=AbstractBaseClass):
                         retry: bool = False,
                         test_case_id: Optional[str] = None,
                         **kwargs: Any) -> Optional[str]:
-        """Start case/step/nested step item.
+        """Start Test Case/Suite/Step/Nested Step Item.
 
         :param name:           Name of the Test Item.
         :param start_time:     The Item start time.
@@ -145,15 +145,15 @@ class RP(metaclass=AbstractBaseClass):
                                "suite", "story", "test", "scenario", "step", "before_class", "before_groups",
                                "before_method", "before_suite", "before_test", "after_class", "after_groups",
                                "after_method", "after_suite", "after_test".
-        :param description:    The item description
-        :param attributes:     Test item attributes
-        :param parameters:     Set of parameters (for parametrized test items)
-        :param parent_item_id: An ID of a parent SUITE / STEP
-        :param has_stats:      Set to False if test item is nested step
-        :param code_ref:       Physical location of the test item
-        :param retry:          Used to report retry of the test. Allowed values: "True" or "False"
-        :param test_case_id:   A unique ID of the current step
-        :return:               Test Item UUID
+        :param description:    The Item description.
+        :param attributes:     Test Item attributes.
+        :param parameters:     Set of parameters (for parametrized Test Items).
+        :param parent_item_id: A UUID of a parent SUITE / STEP.
+        :param has_stats:      Set to False if test item is a Nested Step.
+        :param code_ref:       Physical location of the Test Item.
+        :param retry:          Used to report retry of the test. Allowed values: "True" or "False".
+        :param test_case_id:   A unique ID of the current Step.
+        :return:               Test Item UUID if successfully started or None.
         """
         raise NotImplementedError('"start_test_item" method is not implemented!')
 
@@ -167,18 +167,18 @@ class RP(metaclass=AbstractBaseClass):
                          description: str = None,
                          retry: bool = False,
                          **kwargs: Any) -> Optional[str]:
-        """Finish suite/case/step/nested step item.
+        """Finish Test Suite/Case/Step/Nested Step Item.
 
         :param item_id:     ID of the Test Item.
         :param end_time:    The Item end time.
         :param status:      Test status. Allowed values:
                             PASSED, FAILED, STOPPED, SKIPPED, INTERRUPTED, CANCELLED, INFO, WARN or None.
         :param issue:       Issue which will be attached to the current Item.
-        :param attributes:  Test Item attributes(tags). Pairs of key and value. These are override attributes
-                            on start Test Item call.
+        :param attributes:  Test Item attributes(tags). Pairs of key and value. These attributes override
+                            attributes on start Test Item call.
         :param description: Test Item description. Overrides description from start request.
         :param retry:       Used to report retry of the test. Allowed values: "True" or "False".
-        :return:            Response message
+        :return:            Response message.
         """
         raise NotImplementedError('"finish_test_item" method is not implemented!')
 
@@ -188,13 +188,13 @@ class RP(metaclass=AbstractBaseClass):
                       status: str = None,
                       attributes: Optional[Union[list, dict]] = None,
                       **kwargs: Any) -> Optional[str]:
-        """Finish current launch.
+        """Finish a Launch.
 
-        :param end_time:    Launch end time.
-        :param status:      Launch status. Can be one of the followings:
-                            PASSED, FAILED, STOPPED, SKIPPED, INTERRUPTED, CANCELLED.
-        :param attributes:  Launch attributes. These attributes override attributes on Start Launch call.
-        :return:            Response message.
+        :param end_time:   Launch end time.
+        :param status:     Launch status. Can be one of the followings:
+                           PASSED, FAILED, STOPPED, SKIPPED, INTERRUPTED, CANCELLED.
+        :param attributes: Launch attributes. These attributes override attributes on Start Launch call.
+        :return:           Response message or None.
         """
         raise NotImplementedError('"finish_launch" method is not implemented!')
 
@@ -208,15 +208,15 @@ class RP(metaclass=AbstractBaseClass):
         :param item_uuid:   Test Item UUID returned on the item start.
         :param attributes:  Test Item attributes: [{'key': 'k_name', 'value': 'k_value'}, ...].
         :param description: Test Item description.
-        :return:            Response message.
+        :return:            Response message or None.
         """
         raise NotImplementedError('"update_test_item" method is not implemented!')
 
     @abstractmethod
     def get_launch_info(self) -> Optional[dict]:
-        """Get the current launch information.
+        """Get current Launch information.
 
-        :return: Launch information in dictionary
+        :return: Launch information in dictionary.
         """
         raise NotImplementedError('"get_launch_info" method is not implemented!')
 
@@ -304,10 +304,9 @@ class RP(metaclass=AbstractBaseClass):
 class RPClient(RP):
     """ReportPortal client.
 
-    The class is supposed to use by ReportPortal agents: both custom and
-    official to make calls to ReportPortal. It handles HTTP request and
-    response bodies generation and serialization, connection retries and log
-    batching.
+    The class is supposed to use by ReportPortal agents: both custom and official, to make calls to
+    ReportPortal. It handles HTTP request and response bodies generation and serialization, connection retries
+    and log batching.
     """
 
     api_v1: str
@@ -489,16 +488,16 @@ class RPClient(RP):
                      rerun: bool = False,
                      rerun_of: Optional[str] = None,
                      **kwargs) -> Optional[str]:
-        """Start a new launch with the given arguments.
+        """Start a new Launch with the given arguments.
 
-        :param name:        Launch name
-        :param start_time:  Launch start time
-        :param description: Launch description
-        :param attributes:  Launch attributes
-        :param rerun:       Start launch in rerun mode
-        :param rerun_of:    For rerun mode specifies which launch will be
-                            re-run. Should be used with the 'rerun' option.
-        :return:            Launch UUID if successfully started or None
+        :param name:        Launch name.
+        :param start_time:  Launch start time.
+        :param description: Launch description.
+        :param attributes:  Launch attributes.
+        :param rerun:       Start launch in rerun mode.
+        :param rerun_of:    For rerun mode specifies which launch will be re-run. Should be used with the
+                            'rerun' option.
+        :return:            Launch UUID if successfully started or None.
         """
         if not self.use_own_launch:
             return self.launch_uuid
@@ -539,25 +538,23 @@ class RPClient(RP):
                         retry: bool = False,
                         test_case_id: Optional[str] = None,
                         **_: Any) -> Optional[str]:
-        """Start case/step/nested step item.
+        """Start Test Case/Suite/Step/Nested Step Item.
 
-        :param name:           Name of the test item
-        :param start_time:     The item start time
-        :param item_type:      Type of the test item. Allowable values:
-                               "suite", "story", "test", "scenario", "step",
-                               "before_class", "before_groups",
-                               "before_method", "before_suite",
-                               "before_test", "after_class", "after_groups",
-                               "after_method", "after_suite", "after_test"
-        :param attributes:     Test item attributes
-        :param code_ref:       Physical location of the test item
-        :param description:    The item description
-        :param has_stats:      Set to False if test item is nested step
-        :param parameters:     Set of parameters (for parametrized test items)
-        :param parent_item_id: An ID of a parent SUITE / STEP
-        :param retry:          Used to report retry of the test. Allowable
-                               values: "True" or "False"
-        :param test_case_id: A unique ID of the current step
+        :param name:           Name of the Test Item.
+        :param start_time:     The Item start time.
+        :param item_type:      Type of the Test Item. Allowed values:
+                               "suite", "story", "test", "scenario", "step", "before_class", "before_groups",
+                               "before_method", "before_suite", "before_test", "after_class", "after_groups",
+                               "after_method", "after_suite", "after_test".
+        :param description:    The Item description.
+        :param attributes:     Test Item attributes.
+        :param parameters:     Set of parameters (for parametrized Test Items).
+        :param parent_item_id: A UUID of a parent SUITE / STEP.
+        :param has_stats:      Set to False if test item is a Nested Step.
+        :param code_ref:       Physical location of the Test Item.
+        :param retry:          Used to report retry of the test. Allowed values: "True" or "False".
+        :param test_case_id:   A unique ID of the current Step.
+        :return:               Test Item UUID if successfully started or None.
         """
         if parent_item_id is NOT_FOUND:
             logger.warning('Attempt to start item for non-existent parent item.')
@@ -604,20 +601,18 @@ class RPClient(RP):
                          description: str = None,
                          retry: bool = False,
                          **kwargs: Any) -> Optional[str]:
-        """Finish suite/case/step/nested step item.
+        """Finish Test Suite/Case/Step/Nested Step Item.
 
-        :param item_id:     ID of the test item
-        :param end_time:    The item end time
-        :param status:      Test status. Allowable values: "passed",
-                            "failed", "stopped", "skipped", "interrupted",
-                            "cancelled" or None
-        :param attributes:  Test item attributes(tags). Pairs of key and value.
-                            Override attributes on start
-        :param description: Test item description. Overrides description
-                            from start request.
-        :param issue:       Issue of the current test item
-        :param retry:       Used to report retry of the test. Allowable values:
-                           "True" or "False"
+        :param item_id:     ID of the Test Item.
+        :param end_time:    The Item end time.
+        :param status:      Test status. Allowed values:
+                            PASSED, FAILED, STOPPED, SKIPPED, INTERRUPTED, CANCELLED, INFO, WARN or None.
+        :param issue:       Issue which will be attached to the current Item.
+        :param attributes:  Test Item attributes(tags). Pairs of key and value. These attributes override
+                            attributes on start Test Item call.
+        :param description: Test Item description. Overrides description from start request.
+        :param retry:       Used to report retry of the test. Allowed values: "True" or "False".
+        :return:            Response message.
         """
         if item_id is NOT_FOUND or not item_id:
             logger.warning('Attempt to finish non-existent item')
@@ -679,12 +674,12 @@ class RPClient(RP):
 
     def update_test_item(self, item_uuid: str, attributes: Optional[Union[list, dict]] = None,
                          description: Optional[str] = None) -> Optional[str]:
-        """Update existing test item at the ReportPortal.
+        """Update existing Test Item at the ReportPortal.
 
-        :param str item_uuid:   Test item UUID returned on the item start
-        :param str description: Test item description
-        :param list attributes: Test item attributes
-                                [{'key': 'k_name', 'value': 'k_value'}, ...]
+        :param item_uuid:   Test Item UUID returned on the item start.
+        :param attributes:  Test Item attributes: [{'key': 'k_name', 'value': 'k_value'}, ...].
+        :param description: Test Item description.
+        :return:            Response message or None.
         """
         data = {
             'description': description,
@@ -735,9 +730,9 @@ class RPClient(RP):
         return response.id if response else None
 
     def get_launch_info(self) -> Optional[dict]:
-        """Get the current launch information.
+        """Get current Launch information.
 
-        :return: Launch information in dictionary
+        :return: Launch information in dictionary.
         """
         if self.launch_uuid is None:
             return {}

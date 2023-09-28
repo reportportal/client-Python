@@ -162,7 +162,7 @@ class Client:
     def session(self) -> aiohttp.ClientSession:
         """Return aiohttp.ClientSession class instance, initialize it if necessary.
 
-        :return: aiohttp.ClientSession instance
+        :return: aiohttp.ClientSession instance.
         """
         if self.__session:
             return self.__session
@@ -234,16 +234,16 @@ class Client:
                            rerun: bool = False,
                            rerun_of: Optional[str] = None,
                            **kwargs) -> Optional[str]:
-        """Start a new launch with the given arguments.
+        """Start a new Launch with the given arguments.
 
-        :param name:        Launch name
-        :param start_time:  Launch start time
-        :param description: Launch description
-        :param attributes:  Launch attributes
-        :param rerun:       Start launch in rerun mode
+        :param name:        Launch name.
+        :param start_time:  Launch start time.
+        :param description: Launch description.
+        :param attributes:  Launch attributes.
+        :param rerun:       Start launch in rerun mode.
         :param rerun_of:    For rerun mode specifies which launch will be re-run. Should be used with the
                             'rerun' option.
-        :return:            Launch UUID if successfully started or None
+        :return:            Launch UUID if successfully started or None.
         """
         url = root_uri_join(self.base_url_v2, 'launch')
         request_payload = LaunchStartRequest(
@@ -285,7 +285,7 @@ class Client:
                               has_stats: bool = True,
                               retry: bool = False,
                               **_: Any) -> Optional[str]:
-        """Start test case/step/nested step item.
+        """Start Test Case/Suite/Step/Nested Step Item.
 
         :param launch_uuid:    A launch UUID where to start the Test Item.
         :param name:           Name of the Test Item.
@@ -294,15 +294,15 @@ class Client:
                                "suite", "story", "test", "scenario", "step", "before_class", "before_groups",
                                "before_method", "before_suite", "before_test", "after_class", "after_groups",
                                "after_method", "after_suite", "after_test".
-        :param parent_item_id: A UUID of a parent SUITE / STEP
-        :param description:    The Item description
-        :param attributes:     Test Item attributes
-        :param parameters:     Set of parameters (for parametrized test items)
-        :param code_ref:       Physical location of the Test Item
-        :param test_case_id: A unique ID of the current step
-        :param has_stats:      Set to False if test item is a nested step
-        :param retry:          Used to report retry of the test. Allowed values: "True" or "False"
-        :return:               Test Item UUID if successfully started or None
+        :param parent_item_id: A UUID of a parent SUITE / STEP.
+        :param description:    The Item description.
+        :param attributes:     Test Item attributes.
+        :param parameters:     Set of parameters (for parametrized Test Items).
+        :param code_ref:       Physical location of the Test Item.
+        :param test_case_id:   A unique ID of the current Step.
+        :param has_stats:      Set to False if test item is a Nested Step.
+        :param retry:          Used to report retry of the test. Allowed values: "True" or "False".
+        :return:               Test Item UUID if successfully started or None.
         """
         if parent_item_id:
             url = self.__get_item_url(parent_item_id)
@@ -343,7 +343,7 @@ class Client:
                                issue: Optional[Issue] = None,
                                retry: bool = False,
                                **kwargs: Any) -> Optional[str]:
-        """Finish test case/step/nested step item.
+        """Finish Test Suite/Case/Step/Nested Step Item.
 
         :param launch_uuid: A launch UUID where to finish the Test Item.
         :param item_id:     ID of the Test Item.
@@ -383,14 +383,14 @@ class Client:
                             status: str = None,
                             attributes: Optional[Union[List, Dict]] = None,
                             **kwargs: Any) -> Optional[str]:
-        """Finish a launch.
+        """Finish a Launch.
 
-        :param launch_uuid: A launch UUID to finish.
+        :param launch_uuid: A Launch UUID to finish.
         :param end_time:    Launch end time.
         :param status:      Launch status. Can be one of the followings:
                             PASSED, FAILED, STOPPED, SKIPPED, INTERRUPTED, CANCELLED.
         :param attributes:  Launch attributes. These attributes override attributes on Start Launch call.
-        :return:            Response message.
+        :return:            Response message or None.
         """
         url = self.__get_launch_url(launch_uuid)
         request_payload = LaunchFinishRequest(
@@ -418,7 +418,7 @@ class Client:
         :param item_uuid:   Test Item UUID returned on the item start.
         :param attributes:  Test Item attributes: [{'key': 'k_name', 'value': 'k_value'}, ...].
         :param description: Test Item description.
-        :return:            Response message.
+        :return:            Response message or None.
         """
         data = {
             'description': description,
@@ -441,7 +441,7 @@ class Client:
         return root_uri_join(self.base_url_v1, 'launch', 'uuid', launch_uuid)
 
     async def get_launch_info(self, launch_uuid_future: Union[str, Task[str]]) -> Optional[Dict]:
-        """Get the launch information by Launch UUID.
+        """Get Launch information by Launch UUID.
 
         :param launch_uuid_future: Str or Task UUID returned on the Launch start.
         :return:                   Launch information in dictionary.
@@ -553,6 +553,13 @@ class Client:
 
 
 class AsyncRPClient(RP):
+    """Stateful asynchronous ReportPortal Client.
+
+    This class implements common RP client interface but all its methods are async, so it capable to use in
+    asynchronous ReportPortal agents. It handles HTTP request and response bodies generation and
+    serialization, connection retries and log batching.
+    """
+
     log_batch_size: int
     log_batch_payload_limit: int
     _item_stack: LifoQueue
@@ -665,6 +672,17 @@ class AsyncRPClient(RP):
                            rerun: bool = False,
                            rerun_of: Optional[str] = None,
                            **kwargs) -> Optional[str]:
+        """Start a new Launch with the given arguments.
+
+        :param name:        Launch name.
+        :param start_time:  Launch start time.
+        :param description: Launch description.
+        :param attributes:  Launch attributes.
+        :param rerun:       Start launch in rerun mode.
+        :param rerun_of:    For rerun mode specifies which launch will be re-run. Should be used with the
+                            'rerun' option.
+        :return:            Launch UUID if successfully started or None.
+        """
         if not self.use_own_launch:
             return self.launch_uuid
         launch_uuid = await self.__client.start_launch(name, start_time, description=description,
@@ -677,7 +695,6 @@ class AsyncRPClient(RP):
                               name: str,
                               start_time: str,
                               item_type: str,
-                              *,
                               description: Optional[str] = None,
                               attributes: Optional[List[Dict]] = None,
                               parameters: Optional[Dict] = None,
@@ -687,6 +704,24 @@ class AsyncRPClient(RP):
                               retry: bool = False,
                               test_case_id: Optional[str] = None,
                               **kwargs: Any) -> Optional[str]:
+        """Start Test Case/Suite/Step/Nested Step Item.
+
+        :param name:           Name of the Test Item.
+        :param start_time:     The Item start time.
+        :param item_type:      Type of the Test Item. Allowed values:
+                               "suite", "story", "test", "scenario", "step", "before_class", "before_groups",
+                               "before_method", "before_suite", "before_test", "after_class", "after_groups",
+                               "after_method", "after_suite", "after_test".
+        :param description:    The Item description.
+        :param attributes:     Test Item attributes.
+        :param parameters:     Set of parameters (for parametrized Test Items).
+        :param parent_item_id: A UUID of a parent SUITE / STEP.
+        :param has_stats:      Set to False if test item is a Nested Step.
+        :param code_ref:       Physical location of the Test Item.
+        :param retry:          Used to report retry of the test. Allowed values: "True" or "False".
+        :param test_case_id:   A unique ID of the current Step.
+        :return:               Test Item UUID if successfully started or None.
+        """
         item_id = await self.__client.start_test_item(self.launch_uuid, name, start_time, item_type,
                                                       description=description, attributes=attributes,
                                                       parameters=parameters, parent_item_id=parent_item_id,
@@ -700,13 +735,25 @@ class AsyncRPClient(RP):
     async def finish_test_item(self,
                                item_id: str,
                                end_time: str,
-                               *,
                                status: str = None,
                                issue: Optional[Issue] = None,
                                attributes: Optional[Union[List, Dict]] = None,
                                description: str = None,
                                retry: bool = False,
                                **kwargs: Any) -> Optional[str]:
+        """Finish Test Suite/Case/Step/Nested Step Item.
+
+        :param item_id:     ID of the Test Item.
+        :param end_time:    The Item end time.
+        :param status:      Test status. Allowed values:
+                            PASSED, FAILED, STOPPED, SKIPPED, INTERRUPTED, CANCELLED, INFO, WARN or None.
+        :param issue:       Issue which will be attached to the current Item.
+        :param attributes:  Test Item attributes(tags). Pairs of key and value. These attributes override
+                            attributes on start Test Item call.
+        :param description: Test Item description. Overrides description from start request.
+        :param retry:       Used to report retry of the test. Allowed values: "True" or "False".
+        :return:            Response message.
+        """
         result = await self.__client.finish_test_item(self.launch_uuid, item_id, end_time, status=status,
                                                       issue=issue, attributes=attributes,
                                                       description=description,
@@ -719,6 +766,14 @@ class AsyncRPClient(RP):
                             status: str = None,
                             attributes: Optional[Union[List, Dict]] = None,
                             **kwargs: Any) -> Optional[str]:
+        """Finish a Launch.
+
+        :param end_time:   Launch end time.
+        :param status:     Launch status. Can be one of the followings:
+                           PASSED, FAILED, STOPPED, SKIPPED, INTERRUPTED, CANCELLED.
+        :param attributes: Launch attributes. These attributes override attributes on Start Launch call.
+        :return:           Response message or None.
+        """
         await self.__client.log_batch(self._log_batcher.flush())
         if not self.use_own_launch:
             return ""
@@ -728,8 +783,19 @@ class AsyncRPClient(RP):
         await self.__client.close()
         return result
 
-    async def update_test_item(self, item_uuid: str, attributes: Optional[Union[List, Dict]] = None,
-                               description: Optional[str] = None) -> Optional[str]:
+    async def update_test_item(
+            self,
+            item_uuid: str,
+            attributes: Optional[Union[List, Dict]] = None,
+            description: Optional[str] = None
+    ) -> Optional[str]:
+        """Update existing Test Item at the ReportPortal.
+
+        :param item_uuid:   Test Item UUID returned on the item start.
+        :param attributes:  Test Item attributes: [{'key': 'k_name', 'value': 'k_value'}, ...].
+        :param description: Test Item description.
+        :return:            Response message or None.
+        """
         return await self.__client.update_test_item(item_uuid, attributes=attributes, description=description)
 
     def _add_current_item(self, item: str) -> None:
@@ -745,6 +811,10 @@ class AsyncRPClient(RP):
         return self._item_stack.last()
 
     async def get_launch_info(self) -> Optional[dict]:
+        """Get current Launch information.
+
+        :return: Launch information in dictionary.
+        """
         if not self.launch_uuid:
             return {}
         return await self.__client.get_launch_info(self.launch_uuid)
@@ -807,6 +877,8 @@ class AsyncRPClient(RP):
 
 
 class _RPClient(RP, metaclass=AbstractBaseClass):
+    """Base class for different synchronous to asynchronous client implementations."""
+
     __metaclass__ = AbstractBaseClass
 
     _item_stack: LifoQueue
@@ -930,6 +1002,17 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
                      rerun: bool = False,
                      rerun_of: Optional[str] = None,
                      **kwargs) -> Task[str]:
+        """Start a new Launch with the given arguments.
+
+        :param name:        Launch name.
+        :param start_time:  Launch start time.
+        :param description: Launch description.
+        :param attributes:  Launch attributes.
+        :param rerun:       Start launch in rerun mode.
+        :param rerun_of:    For rerun mode specifies which launch will be re-run. Should be used with the
+                            'rerun' option.
+        :return:            Launch UUID if successfully started or None.
+        """
         if not self.use_own_launch:
             return self.launch_uuid
         launch_uuid_coro = self.__client.start_launch(name, start_time, description=description,
@@ -942,7 +1025,6 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
                         name: str,
                         start_time: str,
                         item_type: str,
-                        *,
                         description: Optional[str] = None,
                         attributes: Optional[List[Dict]] = None,
                         parameters: Optional[Dict] = None,
@@ -952,7 +1034,24 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
                         retry: bool = False,
                         test_case_id: Optional[str] = None,
                         **kwargs: Any) -> Task[str]:
+        """Start Test Case/Suite/Step/Nested Step Item.
 
+        :param name:           Name of the Test Item.
+        :param start_time:     The Item start time.
+        :param item_type:      Type of the Test Item. Allowed values:
+                               "suite", "story", "test", "scenario", "step", "before_class", "before_groups",
+                               "before_method", "before_suite", "before_test", "after_class", "after_groups",
+                               "after_method", "after_suite", "after_test".
+        :param description:    The Item description.
+        :param attributes:     Test Item attributes.
+        :param parameters:     Set of parameters (for parametrized Test Items).
+        :param parent_item_id: A UUID of a parent SUITE / STEP.
+        :param has_stats:      Set to False if test item is a Nested Step.
+        :param code_ref:       Physical location of the Test Item.
+        :param retry:          Used to report retry of the test. Allowed values: "True" or "False".
+        :param test_case_id:   A unique ID of the current Step.
+        :return:               Test Item UUID if successfully started or None.
+        """
         item_id_coro = self.__client.start_test_item(self.launch_uuid, name, start_time, item_type,
                                                      description=description, attributes=attributes,
                                                      parameters=parameters, parent_item_id=parent_item_id,
@@ -965,13 +1064,25 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
     def finish_test_item(self,
                          item_id: Task[str],
                          end_time: str,
-                         *,
                          status: str = None,
                          issue: Optional[Issue] = None,
                          attributes: Optional[Union[List, Dict]] = None,
                          description: str = None,
                          retry: bool = False,
                          **kwargs: Any) -> Task[str]:
+        """Finish Test Suite/Case/Step/Nested Step Item.
+
+        :param item_id:     ID of the Test Item.
+        :param end_time:    The Item end time.
+        :param status:      Test status. Allowed values:
+                            PASSED, FAILED, STOPPED, SKIPPED, INTERRUPTED, CANCELLED, INFO, WARN or None.
+        :param issue:       Issue which will be attached to the current Item.
+        :param attributes:  Test Item attributes(tags). Pairs of key and value. These attributes override
+                            attributes on start Test Item call.
+        :param description: Test Item description. Overrides description from start request.
+        :param retry:       Used to report retry of the test. Allowed values: "True" or "False".
+        :return:            Response message.
+        """
         result_coro = self.__client.finish_test_item(self.launch_uuid, item_id, end_time, status=status,
                                                      issue=issue, attributes=attributes,
                                                      description=description,
@@ -985,6 +1096,14 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
                       status: str = None,
                       attributes: Optional[Union[List, Dict]] = None,
                       **kwargs: Any) -> Task[str]:
+        """Finish a Launch.
+
+        :param end_time:   Launch end time.
+        :param status:     Launch status. Can be one of the followings:
+                           PASSED, FAILED, STOPPED, SKIPPED, INTERRUPTED, CANCELLED.
+        :param attributes: Launch attributes. These attributes override attributes on Start Launch call.
+        :return:           Response message or None.
+        """
         self.create_task(self.__client.log_batch(self._log_batcher.flush()))
         if self.use_own_launch:
             result_coro = self.__client.finish_launch(self.launch_uuid, end_time, status=status,
@@ -1000,12 +1119,23 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
                          item_uuid: Task[str],
                          attributes: Optional[Union[List, Dict]] = None,
                          description: Optional[str] = None) -> Task:
+        """Update existing Test Item at the ReportPortal.
+
+        :param item_uuid:   Test Item UUID returned on the item start.
+        :param attributes:  Test Item attributes: [{'key': 'k_name', 'value': 'k_value'}, ...].
+        :param description: Test Item description.
+        :return:            Response message or None.
+        """
         result_coro = self.__client.update_test_item(item_uuid, attributes=attributes,
                                                      description=description)
         result_task = self.create_task(result_coro)
         return result_task
 
     def get_launch_info(self) -> Task[dict]:
+        """Get current Launch information.
+
+        :return: Launch information in dictionary.
+        """
         if not self.launch_uuid:
             return self.create_task(self.__empty_dict())
         result_coro = self.__client.get_launch_info(self.launch_uuid)
