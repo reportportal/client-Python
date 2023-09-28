@@ -188,8 +188,8 @@ class Client:
             headers['Authorization'] = f'Bearer {self.api_key}'
 
         session_params = {
-            headers: headers,
-            connector: connector
+            'headers': headers,
+            'connector': connector
         }
 
         if self.http_timeout:
