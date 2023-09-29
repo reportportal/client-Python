@@ -830,7 +830,7 @@ class RPClient(RP):
         :return: Item UUID string
         """
         try:
-            return self._item_stack.get(timeout=0)
+            return self._item_stack.get()
         except queue.Empty:
             return
 

@@ -33,20 +33,47 @@ logger: logging.Logger = logging.getLogger(__name__)
 _T = TypeVar('_T')
 
 
-class LifoQueue(Generic[_T], queue.LifoQueue):
-    """This Queue adds 'last' method to original queue.LifoQueue.
+class LifoQueue(Generic[_T]):
+    """Primitive thread-safe Last-in-first-out queue implementation."""
 
-    Unlike 'get' method in queue.LifoQueue the 'last' method do not remove an entity from the queue.
-    """
+    _lock: threading.Lock()
+    __items: List[_T]
+
+    def __init__(self):
+        """Initialize the queue instance."""
+        self._lock = threading.Lock()
+        self.__items = []
+
+    def put(self, element: _T) -> None:
+        """Add an element to the queue."""
+        with self._lock:
+            self.__items.append(element)
+
+    def get(self) -> Optional[_T]:
+        """Return and remove the last element from the queue.
+
+        :return: The last element in the queue.
+        """
+        result = None
+        with self._lock:
+            if len(self.__items) > 0:
+                result = self.__items[-1]
+                self.__items = self.__items[:-1]
+        return result
 
     def last(self) -> _T:
         """Return the last element from the queue, but does not remove it.
 
-        :return: the last element in the queue
+        :return: The last element in the queue.
         """
-        with self.mutex:
-            if self._qsize():
-                return self.queue[-1]
+        with self._lock:
+            if len(self.__items) > 0:
+                return self.__items[-1]
+
+    def qsize(self):
+        """Return the queue size."""
+        with self._lock:
+            return len(self.__items)
 
     def __getstate__(self) -> Dict[str, Any]:
         """Control object pickling and return object fields as Dictionary.
@@ -56,10 +83,7 @@ class LifoQueue(Generic[_T], queue.LifoQueue):
         """
         state = self.__dict__.copy()
         # Don't pickle 'session' field, since it contains unpickling 'socket'
-        del state['mutex']
-        del state['not_empty']
-        del state['not_full']
-        del state['all_tasks_done']
+        del state['_lock']
         return state
 
     def __setstate__(self, state: Dict[str, Any]) -> None:
@@ -68,10 +92,7 @@ class LifoQueue(Generic[_T], queue.LifoQueue):
         :param dict state: object state dictionary
         """
         self.__dict__.update(state)
-        self.mutex = threading.Lock()
-        self.not_empty = threading.Condition(self.mutex)
-        self.not_full = threading.Condition(self.mutex)
-        self.all_tasks_done = threading.Condition(self.mutex)
+        self._lock = threading.Lock()
 
 
 def generate_uuid() -> str:
