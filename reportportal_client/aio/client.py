@@ -83,7 +83,7 @@ class Client:
     launch_uuid_print: bool
     print_output: TextIO
     _skip_analytics: str
-    __session: Optional[aiohttp.ClientSession]
+    _session: Optional[aiohttp.ClientSession]
     __stat_task: Optional[asyncio.Task]
 
     def __init__(
@@ -135,7 +135,7 @@ class Client:
         self._skip_analytics = getenv('AGENT_NO_ANALYTICS')
         self.launch_uuid_print = launch_uuid_print
         self.print_output = print_output or sys.stdout
-        self.__session = None
+        self._session = None
         self.__stat_task = None
 
         self.api_key = api_key
@@ -164,8 +164,8 @@ class Client:
 
         :return: aiohttp.ClientSession instance.
         """
-        if self.__session:
-            return self.__session
+        if self._session:
+            return self._session
 
         ssl_config = self.verify_ssl
         if ssl_config:
@@ -202,14 +202,14 @@ class Client:
         if self.retries:
             session_params['max_retry_number'] = self.retries
 
-        self.__session = RetryingClientSession(self.endpoint, **session_params)
-        return self.__session
+        self._session = RetryingClientSession(self.endpoint, **session_params)
+        return self._session
 
     async def close(self) -> None:
         """Gracefully close internal aiohttp.ClientSession class instance and reset it."""
-        if self.__session:
-            await self.__session.close()
-            self.__session = None
+        if self._session:
+            await self._session.close()
+            self._session = None
 
     async def __get_item_url(self, item_id_future: Union[str, Task[str]]) -> Optional[str]:
         item_id = await await_if_necessary(item_id_future)
@@ -550,6 +550,24 @@ class Client:
             print_output=self.print_output
         )
         return cloned
+
+    def __getstate__(self) -> Dict[str, Any]:
+        """Control object pickling and return object fields as Dictionary.
+
+        :return: object state dictionary
+        :rtype: dict
+        """
+        state = self.__dict__.copy()
+        # Don't pickle 'session' field, since it contains unpickling 'socket'
+        del state['_session']
+        return state
+
+    def __setstate__(self, state: Dict[str, Any]) -> None:
+        """Control object pickling, receives object state as Dictionary.
+
+        :param dict state: object state dictionary
+        """
+        self.__dict__.update(state)
 
 
 class AsyncRPClient(RP):
