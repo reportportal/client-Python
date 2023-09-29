@@ -44,10 +44,13 @@ logger.addHandler(logging.NullHandler())
 
 
 class OutputType(aenum.Enum):
+    """Enum of possible print output types."""
+
     STDOUT = aenum.auto()
     STDERR = aenum.auto()
 
     def get_output(self) -> Optional[TextIO]:
+        """Return TextIO based on the current type."""
         if self == OutputType.STDOUT:
             return sys.stdout
         if self == OutputType.STDERR:
