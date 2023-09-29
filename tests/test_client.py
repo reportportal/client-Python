@@ -10,6 +10,7 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License
+import pickle
 from io import StringIO
 from unittest import mock
 
@@ -201,8 +202,10 @@ def test_empty_api_key_argument(warn):
 
 def test_launch_uuid_print():
     str_io = StringIO()
+    output_mock = mock.Mock()
+    output_mock.get_output.side_effect = lambda: str_io
     client = RPClient(endpoint='http://endpoint', project='project',
-                      api_key='test', launch_uuid_print=True, print_output=str_io)
+                      api_key='test', launch_uuid_print=True, print_output=output_mock)
     client.session = mock.Mock()
     client._skip_analytics = True
     client.start_launch('Test Launch', timestamp())
@@ -211,8 +214,10 @@ def test_launch_uuid_print():
 
 def test_no_launch_uuid_print():
     str_io = StringIO()
+    output_mock = mock.Mock()
+    output_mock.get_output.side_effect = lambda: str_io
     client = RPClient(endpoint='http://endpoint', project='project',
-                      api_key='test', launch_uuid_print=False, print_output=str_io)
+                      api_key='test', launch_uuid_print=False, print_output=output_mock)
     client.session = mock.Mock()
     client._skip_analytics = True
     client.start_launch('Test Launch', timestamp())
@@ -239,3 +244,10 @@ def test_launch_uuid_print_default_print(mock_stdout):
     client.start_launch('Test Launch', timestamp())
 
     assert 'ReportPortal Launch UUID: ' not in mock_stdout.getvalue()
+
+
+def test_client_pickling():
+    client = RPClient('http://localhost:8080', 'default_personal', api_key='test_key')
+    pickled_client = pickle.dumps(client)
+    unpickled_client = pickle.loads(pickled_client)
+    assert unpickled_client is not None

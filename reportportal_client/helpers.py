@@ -17,9 +17,10 @@ import asyncio
 import inspect
 import json
 import logging
+import queue
+import threading
 import time
 import uuid
-import queue
 from platform import machine, processor, system
 from typing import Optional, Any, List, Dict, Callable, Tuple, Union, TypeVar, Generic
 
@@ -46,6 +47,31 @@ class LifoQueue(Generic[_T], queue.LifoQueue):
         with self.mutex:
             if self._qsize():
                 return self.queue[-1]
+
+    def __getstate__(self) -> Dict[str, Any]:
+        """Control object pickling and return object fields as Dictionary.
+
+        :return: object state dictionary
+        :rtype: dict
+        """
+        state = self.__dict__.copy()
+        # Don't pickle 'session' field, since it contains unpickling 'socket'
+        del state['mutex']
+        del state['not_empty']
+        del state['not_full']
+        del state['all_tasks_done']
+        return state
+
+    def __setstate__(self, state: Dict[str, Any]) -> None:
+        """Control object pickling, receives object state as Dictionary.
+
+        :param dict state: object state dictionary
+        """
+        self.__dict__.update(state)
+        self.mutex = threading.Lock()
+        self.not_empty = threading.Condition(self.mutex)
+        self.not_full = threading.Condition(self.mutex)
+        self.all_tasks_done = threading.Condition(self.mutex)
 
 
 def generate_uuid() -> str:

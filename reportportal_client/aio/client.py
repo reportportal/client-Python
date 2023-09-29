@@ -16,17 +16,16 @@
 import asyncio
 import logging
 import ssl
-import sys
 import threading
 import time as datetime
 import warnings
 from os import getenv
-from typing import Union, Tuple, List, Dict, Any, Optional, TextIO, Coroutine, TypeVar
+from typing import Union, Tuple, List, Dict, Any, Optional, Coroutine, TypeVar
 
 import aiohttp
 import certifi
 
-from reportportal_client import RP
+from reportportal_client import RP, OutputType
 # noinspection PyProtectedMember
 from reportportal_client._local import set_current
 from reportportal_client.aio.http import RetryingClientSession
@@ -81,7 +80,7 @@ class Client:
     keepalive_timeout: Optional[float]
     mode: str
     launch_uuid_print: bool
-    print_output: TextIO
+    print_output: OutputType
     _skip_analytics: str
     _session: Optional[aiohttp.ClientSession]
     __stat_task: Optional[asyncio.Task]
@@ -100,7 +99,7 @@ class Client:
             keepalive_timeout: Optional[float] = None,
             mode: str = 'DEFAULT',
             launch_uuid_print: bool = False,
-            print_output: Optional[TextIO] = None,
+            print_output: OutputType = OutputType.STDOUT,
             **kwargs: Any
     ) -> None:
         """Initialize the class instance with arguments.
@@ -134,7 +133,7 @@ class Client:
         self.mode = mode
         self._skip_analytics = getenv('AGENT_NO_ANALYTICS')
         self.launch_uuid_print = launch_uuid_print
-        self.print_output = print_output or sys.stdout
+        self.print_output = print_output
         self._session = None
         self.__stat_task = None
 
@@ -267,7 +266,7 @@ class Client:
         launch_uuid = await response.id
         logger.debug(f'start_launch - ID: {launch_uuid}')
         if self.launch_uuid_print and self.print_output:
-            print(f'ReportPortal Launch UUID: {launch_uuid}', file=self.print_output)
+            print(f'ReportPortal Launch UUID: {launch_uuid}', file=self.print_output.get_output())
         return launch_uuid
 
     async def start_test_item(self,
@@ -1317,9 +1316,39 @@ class ThreadedRPClient(_RPClient):
     _task_timeout: float
     _shutdown_timeout: float
     _loop: Optional[asyncio.AbstractEventLoop]
+    _task_mutex: threading.RLock
+    _thread: Optional[threading.Thread]
     __task_list: BackgroundTaskList[Task[_T]]
-    __task_mutex: threading.RLock
-    __thread: Optional[threading.Thread]
+
+    def __init_task_list(self, task_list: Optional[BackgroundTaskList[Task[_T]]] = None,
+                         task_mutex: Optional[threading.RLock] = None):
+        if task_list:
+            if not task_mutex:
+                warnings.warn(
+                    '"task_list" argument is set, but not "task_mutex". This usually indicates '
+                    'invalid use, since "task_mutex" is used to synchronize on "task_list".',
+                    RuntimeWarning,
+                    3
+                )
+        self.__task_list = task_list or BackgroundTaskList()
+        self._task_mutex = task_mutex or threading.RLock()
+
+    def __heartbeat(self):
+        #  We operate on our own loop with daemon thread, so we will exit in any way when main thread exit,
+        #  so we can iterate forever
+        self._loop.call_at(self._loop.time() + 0.1, self.__heartbeat)
+
+    def __init_loop(self, loop: Optional[asyncio.AbstractEventLoop] = None):
+        self._thread = None
+        if loop:
+            self._loop = loop
+        else:
+            self._loop = asyncio.new_event_loop()
+            self._loop.set_task_factory(ThreadedTaskFactory(self._task_timeout))
+            self.__heartbeat()
+            self._thread = threading.Thread(target=self._loop.run_forever, name='RP-Async-Client',
+                                            daemon=True)
+            self._thread.start()
 
     def __init__(
             self,
@@ -1370,31 +1399,8 @@ class ThreadedRPClient(_RPClient):
         super().__init__(endpoint, project, **kwargs)
         self._task_timeout = task_timeout
         self._shutdown_timeout = shutdown_timeout
-        if task_list:
-            if not task_mutex:
-                warnings.warn(
-                    '"task_list" argument is set, but not "task_mutex". This usually indicates '
-                    'invalid use, since "task_mutex" is used to synchronize on "task_list".',
-                    RuntimeWarning,
-                    2
-                )
-        self.__task_list = task_list or BackgroundTaskList()
-        self.__task_mutex = task_mutex or threading.RLock()
-        self.__thread = None
-        if loop:
-            self._loop = loop
-        else:
-            self._loop = asyncio.new_event_loop()
-            self._loop.set_task_factory(ThreadedTaskFactory(self._task_timeout))
-            self.__heartbeat()
-            self.__thread = threading.Thread(target=self._loop.run_forever, name='RP-Async-Client',
-                                             daemon=True)
-            self.__thread.start()
-
-    def __heartbeat(self):
-        #  We operate on our own loop with daemon thread, so we will exit in any way when main thread exit,
-        #  so we can iterate forever
-        self._loop.call_at(self._loop.time() + 0.1, self.__heartbeat)
+        self.__init_task_list(task_list, task_mutex)
+        self.__init_loop(loop)
 
     def create_task(self, coro: Coroutine[Any, Any, _T]) -> Optional[Task[_T]]:
         """Create a Task from given Coroutine.
@@ -1405,14 +1411,14 @@ class ThreadedRPClient(_RPClient):
         if not getattr(self, '_loop', None):
             return
         result = self._loop.create_task(coro)
-        with self.__task_mutex:
+        with self._task_mutex:
             self.__task_list.append(result)
         return result
 
     def finish_tasks(self):
         """Ensure all pending Tasks are finished, block current Thread if necessary."""
         shutdown_start_time = datetime.time()
-        with self.__task_mutex:
+        with self._task_mutex:
             tasks = self.__task_list.flush()
         for task in tasks:
             task.blocking_result()
@@ -1441,7 +1447,7 @@ class ThreadedRPClient(_RPClient):
             log_batcher=self._log_batcher,
             task_timeout=self._task_timeout,
             shutdown_timeout=self._shutdown_timeout,
-            task_mutex=self.__task_mutex,
+            task_mutex=self._task_mutex,
             task_list=self.__task_list,
             loop=self._loop
         )
@@ -1449,6 +1455,28 @@ class ThreadedRPClient(_RPClient):
         if current_item:
             cloned._add_current_item(current_item)
         return cloned
+
+    def __getstate__(self) -> Dict[str, Any]:
+        """Control object pickling and return object fields as Dictionary.
+
+        :return: object state dictionary
+        :rtype: dict
+        """
+        state = self.__dict__.copy()
+        # Don't pickle 'session' field, since it contains unpickling 'socket'
+        del state['_task_mutex']
+        del state['_loop']
+        del state['_thread']
+        return state
+
+    def __setstate__(self, state: Dict[str, Any]) -> None:
+        """Control object pickling, receives object state as Dictionary.
+
+        :param dict state: object state dictionary
+        """
+        self.__dict__.update(state)
+        self.__init_task_list(self.__task_list, threading.RLock())
+        self.__init_loop()
 
 
 class BatchedRPClient(_RPClient):
@@ -1462,11 +1490,31 @@ class BatchedRPClient(_RPClient):
     _task_timeout: float
     _shutdown_timeout: float
     _loop: asyncio.AbstractEventLoop
+    _task_mutex: threading.RLock
     __task_list: TriggerTaskBatcher[Task[_T]]
-    __task_mutex: threading.RLock
     __last_run_time: float
     __trigger_num: int
     __trigger_interval: float
+
+    def __init_task_list(self, task_list: Optional[TriggerTaskBatcher[Task[_T]]] = None,
+                         task_mutex: Optional[threading.RLock] = None):
+        if task_list:
+            if not task_mutex:
+                warnings.warn(
+                    '"task_list" argument is set, but not "task_mutex". This usually indicates '
+                    'invalid use, since "task_mutex" is used to synchronize on "task_list".',
+                    RuntimeWarning,
+                    3
+                )
+        self.__task_list = task_list or TriggerTaskBatcher(self.__trigger_num, self.__trigger_interval)
+        self._task_mutex = task_mutex or threading.RLock()
+
+    def __init_loop(self, loop: Optional[asyncio.AbstractEventLoop] = None):
+        if loop:
+            self._loop = loop
+        else:
+            self._loop = asyncio.new_event_loop()
+            self._loop.set_task_factory(BatchedTaskFactory())
 
     def __init__(
             self,
@@ -1523,22 +1571,9 @@ class BatchedRPClient(_RPClient):
         self._shutdown_timeout = shutdown_timeout
         self.__trigger_num = trigger_num
         self.__trigger_interval = trigger_interval
-        if task_list:
-            if not task_mutex:
-                warnings.warn(
-                    '"task_list" argument is set, but not "task_mutex". This usually indicates '
-                    'invalid use, since "task_mutex" is used to synchronize on "task_list".',
-                    RuntimeWarning,
-                    2
-                )
-        self.__task_list = task_list or TriggerTaskBatcher(trigger_num, trigger_interval)
-        self.__task_mutex = task_mutex or threading.RLock()
+        self.__init_task_list(task_list, task_mutex)
         self.__last_run_time = datetime.time()
-        if loop:
-            self._loop = loop
-        else:
-            self._loop = asyncio.new_event_loop()
-            self._loop.set_task_factory(BatchedTaskFactory())
+        self.__init_loop(loop)
 
     def create_task(self, coro: Coroutine[Any, Any, _T]) -> Optional[Task[_T]]:
         """Create a Task from given Coroutine.
@@ -1549,7 +1584,7 @@ class BatchedRPClient(_RPClient):
         if not getattr(self, '_loop', None):
             return
         result = self._loop.create_task(coro)
-        with self.__task_mutex:
+        with self._task_mutex:
             tasks = self.__task_list.append(result)
             if tasks:
                 self._loop.run_until_complete(asyncio.wait(tasks, timeout=self._task_timeout))
@@ -1557,7 +1592,7 @@ class BatchedRPClient(_RPClient):
 
     def finish_tasks(self) -> None:
         """Ensure all pending Tasks are finished, block current Thread if necessary."""
-        with self.__task_mutex:
+        with self._task_mutex:
             tasks = self.__task_list.flush()
             if tasks:
                 self._loop.run_until_complete(asyncio.wait(tasks, timeout=self._shutdown_timeout))
@@ -1586,7 +1621,7 @@ class BatchedRPClient(_RPClient):
             task_timeout=self._task_timeout,
             shutdown_timeout=self._shutdown_timeout,
             task_list=self.__task_list,
-            task_mutex=self.__task_mutex,
+            task_mutex=self._task_mutex,
             loop=self._loop,
             trigger_num=self.__trigger_num,
             trigger_interval=self.__trigger_interval
@@ -1595,3 +1630,24 @@ class BatchedRPClient(_RPClient):
         if current_item:
             cloned._add_current_item(current_item)
         return cloned
+
+    def __getstate__(self) -> Dict[str, Any]:
+        """Control object pickling and return object fields as Dictionary.
+
+        :return: object state dictionary
+        :rtype: dict
+        """
+        state = self.__dict__.copy()
+        # Don't pickle 'session' field, since it contains unpickling 'socket'
+        del state['_task_mutex']
+        del state['_loop']
+        return state
+
+    def __setstate__(self, state: Dict[str, Any]) -> None:
+        """Control object pickling, receives object state as Dictionary.
+
+        :param dict state: object state dictionary
+        """
+        self.__dict__.update(state)
+        self.__init_task_list(self.__task_list, threading.RLock())
+        self.__init_loop()

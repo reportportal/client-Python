@@ -21,6 +21,7 @@ from abc import abstractmethod
 from os import getenv
 from typing import Union, Tuple, Any, Optional, TextIO, List, Dict
 
+import aenum
 import requests
 from requests.adapters import HTTPAdapter, Retry, DEFAULT_RETRIES
 
@@ -40,6 +41,17 @@ from reportportal_client.steps import StepReporter
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
+
+
+class OutputType(aenum.Enum):
+    STDOUT = aenum.auto()
+    STDERR = aenum.auto()
+
+    def get_output(self) -> Optional[TextIO]:
+        if self == OutputType.STDOUT:
+            return sys.stdout
+        if self == OutputType.STDERR:
+            return sys.stderr
 
 
 class RP(metaclass=AbstractBaseClass):
@@ -337,7 +349,7 @@ class RPClient(RP):
     __step_reporter: StepReporter
     mode: str
     launch_uuid_print: Optional[bool]
-    print_output: Optional[TextIO]
+    print_output: OutputType
     _skip_analytics: str
     _item_stack: LifoQueue
     _log_batcher: LogBatcher[RPRequestLog]
@@ -406,7 +418,7 @@ class RPClient(RP):
             log_batch_payload_size: int = MAX_LOG_BATCH_PAYLOAD_SIZE,
             mode: str = 'DEFAULT',
             launch_uuid_print: bool = False,
-            print_output: Optional[TextIO] = None,
+            print_output: OutputType = OutputType.STDOUT,
             log_batcher: Optional[LogBatcher[RPRequestLog]] = None,
             **kwargs: Any
     ) -> None:
@@ -464,7 +476,7 @@ class RPClient(RP):
         self.mode = mode
         self._skip_analytics = getenv('AGENT_NO_ANALYTICS')
         self.launch_uuid_print = launch_uuid_print
-        self.print_output = print_output or sys.stdout
+        self.print_output = print_output
 
         self.api_key = api_key
         if not self.api_key:
@@ -530,7 +542,7 @@ class RPClient(RP):
         self.__launch_uuid = response.id
         logger.debug('start_launch - ID: %s', self.launch_uuid)
         if self.launch_uuid_print and self.print_output:
-            print(f'ReportPortal Launch UUID: {self.launch_uuid}', file=self.print_output)
+            print(f'ReportPortal Launch UUID: {self.launch_uuid}', file=self.print_output.get_output())
         return self.launch_uuid
 
     def start_test_item(self,
@@ -864,8 +876,6 @@ class RPClient(RP):
         state = self.__dict__.copy()
         # Don't pickle 'session' field, since it contains unpickling 'socket'
         del state['session']
-        # Don't pickle '_log_manager' field, since it uses 'session' field
-        del state['_log_manager']
         return state
 
     def __setstate__(self, state: Dict[str, Any]) -> None:

@@ -15,7 +15,7 @@
 
 import logging
 import threading
-from typing import List, Optional, TypeVar, Generic
+from typing import List, Optional, TypeVar, Generic, Dict, Any
 
 from reportportal_client.core.rp_requests import RPRequestLog, AsyncRPRequestLog
 from reportportal_client.logs import MAX_LOG_BATCH_SIZE, MAX_LOG_BATCH_PAYLOAD_SIZE
@@ -92,3 +92,22 @@ class LogBatcher(Generic[T_co]):
                 batch = self._batch
                 self._batch = []
                 return batch
+
+    def __getstate__(self) -> Dict[str, Any]:
+        """Control object pickling and return object fields as Dictionary.
+
+        :return: object state dictionary
+        :rtype: dict
+        """
+        state = self.__dict__.copy()
+        # Don't pickle 'session' field, since it contains unpickling 'socket'
+        del state['_lock']
+        return state
+
+    def __setstate__(self, state: Dict[str, Any]) -> None:
+        """Control object pickling, receives object state as Dictionary.
+
+        :param dict state: object state dictionary
+        """
+        self.__dict__.update(state)
+        self._lock = threading.Lock()
