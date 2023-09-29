@@ -1,6 +1,14 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- `RP` class in `reportportal_client.client` module as common interface for all ReportPortal clients, by @HardNorth
+- `reportportal_client.aio` with asynchronous clients and auxiliary classes, by @HardNorth
+- Dependency on `aiohttp` and `certifi`, by @HardNorth
+### Changed
+- RPClient class does not use separate Thread for log processing anymore, by @HardNorth
+### Removed
+- Dependency on `six`, by @HardNorth
 
 ## [5.4.1]
 ### Changed
