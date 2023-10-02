@@ -74,9 +74,9 @@ class Client:
     project: str
     api_key: str
     verify_ssl: Union[bool, str]
-    retries: int
+    retries: Optional[int]
     max_pool_size: int
-    http_timeout: Union[float, Tuple[float, float]]
+    http_timeout: Optional[Union[float, Tuple[float, float]]]
     keepalive_timeout: Optional[float]
     mode: str
     launch_uuid_print: bool
@@ -95,7 +95,7 @@ class Client:
             verify_ssl: Union[bool, str] = True,
             retries: int = NOT_SET,
             max_pool_size: int = 50,
-            http_timeout: Union[float, Tuple[float, float]] = (10, 10),
+            http_timeout: Optional[Union[float, Tuple[float, float]]] = (10, 10),
             keepalive_timeout: Optional[float] = None,
             mode: str = 'DEFAULT',
             launch_uuid_print: bool = False,

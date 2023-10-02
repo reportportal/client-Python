@@ -21,9 +21,13 @@ from reportportal_client.aio.client import Client
 from reportportal_client.aio.http import RetryingClientSession, DEFAULT_RETRY_NUMBER
 from reportportal_client.static.defines import NOT_SET
 
+ENDPOINT = 'http://localhost:8080'
+PROJECT = 'default_personal'
+API_KEY = 'test_key'
+
 
 def test_client_pickling():
-    client = Client('http://localhost:8080', 'default_personal', api_key='test_key')
+    client = Client(ENDPOINT, PROJECT, api_key=API_KEY)
     pickled_client = pickle.dumps(client)
     unpickled_client = pickle.loads(pickled_client)
     assert unpickled_client is not None
@@ -40,9 +44,39 @@ def test_client_pickling():
     ]
 )
 def test_retries_param(retry_num, expected_class, expected_param):
-    client = Client('http://localhost:8080', 'default_personal', api_key='test_key',
-                    retries=retry_num)
+    client = Client(ENDPOINT, PROJECT, api_key=API_KEY, retries=retry_num)
     session = client.session
     assert isinstance(session, expected_class)
     if expected_param is not NOT_SET:
         assert getattr(session, f'_RetryingClientSession__retry_number') == expected_param
+
+
+@pytest.mark.parametrize(
+    'timeout_param, expected_connect_param, expected_sock_read_param',
+    [
+        ((15, 17), 15, 17),
+        (21, 21, 21),
+        (None, None, None)
+    ]
+)
+@mock.patch('reportportal_client.aio.client.RetryingClientSession')
+def test_timeout_param(mocked_session, timeout_param, expected_connect_param, expected_sock_read_param):
+    client = Client(ENDPOINT, PROJECT, api_key=API_KEY, http_timeout=timeout_param)
+    session = client.session
+    assert session is not None
+    assert len(mocked_session.call_args_list) == 1
+    args, kwargs = mocked_session.call_args_list[0]
+    assert len(args) == 1 and args[0] == ENDPOINT
+    expected_kwargs_keys = ['headers', 'connector']
+    if timeout_param:
+        expected_kwargs_keys.append('timeout')
+    for key in expected_kwargs_keys:
+        assert key in kwargs
+    assert len(expected_kwargs_keys) == len(kwargs)
+    assert kwargs['headers'] == {'Authorization': f'Bearer {API_KEY}'}
+    assert kwargs['connector'] is not None
+    if timeout_param:
+        assert kwargs['timeout'] is not None
+        assert isinstance(kwargs['timeout'], aiohttp.ClientTimeout)
+        assert kwargs['timeout'].connect == expected_connect_param
+        assert kwargs['timeout'].sock_read == expected_sock_read_param

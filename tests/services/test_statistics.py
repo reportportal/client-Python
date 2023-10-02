@@ -135,10 +135,10 @@ async def test_async_send_event(mocked_distribution):
     assert len(MOCKED_AIOHTTP.call_args_list) == 1
     args, kwargs = MOCKED_AIOHTTP.call_args_list[0]
     assert len(args) == 0
-    kwargs_keys = ['headers', 'url', 'json', 'params', 'ssl']
-    for key in kwargs_keys:
+    expected_kwargs_keys = ['headers', 'url', 'json', 'params', 'ssl']
+    for key in expected_kwargs_keys:
         assert key in kwargs
-    assert len(kwargs_keys) == len(kwargs)
+    assert len(expected_kwargs_keys) == len(kwargs)
     assert kwargs['headers'] == EXPECTED_AIO_HEADERS
     assert kwargs['url'] == ENDPOINT
     assert kwargs['json'] == EXPECTED_DATA
