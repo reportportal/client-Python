@@ -109,7 +109,9 @@ def test_same_client_id(mocked_distribution, mocked_requests):
     assert result1 == result2
 
 
-MOCKED_AIOHTTP = mock.AsyncMock()
+MOCKED_AIOHTTP = None
+if not sys.version_info < (3, 8):
+    MOCKED_AIOHTTP = mock.AsyncMock()
 
 
 @pytest.mark.skipif(sys.version_info < (3, 8),
