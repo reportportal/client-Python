@@ -12,7 +12,7 @@
 #  limitations under the License
 import pickle
 
-from aio import BatchedRPClient
+from reportportal_client.aio import BatchedRPClient
 
 
 def test_batched_rp_client_pickling():

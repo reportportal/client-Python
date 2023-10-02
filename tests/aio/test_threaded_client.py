@@ -12,7 +12,7 @@
 #  limitations under the License
 import pickle
 
-from aio import ThreadedRPClient
+from reportportal_client.aio import ThreadedRPClient
 
 
 def test_threaded_rp_client_pickling():

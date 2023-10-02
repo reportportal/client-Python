@@ -13,7 +13,7 @@
 
 import pickle
 
-from aio import AsyncRPClient
+from reportportal_client.aio import AsyncRPClient
 
 
 def test_async_rp_client_pickling():
