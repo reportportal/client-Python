@@ -48,7 +48,7 @@ def test_retries_param(retry_num, expected_class, expected_param):
     session = client.session
     assert isinstance(session, expected_class)
     if expected_param is not NOT_SET:
-        assert getattr(session, f'_RetryingClientSession__retry_number') == expected_param
+        assert getattr(session, '_RetryingClientSession__retry_number') == expected_param
 
 
 @pytest.mark.parametrize(
