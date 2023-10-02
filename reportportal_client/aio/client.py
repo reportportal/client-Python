@@ -45,7 +45,7 @@ from reportportal_client.static.abstract import (
     AbstractBaseClass,
     abstractmethod
 )
-from reportportal_client.static.defines import NOT_FOUND
+from reportportal_client.static.defines import NOT_FOUND, NOT_SET
 from reportportal_client.steps import StepReporter
 
 logger = logging.getLogger(__name__)
@@ -93,7 +93,7 @@ class Client:
             api_key: str = None,
             is_skipped_an_issue: bool = True,
             verify_ssl: Union[bool, str] = True,
-            retries: int = None,
+            retries: int = NOT_SET,
             max_pool_size: int = 50,
             http_timeout: Union[float, Tuple[float, float]] = (10, 10),
             keepalive_timeout: Optional[float] = None,
@@ -198,10 +198,16 @@ class Client:
                 connect_timeout, read_timeout = self.http_timeout, self.http_timeout
             session_params['timeout'] = aiohttp.ClientTimeout(connect=connect_timeout, sock_read=read_timeout)
 
-        if self.retries:
+        retries_set = self.retries is not NOT_SET and self.retries and self.retries > 0
+        use_retries = self.retries is NOT_SET or (self.retries and self.retries > 0)
+
+        if retries_set:
             session_params['max_retry_number'] = self.retries
 
-        self._session = RetryingClientSession(self.endpoint, **session_params)
+        if use_retries:
+            self._session = RetryingClientSession(self.endpoint, **session_params)
+        else:
+            self._session = aiohttp.ClientSession(self.endpoint, **session_params)
         return self._session
 
     async def close(self) -> None:
