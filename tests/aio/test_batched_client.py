@@ -10,14 +10,13 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License
-
 import pickle
 
-from reportportal_client.aio.client import Client
+from aio import BatchedRPClient
 
 
-def test_client_pickling():
-    client = Client('http://localhost:8080', 'default_personal', api_key='test_key')
+def test_batched_rp_client_pickling():
+    client = BatchedRPClient('http://localhost:8080', 'default_personal', api_key='test_key')
     pickled_client = pickle.dumps(client)
     unpickled_client = pickle.loads(pickled_client)
     assert unpickled_client is not None

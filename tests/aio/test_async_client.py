@@ -13,11 +13,11 @@
 
 import pickle
 
-from reportportal_client.aio.client import Client
+from aio import AsyncRPClient
 
 
-def test_client_pickling():
-    client = Client('http://localhost:8080', 'default_personal', api_key='test_key')
+def test_async_rp_client_pickling():
+    client = AsyncRPClient('http://localhost:8080', 'default_personal', api_key='test_key')
     pickled_client = pickle.dumps(client)
     unpickled_client = pickle.loads(pickled_client)
     assert unpickled_client is not None
