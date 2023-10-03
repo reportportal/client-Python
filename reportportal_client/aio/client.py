@@ -652,11 +652,13 @@ class AsyncRPClient(RP):
         :param is_skipped_an_issue:     Option to mark skipped tests as not 'To Investigate' items on the
                                         server side.
         :param verify_ssl:              Option to skip ssl verification.
-        :param retries:                 Number of retry attempts to make in case of connection / server errors.
+        :param retries:                 Number of retry attempts to make in case of connection / server
+                                        errors.
         :param max_pool_size:           Option to set the maximum number of connections to save the pool.
         :param http_timeout:            A float in seconds for connect and read timeout. Use a Tuple to
                                         specific connect and read separately.
-        :param keepalive_timeout:       Maximum amount of idle time in seconds before force connection closing.
+        :param keepalive_timeout:       Maximum amount of idle time in seconds before force connection
+                                        closing.
         :param mode:                    Launch mode, all Launches started by the client will be in that mode.
         :param launch_uuid_print:       Print Launch UUID into passed TextIO or by default to stdout.
         :param print_output:            Set output stream for Launch UUID printing.
@@ -1004,11 +1006,13 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
         :param is_skipped_an_issue:     Option to mark skipped tests as not 'To Investigate' items on the
                                         server side.
         :param verify_ssl:              Option to skip ssl verification.
-        :param retries:                 Number of retry attempts to make in case of connection / server errors.
+        :param retries:                 Number of retry attempts to make in case of connection / server
+                                        errors.
         :param max_pool_size:           Option to set the maximum number of connections to save the pool.
         :param http_timeout:            A float in seconds for connect and read timeout. Use a Tuple to
                                         specific connect and read separately.
-        :param keepalive_timeout:       Maximum amount of idle time in seconds before force connection closing.
+        :param keepalive_timeout:       Maximum amount of idle time in seconds before force connection
+                                        closing.
         :param mode:                    Launch mode, all Launches started by the client will be in that mode.
         :param launch_uuid_print:       Print Launch UUID into passed TextIO or by default to stdout.
         :param print_output:            Set output stream for Launch UUID printing.
@@ -1376,11 +1380,13 @@ class ThreadedRPClient(_RPClient):
         :param is_skipped_an_issue:     Option to mark skipped tests as not 'To Investigate' items on the
                                         server side.
         :param verify_ssl:              Option to skip ssl verification.
-        :param retries:                 Number of retry attempts to make in case of connection / server errors.
+        :param retries:                 Number of retry attempts to make in case of connection / server
+                                        errors.
         :param max_pool_size:           Option to set the maximum number of connections to save the pool.
         :param http_timeout:            A float in seconds for connect and read timeout. Use a Tuple to
                                         specific connect and read separately.
-        :param keepalive_timeout:       Maximum amount of idle time in seconds before force connection closing.
+        :param keepalive_timeout:       Maximum amount of idle time in seconds before force connection
+                                        closing.
         :param mode:                    Launch mode, all Launches started by the client will be in that mode.
         :param launch_uuid_print:       Print Launch UUID into passed TextIO or by default to stdout.
         :param print_output:            Set output stream for Launch UUID printing.
@@ -1544,11 +1550,13 @@ class BatchedRPClient(_RPClient):
         :param is_skipped_an_issue:     Option to mark skipped tests as not 'To Investigate' items on the
                                         server side.
         :param verify_ssl:              Option to skip ssl verification.
-        :param retries:                 Number of retry attempts to make in case of connection / server errors.
+        :param retries:                 Number of retry attempts to make in case of connection / server
+                                        errors.
         :param max_pool_size:           Option to set the maximum number of connections to save the pool.
         :param http_timeout:            A float in seconds for connect and read timeout. Use a Tuple to
                                         specific connect and read separately.
-        :param keepalive_timeout:       Maximum amount of idle time in seconds before force connection closing.
+        :param keepalive_timeout:       Maximum amount of idle time in seconds before force connection
+                                        closing.
         :param mode:                    Launch mode, all Launches started by the client will be in that mode.
         :param launch_uuid_print:       Print Launch UUID into passed TextIO or by default to stdout.
         :param print_output:            Set output stream for Launch UUID printing.
