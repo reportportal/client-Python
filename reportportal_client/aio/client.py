@@ -1323,12 +1323,12 @@ class ThreadedRPClient(_RPClient):
     bodies generation and serialization, connection retries and log batching.
     """
 
-    _task_timeout: float
-    _shutdown_timeout: float
-    _loop: Optional[asyncio.AbstractEventLoop]
+    task_timeout: float
+    shutdown_timeout: float
+    _task_list: BackgroundTaskList[Task[_T]]
     _task_mutex: threading.RLock
+    _loop: Optional[asyncio.AbstractEventLoop]
     _thread: Optional[threading.Thread]
-    __task_list: BackgroundTaskList[Task[_T]]
 
     def __init_task_list(self, task_list: Optional[BackgroundTaskList[Task[_T]]] = None,
                          task_mutex: Optional[threading.RLock] = None):
@@ -1340,7 +1340,7 @@ class ThreadedRPClient(_RPClient):
                     RuntimeWarning,
                     3
                 )
-        self.__task_list = task_list or BackgroundTaskList()
+        self._task_list = task_list or BackgroundTaskList()
         self._task_mutex = task_mutex or threading.RLock()
 
     def __heartbeat(self):
@@ -1354,7 +1354,7 @@ class ThreadedRPClient(_RPClient):
             self._loop = loop
         else:
             self._loop = asyncio.new_event_loop()
-            self._loop.set_task_factory(ThreadedTaskFactory(self._task_timeout))
+            self._loop.set_task_factory(ThreadedTaskFactory(self.task_timeout))
             self.__heartbeat()
             self._thread = threading.Thread(target=self._loop.run_forever, name='RP-Async-Client',
                                             daemon=True)
@@ -1409,8 +1409,8 @@ class ThreadedRPClient(_RPClient):
                                         if this argument is None.
         """
         super().__init__(endpoint, project, **kwargs)
-        self._task_timeout = task_timeout
-        self._shutdown_timeout = shutdown_timeout
+        self.task_timeout = task_timeout
+        self.shutdown_timeout = shutdown_timeout
         self.__init_task_list(task_list, task_mutex)
         self.__init_loop(loop)
 
@@ -1424,17 +1424,17 @@ class ThreadedRPClient(_RPClient):
             return
         result = self._loop.create_task(coro)
         with self._task_mutex:
-            self.__task_list.append(result)
+            self._task_list.append(result)
         return result
 
     def finish_tasks(self):
         """Ensure all pending Tasks are finished, block current Thread if necessary."""
         shutdown_start_time = datetime.time()
         with self._task_mutex:
-            tasks = self.__task_list.flush()
+            tasks = self._task_list.flush()
         for task in tasks:
             task.blocking_result()
-            if datetime.time() - shutdown_start_time >= self._shutdown_timeout:
+            if datetime.time() - shutdown_start_time >= self.shutdown_timeout:
                 break
         logs = self._log_batcher.flush()
         if logs:
@@ -1450,17 +1450,17 @@ class ThreadedRPClient(_RPClient):
         cloned_client = self.client.clone()
         # noinspection PyTypeChecker
         cloned = ThreadedRPClient(
-            endpoint=None,
-            project=None,
+            endpoint=self.endpoint,
+            project=self.project,
             launch_uuid=self.launch_uuid,
             client=cloned_client,
             log_batch_size=self.log_batch_size,
             log_batch_payload_limit=self.log_batch_payload_limit,
             log_batcher=self._log_batcher,
-            task_timeout=self._task_timeout,
-            shutdown_timeout=self._shutdown_timeout,
+            task_timeout=self.task_timeout,
+            shutdown_timeout=self.shutdown_timeout,
             task_mutex=self._task_mutex,
-            task_list=self.__task_list,
+            task_list=self._task_list,
             loop=self._loop
         )
         current_item = self.current_item()
@@ -1487,7 +1487,7 @@ class ThreadedRPClient(_RPClient):
         :param dict state: object state dictionary
         """
         self.__dict__.update(state)
-        self.__init_task_list(self.__task_list, threading.RLock())
+        self.__init_task_list(self._task_list, threading.RLock())
         self.__init_loop()
 
 
