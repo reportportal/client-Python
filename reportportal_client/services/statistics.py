@@ -13,6 +13,7 @@
 
 """This module sends statistics events to a statistics service."""
 
+import sys
 import logging
 import ssl
 from platform import python_version
@@ -21,7 +22,6 @@ from typing import Optional, Tuple
 import aiohttp
 import certifi
 import requests
-from pkg_resources import get_distribution
 
 from reportportal_client.services.client_id import get_client_id
 from reportportal_client.services.constants import CLIENT_INFO, ENDPOINT
@@ -36,8 +36,16 @@ def _get_client_info() -> Tuple[str, str]:
 
     :return: ('reportportal-client', '5.0.4')
     """
-    client = get_distribution('reportportal-client')
-    return client.project_name, client.version
+    if sys.version_info < (3, 8):
+        from pkg_resources import get_distribution
+        client = get_distribution('reportportal-client')
+        name, version = client.project_name, client.version
+    else:
+        # noinspection PyCompatibility
+        from importlib.metadata import distribution
+        client = distribution('reportportal-client')
+        name, version = client.name.lower(), client.version
+    return name, version
 
 
 def _get_platform_info() -> str:

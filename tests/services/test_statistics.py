@@ -21,6 +21,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License
 
+import re
 import sys
 from unittest import mock
 
@@ -30,8 +31,13 @@ from requests.exceptions import RequestException
 from reportportal_client.services.constants import ENDPOINT, CLIENT_INFO
 from reportportal_client.services.statistics import send_event, async_send_event
 
+VERSION_VAR = '__version__'
 EVENT_NAME = 'start_launch'
-EXPECTED_CL_VERSION, EXPECTED_CL_NAME = '5.0.4', 'reportportal-client'
+with open('setup.py') as f:
+    EXPECTED_CL_VERSION = next(
+        map(lambda l: re.sub(f'^\\s*{VERSION_VAR}\\s*=\\s*[\'"]([^\'"]+)[\'"]', '\\g<1>', l),
+            filter(lambda x: VERSION_VAR in x, f.read().splitlines())))
+EXPECTED_CL_NAME = 'reportportal-client'
 AGENT_VERSION, AGENT_NAME = '5.0.5', 'pytest-reportportal'
 EXPECTED_HEADERS = {'User-Agent': 'python-requests'}
 EXPECTED_AIO_HEADERS = {'User-Agent': 'python-aiohttp'}
@@ -55,17 +61,13 @@ EXPECTED_PARAMS = {'measurement_id': MID, 'api_secret': KEY}
 @mock.patch('reportportal_client.services.statistics.get_client_id',
             mock.Mock(return_value='555'))
 @mock.patch('reportportal_client.services.statistics.requests.post')
-@mock.patch('reportportal_client.services.statistics.get_distribution')
 @mock.patch('reportportal_client.services.statistics.python_version',
             mock.Mock(return_value='3.6.6'))
-def test_send_event(mocked_distribution, mocked_requests):
+def test_send_event(mocked_requests):
     """Test functionality of the send_event() function.
 
-    :param mocked_distribution: Mocked get_distribution() function
     :param mocked_requests:     Mocked requests module
     """
-    mocked_distribution.return_value.version = EXPECTED_CL_VERSION
-    mocked_distribution.return_value.project_name = EXPECTED_CL_NAME
 
     send_event(EVENT_NAME, AGENT_NAME, AGENT_VERSION)
     mocked_requests.assert_called_with(
@@ -77,27 +79,20 @@ def test_send_event(mocked_distribution, mocked_requests):
             mock.Mock(return_value='555'))
 @mock.patch('reportportal_client.services.statistics.requests.post',
             mock.Mock(side_effect=RequestException))
-@mock.patch('reportportal_client.services.statistics.get_distribution',
-            mock.Mock())
 def test_send_event_raises():
     """Test that the send_event() does not raise exceptions."""
     send_event(EVENT_NAME, 'pytest-reportportal', '5.0.5')
 
 
 @mock.patch('reportportal_client.services.statistics.requests.post')
-@mock.patch('reportportal_client.services.statistics.get_distribution')
 @mock.patch('reportportal_client.services.statistics.python_version',
             mock.Mock(return_value='3.6.6'))
-def test_same_client_id(mocked_distribution, mocked_requests):
+def test_same_client_id(mocked_requests):
     """Test functionality of the send_event() function.
 
-    :param mocked_distribution: Mocked get_distribution() function
     :param mocked_requests:     Mocked requests module
     """
-    expected_cl_version, expected_cl_name = '5.0.4', 'reportportal-client'
     agent_version, agent_name = '5.0.5', 'pytest-reportportal'
-    mocked_distribution.return_value.version = expected_cl_version
-    mocked_distribution.return_value.project_name = expected_cl_name
 
     send_event(EVENT_NAME, agent_name, agent_version)
     send_event(EVENT_NAME, agent_name, agent_version)
@@ -119,18 +114,11 @@ if not sys.version_info < (3, 8):
 @mock.patch('reportportal_client.services.statistics.get_client_id',
             mock.Mock(return_value='555'))
 @mock.patch('reportportal_client.services.statistics.aiohttp.ClientSession.post', MOCKED_AIOHTTP)
-@mock.patch('reportportal_client.services.statistics.get_distribution')
 @mock.patch('reportportal_client.services.statistics.python_version',
             mock.Mock(return_value='3.6.6'))
 @pytest.mark.asyncio
-async def test_async_send_event(mocked_distribution):
-    """Test functionality of the send_event() function.
-
-    :param mocked_distribution: Mocked get_distribution() function
-    """
-    mocked_distribution.return_value.version = EXPECTED_CL_VERSION
-    mocked_distribution.return_value.project_name = EXPECTED_CL_NAME
-
+async def test_async_send_event():
+    """Test functionality of the send_event() function."""
     await async_send_event(EVENT_NAME, AGENT_NAME, AGENT_VERSION)
     assert len(MOCKED_AIOHTTP.call_args_list) == 1
     args, kwargs = MOCKED_AIOHTTP.call_args_list[0]
