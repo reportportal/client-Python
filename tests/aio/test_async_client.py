@@ -21,3 +21,37 @@ def test_async_rp_client_pickling():
     pickled_client = pickle.dumps(client)
     unpickled_client = pickle.loads(pickled_client)
     assert unpickled_client is not None
+
+
+def test_clone():
+    args = ['http://endpoint', 'project']
+    kwargs = {'api_key': 'api_key1', 'launch_uuid': 'launch_uuid', 'log_batch_size': 30,
+              'log_batch_payload_limit': 30 * 1024 * 1024}
+    async_client = AsyncRPClient(*args, **kwargs)
+    async_client._add_current_item('test-321')
+    async_client._add_current_item('test-322')
+    client = async_client.client
+    step_reporter = async_client.step_reporter
+    cloned = async_client.clone()
+    assert (
+            cloned is not None
+            and async_client is not cloned
+            and cloned.client is not None
+            and cloned.client is not client
+            and cloned.step_reporter is not None
+            and cloned.step_reporter is not step_reporter
+    )
+    assert (
+            cloned.endpoint == args[0]
+            and cloned.project == args[1]
+            and cloned.client.endpoint == args[0]
+            and cloned.client.project == args[1]
+    )
+    assert (
+            cloned.client.api_key == kwargs['api_key']
+            and cloned.launch_uuid == kwargs['launch_uuid']
+            and cloned.log_batch_size == kwargs['log_batch_size']
+            and cloned.log_batch_payload_limit == kwargs['log_batch_payload_limit']
+    )
+    assert cloned._item_stack.qsize() == 1 \
+           and async_client.current_item() == cloned.current_item()
