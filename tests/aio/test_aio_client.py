@@ -17,6 +17,7 @@ from unittest import mock
 import aiohttp
 import pytest
 
+from reportportal_client import OutputType
 from reportportal_client.aio.client import Client
 from reportportal_client.aio.http import RetryingClientSession, DEFAULT_RETRY_NUMBER
 from reportportal_client.static.defines import NOT_SET
@@ -80,3 +81,26 @@ def test_timeout_param(mocked_session, timeout_param, expected_connect_param, ex
         assert isinstance(kwargs['timeout'], aiohttp.ClientTimeout)
         assert kwargs['timeout'].connect == expected_connect_param
         assert kwargs['timeout'].sock_read == expected_sock_read_param
+
+
+def test_clone():
+    args = ['http://endpoint', 'project']
+    kwargs = {'api_key': 'api_key', 'is_skipped_an_issue': False, 'verify_ssl': False, 'retries': 5,
+              'max_pool_size': 30, 'http_timeout': (30, 30), 'keepalive_timeout': 25, 'mode': 'DEBUG',
+              'launch_uuid_print': True, 'print_output': OutputType.STDERR}
+    client = Client(*args, **kwargs)
+    cloned = client.clone()
+    assert cloned is not None and client is not cloned
+    assert cloned.endpoint == args[0] and cloned.project == args[1]
+    assert (
+            cloned.api_key == kwargs['api_key']
+            and cloned.is_skipped_an_issue == kwargs['is_skipped_an_issue']
+            and cloned.verify_ssl == kwargs['verify_ssl']
+            and cloned.retries == kwargs['retries']
+            and cloned.max_pool_size == kwargs['max_pool_size']
+            and cloned.http_timeout == kwargs['http_timeout']
+            and cloned.keepalive_timeout == kwargs['keepalive_timeout']
+            and cloned.mode == kwargs['mode']
+            and cloned.launch_uuid_print == kwargs['launch_uuid_print']
+            and cloned.print_output == kwargs['print_output']
+    )
