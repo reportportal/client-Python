@@ -1499,14 +1499,14 @@ class BatchedRPClient(_RPClient):
     bodies generation and serialization, connection retries and log batching.
     """
 
-    _task_timeout: float
-    _shutdown_timeout: float
+    task_timeout: float
+    shutdown_timeout: float
+    trigger_num: int
+    trigger_interval: float
     _loop: asyncio.AbstractEventLoop
     _task_mutex: threading.RLock
-    __task_list: TriggerTaskBatcher[Task[_T]]
+    _task_list: TriggerTaskBatcher[Task[_T]]
     __last_run_time: float
-    __trigger_num: int
-    __trigger_interval: float
 
     def __init_task_list(self, task_list: Optional[TriggerTaskBatcher[Task[_T]]] = None,
                          task_mutex: Optional[threading.RLock] = None):
@@ -1518,7 +1518,7 @@ class BatchedRPClient(_RPClient):
                     RuntimeWarning,
                     3
                 )
-        self.__task_list = task_list or TriggerTaskBatcher(self.__trigger_num, self.__trigger_interval)
+        self._task_list = task_list or TriggerTaskBatcher(self.trigger_num, self.trigger_interval)
         self._task_mutex = task_mutex or threading.RLock()
 
     def __init_loop(self, loop: Optional[asyncio.AbstractEventLoop] = None):
@@ -1581,10 +1581,10 @@ class BatchedRPClient(_RPClient):
         :param trigger_interval:        Time limit which triggers Task batch execution.
         """
         super().__init__(endpoint, project, **kwargs)
-        self._task_timeout = task_timeout
-        self._shutdown_timeout = shutdown_timeout
-        self.__trigger_num = trigger_num
-        self.__trigger_interval = trigger_interval
+        self.task_timeout = task_timeout
+        self.shutdown_timeout = shutdown_timeout
+        self.trigger_num = trigger_num
+        self.trigger_interval = trigger_interval
         self.__init_task_list(task_list, task_mutex)
         self.__last_run_time = datetime.time()
         self.__init_loop(loop)
@@ -1599,17 +1599,17 @@ class BatchedRPClient(_RPClient):
             return
         result = self._loop.create_task(coro)
         with self._task_mutex:
-            tasks = self.__task_list.append(result)
+            tasks = self._task_list.append(result)
             if tasks:
-                self._loop.run_until_complete(asyncio.wait(tasks, timeout=self._task_timeout))
+                self._loop.run_until_complete(asyncio.wait(tasks, timeout=self.task_timeout))
         return result
 
     def finish_tasks(self) -> None:
         """Ensure all pending Tasks are finished, block current Thread if necessary."""
         with self._task_mutex:
-            tasks = self.__task_list.flush()
+            tasks = self._task_list.flush()
             if tasks:
-                self._loop.run_until_complete(asyncio.wait(tasks, timeout=self._shutdown_timeout))
+                self._loop.run_until_complete(asyncio.wait(tasks, timeout=self.shutdown_timeout))
             logs = self._log_batcher.flush()
             if logs:
                 log_task = self._loop.create_task(self._log_batch(logs))
@@ -1625,20 +1625,20 @@ class BatchedRPClient(_RPClient):
         cloned_client = self.client.clone()
         # noinspection PyTypeChecker
         cloned = BatchedRPClient(
-            endpoint=None,
-            project=None,
+            endpoint=self.endpoint,
+            project=self.project,
             launch_uuid=self.launch_uuid,
             client=cloned_client,
             log_batch_size=self.log_batch_size,
             log_batch_payload_limit=self.log_batch_payload_limit,
             log_batcher=self._log_batcher,
-            task_timeout=self._task_timeout,
-            shutdown_timeout=self._shutdown_timeout,
-            task_list=self.__task_list,
+            task_timeout=self.task_timeout,
+            shutdown_timeout=self.shutdown_timeout,
+            task_list=self._task_list,
             task_mutex=self._task_mutex,
             loop=self._loop,
-            trigger_num=self.__trigger_num,
-            trigger_interval=self.__trigger_interval
+            trigger_num=self.trigger_num,
+            trigger_interval=self.trigger_interval
         )
         current_item = self.current_item()
         if current_item:
@@ -1663,5 +1663,5 @@ class BatchedRPClient(_RPClient):
         :param dict state: object state dictionary
         """
         self.__dict__.update(state)
-        self.__init_task_list(self.__task_list, threading.RLock())
+        self.__init_task_list(self._task_list, threading.RLock())
         self.__init_loop()
