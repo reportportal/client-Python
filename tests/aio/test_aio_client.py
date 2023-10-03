@@ -44,9 +44,10 @@ def test_client_pickling():
         (NOT_SET, RetryingClientSession, DEFAULT_RETRY_NUMBER)
     ]
 )
-def test_retries_param(retry_num, expected_class, expected_param):
+@pytest.mark.asyncio
+async def test_retries_param(retry_num, expected_class, expected_param):
     client = Client(ENDPOINT, PROJECT, api_key=API_KEY, retries=retry_num)
-    session = client.session
+    session = await client.session()
     assert isinstance(session, expected_class)
     if expected_param is not NOT_SET:
         assert getattr(session, '_RetryingClientSession__retry_number') == expected_param
@@ -61,9 +62,10 @@ def test_retries_param(retry_num, expected_class, expected_param):
     ]
 )
 @mock.patch('reportportal_client.aio.client.RetryingClientSession')
-def test_timeout_param(mocked_session, timeout_param, expected_connect_param, expected_sock_read_param):
+@pytest.mark.asyncio
+async def test_timeout_param(mocked_session, timeout_param, expected_connect_param, expected_sock_read_param):
     client = Client(ENDPOINT, PROJECT, api_key=API_KEY, http_timeout=timeout_param)
-    session = client.session
+    session = await client.session()
     assert session is not None
     assert len(mocked_session.call_args_list) == 1
     args, kwargs = mocked_session.call_args_list[0]

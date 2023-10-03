@@ -157,8 +157,7 @@ class Client:
                     stacklevel=2
                 )
 
-    @property
-    def session(self) -> aiohttp.ClientSession:
+    async def session(self) -> aiohttp.ClientSession:
         """Return aiohttp.ClientSession class instance, initialize it if necessary.
 
         :return: aiohttp.ClientSession instance.
@@ -261,7 +260,7 @@ class Client:
             rerun_of=rerun_of
         ).payload
 
-        response = await AsyncHttpRequest(self.session.post, url=url, json=request_payload).make()
+        response = await AsyncHttpRequest((await self.session()).post, url=url, json=request_payload).make()
         if not response:
             return
 
@@ -327,7 +326,7 @@ class Client:
             test_case_id=test_case_id
         ).payload
 
-        response = await AsyncHttpRequest(self.session.post, url=url, json=request_payload).make()
+        response = await AsyncHttpRequest((await self.session()).post, url=url, json=request_payload).make()
         if not response:
             return
         item_id = await response.id
@@ -373,7 +372,7 @@ class Client:
             issue=issue,
             retry=retry
         ).payload
-        response = await AsyncHttpRequest(self.session.put, url=url, json=request_payload).make()
+        response = await AsyncHttpRequest((await self.session()).put, url=url, json=request_payload).make()
         if not response:
             return
         message = await response.message
@@ -404,7 +403,7 @@ class Client:
             attributes=attributes,
             description=kwargs.get('description')
         ).payload
-        response = await AsyncHttpRequest(self.session.put, url=url, json=request_payload,
+        response = await AsyncHttpRequest((await self.session()).put, url=url, json=request_payload,
                                           name='Finish Launch').make()
         if not response:
             return
@@ -431,7 +430,7 @@ class Client:
         }
         item_id = await self.get_item_id_by_uuid(item_uuid)
         url = root_uri_join(self.base_url_v1, 'item', item_id, 'update')
-        response = await AsyncHttpRequest(self.session.put, url=url, json=data).make()
+        response = await AsyncHttpRequest((await self.session()).put, url=url, json=data).make()
         if not response:
             return
         logger.debug('update_test_item - Item: %s', item_id)
@@ -452,7 +451,7 @@ class Client:
         :return:                   Launch information in dictionary.
         """
         url = self.__get_launch_uuid_url(launch_uuid_future)
-        response = await AsyncHttpRequest(self.session.get, url=url).make()
+        response = await AsyncHttpRequest((await self.session()).get, url=url).make()
         if not response:
             return
         if response.is_success:
@@ -477,7 +476,7 @@ class Client:
         :return:                 Test Item ID.
         """
         url = self.__get_item_uuid_url(item_uuid_future)
-        response = await AsyncHttpRequest(self.session.get, url=url).make()
+        response = await AsyncHttpRequest((await self.session()).get, url=url).make()
         return response.id if response else None
 
     async def get_launch_ui_id(self, launch_uuid_future: Union[str, Task[str]]) -> Optional[int]:
@@ -519,7 +518,7 @@ class Client:
         :return: Settings response in Dictionary.
         """
         url = root_uri_join(self.base_url_v1, 'settings')
-        response = await AsyncHttpRequest(self.session.get, url=url).make()
+        response = await AsyncHttpRequest((await self.session()).get, url=url).make()
         return await response.json if response else None
 
     async def log_batch(self, log_batch: Optional[List[AsyncRPRequestLog]]) -> Tuple[str, ...]:
@@ -530,7 +529,7 @@ class Client:
         """
         url = root_uri_join(self.base_url_v2, 'log')
         if log_batch:
-            response = await AsyncHttpRequest(self.session.post, url=url,
+            response = await AsyncHttpRequest((await self.session()).post, url=url,
                                               data=AsyncRPLogBatch(log_batch).payload).make()
             return await response.messages
 
