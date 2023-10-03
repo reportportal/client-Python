@@ -44,7 +44,7 @@ def _get_client_info() -> Tuple[str, str]:
         # noinspection PyCompatibility
         from importlib.metadata import distribution
         client = distribution('reportportal-client')
-        name, version = client.name.lower(), client.version
+        name, version = client.metadata['Name'], client.metadata['Version']
     return name, version
 
 

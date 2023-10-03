@@ -156,16 +156,19 @@ def test_clone():
     cloned = client.clone()
     assert cloned is not None and client is not cloned
     assert cloned.endpoint == args[0] and cloned.project == args[1]
-    assert cloned.api_key == kwargs[
-        'api_key'] and cloned.log_batch_size == kwargs[
-               'log_batch_size'] and cloned.is_skipped_an_issue == kwargs[
-               'is_skipped_an_issue'] and cloned.verify_ssl == kwargs[
-               'verify_ssl'] and cloned.retries == kwargs[
-               'retries'] and cloned.max_pool_size == kwargs[
-               'max_pool_size'] and cloned.launch_id == kwargs[
-               'launch_id'] and cloned.http_timeout == kwargs[
-               'http_timeout'] and cloned.log_batch_payload_size == kwargs[
-               'log_batch_payload_size'] and cloned.mode == kwargs['mode']
+    assert (
+            cloned.api_key == kwargs['api_key']
+            and cloned.log_batch_size == kwargs['log_batch_size']
+            and cloned.is_skipped_an_issue == kwargs['is_skipped_an_issue']
+            and cloned.verify_ssl == kwargs['verify_ssl']
+            and cloned.retries == kwargs['retries']
+            and cloned.max_pool_size == kwargs['max_pool_size']
+            and cloned.launch_uuid == kwargs['launch_id']
+            and cloned.launch_id == kwargs['launch_id']
+            and cloned.http_timeout == kwargs['http_timeout']
+            and cloned.log_batch_payload_size == kwargs['log_batch_payload_size']
+            and cloned.mode == kwargs['mode']
+    )
     assert cloned._item_stack.qsize() == 1 \
            and client.current_item() == cloned.current_item()
 
