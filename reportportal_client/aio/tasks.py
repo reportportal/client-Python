@@ -40,6 +40,8 @@ class Task(Generic[_T], asyncio.Task, metaclass=AbstractBaseClass):
 
     __metaclass__ = AbstractBaseClass
 
+    name: Optional[str]
+
     def __init__(
             self,
             coro: Union[Generator[Future, None, _T], Awaitable[_T]],
@@ -53,7 +55,11 @@ class Task(Generic[_T], asyncio.Task, metaclass=AbstractBaseClass):
         :param loop: Event Loop which will be used to execute the Task
         :param name: the name of the task
         """
-        super().__init__(coro, loop=loop, name=name)
+        self.name = name
+        if sys.version_info < (3, 8):
+            super().__init__(coro, loop=loop)
+        else:
+            super().__init__(coro, loop=loop, name=name)
 
     @abstractmethod
     def blocking_result(self) -> _T:
@@ -100,10 +106,7 @@ class BatchedTask(Generic[_T], Task[_T]):
         :param loop: Event Loop which will be used to execute the Task
         :param name: the name of the task
         """
-        if sys.version_info < (3, 8):
-            super().__init__(coro, loop=loop)
-        else:
-            super().__init__(coro, loop=loop, name=name)
+        super().__init__(coro, loop=loop, name=name)
         self.__loop = loop
 
     def blocking_result(self) -> _T:
@@ -136,10 +139,7 @@ class ThreadedTask(Generic[_T], Task[_T]):
         :param loop: Event Loop which will be used to execute the Task
         :param name: the name of the task
         """
-        if sys.version_info < (3, 8):
-            super().__init__(coro, loop=loop)
-        else:
-            super().__init__(coro, loop=loop, name=name)
+        super().__init__(coro, loop=loop, name=name)
         self.__loop = loop
         self.__wait_timeout = wait_timeout
 
