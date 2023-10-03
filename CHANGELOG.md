@@ -7,6 +7,7 @@
 - Dependency on `aiohttp` and `certifi`, by @HardNorth
 ### Changed
 - RPClient class does not use separate Thread for log processing anymore, by @HardNorth
+- Use `importlib.metadata` package for distribution data extraction for Python versions starting 3.8, by @HardNorth
 ### Removed
 - Dependency on `six`, by @HardNorth
 
