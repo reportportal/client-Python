@@ -23,8 +23,6 @@ import uuid
 from platform import machine, processor, system
 from typing import Optional, Any, List, Dict, Callable, Tuple, Union, TypeVar, Generic
 
-from pkg_resources import DistributionNotFound, get_distribution
-
 from reportportal_client.core.rp_file import RPFile
 from reportportal_client.static.defines import ATTRIBUTE_LENGTH_LIMIT
 
