@@ -82,7 +82,7 @@ class Client:
     launch_uuid_print: bool
     print_output: OutputType
     _skip_analytics: str
-    _session: Optional[aiohttp.ClientSession]
+    _session: Optional[RetryingClientSession]
     __stat_task: Optional[asyncio.Task]
 
     def __init__(
@@ -157,7 +157,7 @@ class Client:
                     stacklevel=2
                 )
 
-    async def session(self) -> aiohttp.ClientSession:
+    async def session(self) -> RetryingClientSession:
         """Return aiohttp.ClientSession class instance, initialize it if necessary.
 
         :return: aiohttp.ClientSession instance.
@@ -206,6 +206,7 @@ class Client:
         if use_retries:
             self._session = RetryingClientSession(self.endpoint, **session_params)
         else:
+            # noinspection PyTypeChecker
             self._session = aiohttp.ClientSession(self.endpoint, **session_params)
         return self._session
 

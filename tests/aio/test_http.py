@@ -12,12 +12,12 @@
 #  limitations under the License
 import http.server
 import socketserver
-import sys
 import threading
 import time
 from unittest import mock
 
 import aiohttp
+# noinspection PyPackageRequirements
 import pytest
 
 from reportportal_client.aio.http import RetryingClientSession
@@ -85,13 +85,13 @@ async def execute_http_request(port, retry_number, server_class, timeout_seconds
     session = RetryingClientSession(f'{protocol}://localhost:{port}', timeout=timeout,
                                     max_retry_number=retry_number, base_retry_delay=0.01, connector=connector)
     # noinspection PyProtectedMember
-    parent_request = super(type(session), session)._request
-    async_mock = mock.AsyncMock()
+    parent_request = session._client.request
+    async_mock = mock.Mock()
     async_mock.side_effect = parent_request
     exception = None
     result = None
     with get_http_server(server_handler=server_class, server_address=('', port)):
-        with mock.patch('reportportal_client.aio.http.ClientSession._request', async_mock):
+        with mock.patch('reportportal_client.aio.http.ClientSession.request', async_mock):
             async with session:
                 start_time = time.time()
                 try:
@@ -102,8 +102,6 @@ async def execute_http_request(port, retry_number, server_class, timeout_seconds
     return async_mock, exception, result, total_time
 
 
-@pytest.mark.skipif(sys.version_info < (3, 8),
-                    reason="the test requires AsyncMock which was introduced in Python 3.8")
 @pytest.mark.parametrize(
     'server_class, port, expected_delay, timeout_seconds, is_exception',
     [
@@ -128,8 +126,6 @@ async def test_retry_on_request_error(server_class, port, expected_delay, timeou
     assert total_time < expected_delay * 1.5
 
 
-@pytest.mark.skipif(sys.version_info < (3, 8),
-                    reason="the test requires AsyncMock which was introduced in Python 3.8")
 @pytest.mark.asyncio
 async def test_no_retry_on_ok_request():
     retry_number = 5
@@ -142,8 +138,6 @@ async def test_no_retry_on_ok_request():
     assert total_time < 1
 
 
-@pytest.mark.skipif(sys.version_info < (3, 8),
-                    reason="the test requires AsyncMock which was introduced in Python 3.8")
 @pytest.mark.asyncio
 async def test_no_retry_on_not_retryable_error():
     retry_number = 5

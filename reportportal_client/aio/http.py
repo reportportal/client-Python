@@ -15,7 +15,8 @@
 
 import asyncio
 import sys
-from typing import Coroutine
+from types import TracebackType
+from typing import Coroutine, Any, Optional, Type
 
 from aenum import Enum
 from aiohttp import ClientSession, ClientResponse, ServerConnectionError, \
@@ -35,9 +36,10 @@ class RetryClass(int, Enum):
     THROTTLING = 3
 
 
-class RetryingClientSession(ClientSession):
-    """Class extends aiohttp.ClientSession functionality with request retry logic."""
+class RetryingClientSession:
+    """Class uses aiohttp.ClientSession.request method and adds request retry logic."""
 
+    _client: ClientSession
     __retry_number: int
     __retry_delay: float
 
@@ -59,7 +61,7 @@ class RetryingClientSession(ClientSession):
                                  an error. Real value highly depends on Retry Class and Retry attempt number,
                                  since retries are performed in exponential delay manner
         """
-        super().__init__(*args, **kwargs)
+        self._client = ClientSession(*args, **kwargs)
         self.__retry_number = max_retry_number
         self.__retry_delay = base_retry_delay
 
@@ -73,24 +75,22 @@ class RetryingClientSession(ClientSession):
         else:
             return self.__nothing()
 
-    async def _request(
-            self,
-            *args,
-            **kwargs
+    async def request(
+            self, method: str, url: str, **kwargs: Any
     ) -> ClientResponse:
         """Make a request and retry if necessary.
 
-        The method overrides aiohttp.ClientSession._request() method and bypass all arguments to it, so
-        please refer it for detailed argument description. The method retries requests depending on error
-        class and retry number. For no-retry errors, such as 400 Bad Request it just returns result, for cases
-        where it's reasonable to retry it does it in exponential manner.
-        """
+                The method overrides aiohttp.ClientSession._request() method and bypass all arguments to it, so
+                please refer it for detailed argument description. The method retries requests depending on error
+                class and retry number. For no-retry errors, such as 400 Bad Request it just returns result, for cases
+                where it's reasonable to retry it does it in exponential manner.
+                """
         result = None
         exceptions = []
         for i in range(self.__retry_number + 1):  # add one for the first attempt, which is not a retry
             retry_factor = None
             try:
-                result = await super()._request(*args, **kwargs)
+                result = await self._client.request(method, url, **kwargs)
             except Exception as exc:
                 exceptions.append(exc)
                 if isinstance(exc, ServerConnectionError) or isinstance(exc, ClientResponseError):
@@ -125,3 +125,27 @@ class RetryingClientSession(ClientSession):
             else:
                 raise exceptions[0]
         return result
+
+    def get(self, url: str, *, allow_redirects: bool = True,
+            **kwargs: Any) -> Coroutine[Any, Any, ClientResponse]:
+        return self.request('GET', url, allow_redirects=allow_redirects, **kwargs)
+
+    def post(self, url: str, *, data: Any = None, **kwargs: Any) -> Coroutine[Any, Any, ClientResponse]:
+        return self.request('POST', url, data=data, **kwargs)
+
+    def put(self, url: str, *, data: Any = None, **kwargs: Any) -> Coroutine[Any, Any, ClientResponse]:
+        return self.request('PUT', url, data=data, **kwargs)
+
+    async def close(self) -> Coroutine:
+        return self._client.close()
+
+    async def __aenter__(self) -> "RetryingClientSession":
+        return self
+
+    async def __aexit__(
+            self,
+            exc_type: Optional[Type[BaseException]],
+            exc_val: Optional[BaseException],
+            exc_tb: Optional[TracebackType],
+    ) -> None:
+        await self.close()
