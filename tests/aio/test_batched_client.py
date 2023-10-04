@@ -12,7 +12,6 @@
 #  limitations under the License
 import pickle
 
-from reportportal_client.aio import BatchedTask
 from reportportal_client.aio import BatchedRPClient
 
 
