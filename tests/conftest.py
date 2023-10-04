@@ -6,6 +6,7 @@ from unittest import mock
 from pytest import fixture
 
 from reportportal_client.client import RPClient
+from reportportal_client.aio.client import Client
 
 
 @fixture()
@@ -32,4 +33,12 @@ def rp_client():
     """Prepare instance of the RPClient for testing."""
     client = RPClient('http://endpoint', 'project', 'api_key')
     client.session = mock.Mock()
+    return client
+
+
+@fixture
+def aio_client():
+    """Prepare instance of the Client for testing."""
+    client = Client('http://endpoint', 'project', api_key='api_key')
+    client._session = mock.AsyncMock()
     return client

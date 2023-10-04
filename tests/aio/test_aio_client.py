@@ -109,3 +109,36 @@ def test_clone():
             and cloned.launch_uuid_print == kwargs['launch_uuid_print']
             and cloned.print_output == kwargs['print_output']
     )
+
+
+LAUNCH_ID = 333
+EXPECTED_DEFAULT_URL = 'http://endpoint/ui/#project/launches/all/' + str(
+    LAUNCH_ID)
+EXPECTED_DEBUG_URL = 'http://endpoint/ui/#project/userdebug/all/' + str(
+    LAUNCH_ID)
+
+
+@pytest.mark.skipif(sys.version_info < (3, 8),
+                    reason="the test requires AsyncMock which was introduced in Python 3.8")
+@pytest.mark.parametrize(
+    'launch_mode, project_name, expected_url',
+    [
+        ('DEFAULT', "project", EXPECTED_DEFAULT_URL),
+        ('DEBUG', "project", EXPECTED_DEBUG_URL),
+        ('DEFAULT', "PROJECT", EXPECTED_DEFAULT_URL),
+        ('debug', "PROJECT", EXPECTED_DEBUG_URL)
+    ]
+)
+@pytest.mark.asyncio
+async def test_launch_url_get(aio_client, launch_mode, project_name, expected_url):
+    aio_client.project = project_name
+    response = mock.AsyncMock()
+    response.is_success = True
+    response.json.side_effect = lambda: {'mode': launch_mode, 'id': LAUNCH_ID}
+
+    async def get_call(*args, **kwargs):
+        return response
+
+    (await aio_client.session()).get.side_effect = get_call
+
+    assert await (aio_client.get_launch_ui_url('test_launch_uuid')) == expected_url

@@ -37,7 +37,7 @@ from reportportal_client.core.rp_requests import (LaunchStartRequest, AsyncHttpR
                                                   AsyncItemFinishRequest, LaunchFinishRequest, RPFile,
                                                   AsyncRPRequestLog, AsyncRPLogBatch)
 from reportportal_client.helpers import (root_uri_join, verify_value_length, await_if_necessary,
-                                         agent_name_version, LifoQueue)
+                                         agent_name_version, LifoQueue, uri_join)
 from reportportal_client.logs import MAX_LOG_BATCH_PAYLOAD_SIZE
 from reportportal_client.logs.batcher import LogBatcher
 from reportportal_client.services.statistics import async_send_event
@@ -508,7 +508,7 @@ class Client:
         path = 'ui/#{project_name}/{launch_type}/all/{launch_id}'.format(
             project_name=self.project.lower(), launch_type=launch_type,
             launch_id=launch_id)
-        url = root_uri_join(self.endpoint, path)
+        url = uri_join(self.endpoint, path)
         logger.debug('get_launch_ui_url - ID: %s', launch_uuid)
         return url
 
