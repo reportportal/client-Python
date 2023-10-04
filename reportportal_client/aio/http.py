@@ -80,11 +80,11 @@ class RetryingClientSession:
     ) -> ClientResponse:
         """Make a request and retry if necessary.
 
-                The method overrides aiohttp.ClientSession._request() method and bypass all arguments to it, so
-                please refer it for detailed argument description. The method retries requests depending on error
-                class and retry number. For no-retry errors, such as 400 Bad Request it just returns result, for cases
-                where it's reasonable to retry it does it in exponential manner.
-                """
+        The method uses aiohttp.ClientSession.request() method and bypass all arguments to it, so
+        please refer it for detailed argument description. The method retries requests depending on error
+        class and retry number. For no-retry errors, such as 400 Bad Request it just returns result, for cases
+        where it's reasonable to retry it does it in exponential manner.
+        """
         result = None
         exceptions = []
         for i in range(self.__retry_number + 1):  # add one for the first attempt, which is not a retry
@@ -128,18 +128,23 @@ class RetryingClientSession:
 
     def get(self, url: str, *, allow_redirects: bool = True,
             **kwargs: Any) -> Coroutine[Any, Any, ClientResponse]:
+        """Perform HTTP GET request."""
         return self.request('GET', url, allow_redirects=allow_redirects, **kwargs)
 
     def post(self, url: str, *, data: Any = None, **kwargs: Any) -> Coroutine[Any, Any, ClientResponse]:
+        """Perform HTTP POST request."""
         return self.request('POST', url, data=data, **kwargs)
 
     def put(self, url: str, *, data: Any = None, **kwargs: Any) -> Coroutine[Any, Any, ClientResponse]:
+        """Perform HTTP PUT request."""
         return self.request('PUT', url, data=data, **kwargs)
 
-    async def close(self) -> Coroutine:
+    def close(self) -> Coroutine:
+        """Gracefully close internal aiohttp.ClientSession class instance."""
         return self._client.close()
 
     async def __aenter__(self) -> "RetryingClientSession":
+        """Auxiliary method which controls what `async with` construction does on block enter."""
         return self
 
     async def __aexit__(
@@ -148,4 +153,5 @@ class RetryingClientSession:
             exc_val: Optional[BaseException],
             exc_tb: Optional[TracebackType],
     ) -> None:
+        """Auxiliary method which controls what `async with` construction does on block exit."""
         await self.close()
