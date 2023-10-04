@@ -97,7 +97,6 @@ def test_emit_custom_level(mocked_handle):
     log_handler.emit(record)
     assert mock_client.log.call_count == 1
     call_args, call_kwargs = mock_client.log.call_args
-    print("\n" + str(call_args) + "," + str(call_kwargs))
     assert call_kwargs['level'] == 'WARN'
 
 
