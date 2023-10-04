@@ -33,8 +33,12 @@ def test_clone():
               'log_batch_payload_limit': 30 * 1024 * 1024, 'task_timeout': 63, 'shutdown_timeout': 123,
               'trigger_num': 25, 'trigger_interval': 3}
     async_client = BatchedRPClient(*args, **kwargs)
-    async_client._add_current_item(BatchedTask(__empty_string(), loop=async_client._loop, name='test-321'))
-    async_client._add_current_item(BatchedTask(__empty_string(), loop=async_client._loop, name='test-322'))
+    task1 = async_client.create_task(__empty_string())
+    task2 = async_client.create_task(__empty_string())
+    task1.blocking_result()
+    task2.blocking_result()
+    async_client._add_current_item(task1)
+    async_client._add_current_item(task2)
     client = async_client.client
     step_reporter = async_client.step_reporter
     cloned = async_client.clone()
