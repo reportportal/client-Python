@@ -160,19 +160,6 @@ def get_launch_sys_attrs() -> Dict[str, str]:
     }
 
 
-def get_package_version(package_name) -> str:
-    """Get version of the given package.
-
-    :param package_name: Name of the package
-    :return:             Version of the package
-    """
-    try:
-        package_version = get_distribution(package_name).version
-    except DistributionNotFound:
-        package_version = 'not found'
-    return package_version
-
-
 def verify_value_length(attributes: List[dict]) -> List[dict]:
     """Verify length of the attribute value.
 

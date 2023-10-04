@@ -18,7 +18,6 @@ from unittest import mock
 from reportportal_client.helpers import (
     gen_attributes,
     get_launch_sys_attrs,
-    get_package_version,
     verify_value_length
 )
 
@@ -58,11 +57,6 @@ def test_get_launch_sys_attrs_docker():
     """
     result = get_launch_sys_attrs()
     assert result['cpu'] == 'unknown'
-
-
-def test_get_package_version():
-    """Test for the get_package_version() function-helper."""
-    assert get_package_version('noname') == 'not found'
 
 
 def test_verify_value_length():
