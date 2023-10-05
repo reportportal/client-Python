@@ -24,8 +24,6 @@ import uuid
 from platform import machine, processor, system
 from typing import Optional, Any, List, Dict, Callable, Tuple, Union, TypeVar, Generic
 
-from pkg_resources import DistributionNotFound
-
 from reportportal_client.core.rp_file import RPFile
 from reportportal_client.static.defines import ATTRIBUTE_LENGTH_LIMIT
 
@@ -173,7 +171,7 @@ def get_package_parameters(package_name: str, parameters: List[str] = None) -> L
         return result
 
     if sys.version_info < (3, 8):
-        from pkg_resources import get_distribution
+        from pkg_resources import get_distribution, DistributionNotFound
         try:
             package_info = get_distribution(package_name)
         except DistributionNotFound:
