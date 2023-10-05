@@ -80,10 +80,9 @@ class RetryingClientSession:
     ) -> ClientResponse:
         """Make a request and retry if necessary.
 
-        The method uses aiohttp.ClientSession.request() method and bypass all arguments to it, so
-        please refer it for detailed argument description. The method retries requests depending on error
-        class and retry number. For no-retry errors, such as 400 Bad Request it just returns result, for cases
-        where it's reasonable to retry it does it in exponential manner.
+        The method retries requests depending on error class and retry number. For no-retry errors, such as
+        400 Bad Request it just returns result, for cases where it's reasonable to retry it does it in
+        exponential manner.
         """
         result = None
         exceptions = []
