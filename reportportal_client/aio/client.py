@@ -30,7 +30,8 @@ from reportportal_client import RP, OutputType
 from reportportal_client._internal.aio.http import RetryingClientSession
 # noinspection PyProtectedMember
 from reportportal_client._internal.aio.tasks import (BatchedTaskFactory, ThreadedTaskFactory,
-                                                     TriggerTaskBatcher, BackgroundTaskList)
+                                                     TriggerTaskBatcher, BackgroundTaskList,
+                                                     DEFAULT_TASK_TRIGGER_NUM, DEFAULT_TASK_TRIGGER_INTERVAL)
 # noinspection PyProtectedMember
 from reportportal_client._internal.local import set_current
 # noinspection PyProtectedMember
@@ -61,8 +62,6 @@ _T = TypeVar('_T')
 
 DEFAULT_TASK_TIMEOUT: float = 60.0
 DEFAULT_SHUTDOWN_TIMEOUT: float = 120.0
-DEFAULT_TASK_TRIGGER_NUM: int = 10
-DEFAULT_TASK_TRIGGER_INTERVAL: float = 1.0
 
 
 class Client:

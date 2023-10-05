@@ -19,10 +19,13 @@ import time
 from asyncio import Future
 from typing import Optional, List, TypeVar, Generic, Union, Generator, Awaitable, Coroutine, Any
 
-from reportportal_client.aio.client import DEFAULT_TASK_TRIGGER_NUM, DEFAULT_TASK_TRIGGER_INTERVAL
 from reportportal_client.aio.tasks import Task, BlockingOperationError
 
 _T = TypeVar('_T')
+
+
+DEFAULT_TASK_TRIGGER_NUM: int = 10
+DEFAULT_TASK_TRIGGER_INTERVAL: float = 1.0
 
 
 class BatchedTask(Generic[_T], Task[_T]):
