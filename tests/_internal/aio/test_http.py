@@ -10,6 +10,14 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License
+#
+#  https://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License
 import http.server
 import socketserver
 import threading
@@ -92,7 +100,7 @@ async def execute_http_request(port, retry_number, server_class, timeout_seconds
     exception = None
     result = None
     with get_http_server(server_handler=server_class, server_address=('', port)):
-        with mock.patch('reportportal_client.aio.http.ClientSession.get', async_mock):
+        with mock.patch('reportportal_client._internal.aio.http.ClientSession.get', async_mock):
             async with session:
                 start_time = time.time()
                 try:

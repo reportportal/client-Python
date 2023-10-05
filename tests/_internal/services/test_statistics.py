@@ -61,10 +61,10 @@ MID, KEY = CLIENT_INFO.split(':')
 EXPECTED_PARAMS = {'measurement_id': MID, 'api_secret': KEY}
 
 
-@mock.patch('reportportal_client.services.statistics.get_client_id',
+@mock.patch('reportportal_client._internal.services.statistics.get_client_id',
             mock.Mock(return_value='555'))
-@mock.patch('reportportal_client.services.statistics.requests.post')
-@mock.patch('reportportal_client.services.statistics.python_version',
+@mock.patch('reportportal_client._internal.services.statistics.requests.post')
+@mock.patch('reportportal_client._internal.services.statistics.python_version',
             mock.Mock(return_value='3.6.6'))
 def test_send_event(mocked_requests):
     """Test functionality of the send_event() function.
@@ -78,17 +78,17 @@ def test_send_event(mocked_requests):
         params=EXPECTED_PARAMS)
 
 
-@mock.patch('reportportal_client.services.statistics.get_client_id',
+@mock.patch('reportportal_client._internal.services.statistics.get_client_id',
             mock.Mock(return_value='555'))
-@mock.patch('reportportal_client.services.statistics.requests.post',
+@mock.patch('reportportal_client._internal.services.statistics.requests.post',
             mock.Mock(side_effect=RequestException))
 def test_send_event_raises():
     """Test that the send_event() does not raise exceptions."""
     send_event(EVENT_NAME, 'pytest-reportportal', '5.0.5')
 
 
-@mock.patch('reportportal_client.services.statistics.requests.post')
-@mock.patch('reportportal_client.services.statistics.python_version',
+@mock.patch('reportportal_client._internal.services.statistics.requests.post')
+@mock.patch('reportportal_client._internal.services.statistics.python_version',
             mock.Mock(return_value='3.6.6'))
 def test_same_client_id(mocked_requests):
     """Test functionality of the send_event() function.
@@ -114,10 +114,10 @@ if not sys.version_info < (3, 8):
 
 @pytest.mark.skipif(sys.version_info < (3, 8),
                     reason="the test requires AsyncMock which was introduced in Python 3.8")
-@mock.patch('reportportal_client.services.statistics.get_client_id',
+@mock.patch('reportportal_client._internal.services.statistics.get_client_id',
             mock.Mock(return_value='555'))
-@mock.patch('reportportal_client.services.statistics.aiohttp.ClientSession.post', MOCKED_AIOHTTP)
-@mock.patch('reportportal_client.services.statistics.python_version',
+@mock.patch('reportportal_client._internal.services.statistics.aiohttp.ClientSession.post', MOCKED_AIOHTTP)
+@mock.patch('reportportal_client._internal.services.statistics.python_version',
             mock.Mock(return_value='3.6.6'))
 @pytest.mark.asyncio
 async def test_async_send_event():
