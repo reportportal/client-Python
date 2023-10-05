@@ -180,7 +180,8 @@ def get_package_parameters(package_name: str, parameters: List[str] = None) -> L
             return [None] * len(parameters)
         for param in parameters:
             if param.lower() == 'name':
-                result.append(getattr(package_info, 'project_name', None))
+                param = 'project_name'
+            result.append(getattr(package_info, param, None))
     else:
         # noinspection PyCompatibility
         from importlib.metadata import distribution, PackageNotFoundError
