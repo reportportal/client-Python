@@ -18,7 +18,7 @@ def response():
 
         :param ret_code:  Return code for the response
         :param ret_value: Return value for the response
-        :return:          Mocked Responce object with the given parameters
+        :return:          Mocked Response object with the given parameters
         """
         with mock.patch('requests.Response') as resp:
             resp.status_code = ret_code

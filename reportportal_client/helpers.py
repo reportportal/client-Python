@@ -17,11 +17,14 @@ import asyncio
 import inspect
 import json
 import logging
+import sys
 import threading
 import time
 import uuid
 from platform import machine, processor, system
 from typing import Optional, Any, List, Dict, Callable, Tuple, Union, TypeVar, Generic
+
+from pkg_resources import DistributionNotFound
 
 from reportportal_client.core.rp_file import RPFile
 from reportportal_client.static.defines import ATTRIBUTE_LENGTH_LIMIT
@@ -158,7 +161,48 @@ def get_launch_sys_attrs() -> Dict[str, str]:
     }
 
 
-def verify_value_length(attributes: List[dict]) -> List[dict]:
+def get_package_parameters(package_name: str, parameters: List[str] = None) -> List[Optional[str]]:
+    """Get parameters of the given package.
+
+    :param package_name: Name of the package.
+    :param parameters:   Wanted parameters.
+    :return:             Parameter List.
+    """
+    result = []
+    if not parameters:
+        return result
+
+    if sys.version_info < (3, 8):
+        from pkg_resources import get_distribution
+        try:
+            package_info = get_distribution(package_name)
+        except DistributionNotFound:
+            return [None] * len(parameters)
+        for param in parameters:
+            if param.lower() == 'name':
+                result.append(getattr(package_info, 'project_name', None))
+    else:
+        # noinspection PyCompatibility
+        from importlib.metadata import distribution, PackageNotFoundError
+        try:
+            package_info = distribution(package_name)
+        except PackageNotFoundError:
+            return [None] * len(parameters)
+        for param in parameters:
+            result.append(package_info.metadata[param.lower()[:1].upper() + param.lower()[1:]])
+    return result
+
+
+def get_package_version(package_name: str) -> Optional[str]:
+    """Get version of the given package.
+
+    :param package_name: Name of the package
+    :return:             Version of the package
+    """
+    return get_package_parameters(package_name, ['version'])[0]
+
+
+def verify_value_length(attributes):
     """Verify length of the attribute value.
 
     The length of the attribute value should have size from '1' to '128'.
