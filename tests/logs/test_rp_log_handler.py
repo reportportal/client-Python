@@ -18,7 +18,7 @@ from unittest import mock
 import pytest
 
 # noinspection PyProtectedMember
-from reportportal_client._local import set_current
+from reportportal_client._internal.local import set_current
 from reportportal_client.logs import RPLogHandler, RPLogger
 
 

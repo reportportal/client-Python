@@ -27,19 +27,21 @@ from typing import Callable, Optional, Union, List, Tuple, Any, TypeVar
 import aiohttp
 
 from reportportal_client import helpers
-from reportportal_client.core.rp_file import RPFile
-from reportportal_client.core.rp_issues import Issue
-from reportportal_client.core.rp_responses import RPResponse, AsyncRPResponse
-from reportportal_client.helpers import dict_to_payload, await_if_necessary
-from reportportal_client.static.abstract import (
+# noinspection PyProtectedMember
+from reportportal_client._internal.static.abstract import (
     AbstractBaseClass,
     abstractmethod
 )
-from reportportal_client.static.defines import (
+# noinspection PyProtectedMember
+from reportportal_client._internal.static.defines import (
     DEFAULT_PRIORITY,
     LOW_PRIORITY,
     RP_LOG_LEVELS, Priority
 )
+from reportportal_client.core.rp_file import RPFile
+from reportportal_client.core.rp_issues import Issue
+from reportportal_client.core.rp_responses import RPResponse, AsyncRPResponse
+from reportportal_client.helpers import dict_to_payload, await_if_necessary
 
 logger = logging.getLogger(__name__)
 T = TypeVar("T")

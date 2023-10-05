@@ -68,7 +68,7 @@ class ItemStartType(str, enum.Enum):
 
 
 class Priority(enum.IntEnum):
-    """Generic enum for various operations prioritization."""
+    """Generic enum for various operations' prioritization."""
 
     PRIORITY_IMMEDIATE = 0x0
     PRIORITY_HIGH = 0x1

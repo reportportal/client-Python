@@ -13,6 +13,7 @@
 
 from unittest import mock
 
+# noinspection PyPackageRequirements
 from pytest import fixture
 
 from reportportal_client.client import RPClient

@@ -11,14 +11,14 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License
 
-import os
 import json
+import os
 from unittest import mock
 
 from reportportal_client import helpers
 from reportportal_client.core.rp_requests import HttpRequest
-from reportportal_client.logs.log_manager import LogManager, \
-    MAX_LOG_BATCH_PAYLOAD_SIZE
+from reportportal_client.logs import MAX_LOG_BATCH_PAYLOAD_SIZE
+from reportportal_client.logs.log_manager import LogManager
 
 RP_URL = 'http://docker.local:8080'
 API_VERSION = 'v2'

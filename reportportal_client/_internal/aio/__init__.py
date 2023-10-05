@@ -10,21 +10,3 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License
-
-"""This package is the base package for ReportPortal client."""
-
-# noinspection PyProtectedMember
-from reportportal_client._internal.local import current
-from reportportal_client.logs import RPLogger, RPLogHandler
-from reportportal_client.client import RP, RPClient, OutputType
-from reportportal_client.steps import step
-
-__all__ = [
-    'current',
-    'RP',
-    'RPClient',
-    'OutputType',
-    'RPLogger',
-    'RPLogHandler',
-    'step',
-]

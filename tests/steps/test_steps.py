@@ -15,7 +15,8 @@ import time
 from unittest import mock
 
 from reportportal_client import step
-from reportportal_client._local import set_current
+# noinspection PyProtectedMember
+from reportportal_client._internal.local import set_current
 
 NESTED_STEP_NAME = 'test nested step'
 PARENT_STEP_ID = '123-123-1234-123'

@@ -23,8 +23,8 @@ import certifi
 import requests
 
 from reportportal_client.helpers import get_package_parameters
-from reportportal_client.services.client_id import get_client_id
-from reportportal_client.services.constants import CLIENT_INFO, ENDPOINT
+from reportportal_client._internal.services.client_id import get_client_id
+from reportportal_client._internal.services.constants import CLIENT_INFO, ENDPOINT
 
 logger = logging.getLogger(__name__)
 

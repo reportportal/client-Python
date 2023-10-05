@@ -25,7 +25,8 @@ from platform import machine, processor, system
 from typing import Optional, Any, List, Dict, Callable, Tuple, Union, TypeVar, Generic
 
 from reportportal_client.core.rp_file import RPFile
-from reportportal_client.static.defines import ATTRIBUTE_LENGTH_LIMIT
+# noinspection PyProtectedMember
+from reportportal_client._internal.static.defines import ATTRIBUTE_LENGTH_LIMIT
 
 logger: logging.Logger = logging.getLogger(__name__)
 _T = TypeVar('_T')

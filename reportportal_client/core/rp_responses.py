@@ -25,7 +25,8 @@ from typing import Any, Optional, Generator, Mapping, Tuple
 from aiohttp import ClientResponse
 from requests import Response
 
-from reportportal_client.static.defines import NOT_FOUND, NOT_SET
+# noinspection PyProtectedMember
+from reportportal_client._internal.static.defines import NOT_FOUND, NOT_SET
 
 logger = logging.getLogger(__name__)
 

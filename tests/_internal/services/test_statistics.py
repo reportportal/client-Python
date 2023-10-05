@@ -25,11 +25,14 @@ import re
 import sys
 from unittest import mock
 
+# noinspection PyPackageRequirements
 import pytest
 from requests.exceptions import RequestException
 
-from reportportal_client.services.constants import ENDPOINT, CLIENT_INFO
-from reportportal_client.services.statistics import send_event, async_send_event
+# noinspection PyProtectedMember
+from reportportal_client._internal.services.constants import ENDPOINT, CLIENT_INFO
+# noinspection PyProtectedMember
+from reportportal_client._internal.services.statistics import send_event, async_send_event
 
 VERSION_VAR = '__version__'
 EVENT_NAME = 'start_launch'

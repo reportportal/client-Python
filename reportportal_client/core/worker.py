@@ -16,11 +16,13 @@
 import logging
 import queue
 import threading
+import warnings
 from threading import current_thread, Thread
 
 from aenum import auto, Enum, unique
 
-from reportportal_client.static.defines import Priority
+# noinspection PyProtectedMember
+from reportportal_client._internal.static.defines import Priority
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
@@ -59,6 +61,12 @@ class APIWorker(object):
 
     def __init__(self, task_queue):
         """Initialize instance attributes."""
+        warnings.warn(
+            message='`APIWorker` class is deprecated since 5.5.0 and will be subject for removing in the'
+                    ' next major version.',
+            category=DeprecationWarning,
+            stacklevel=2
+        )
         self._queue = task_queue
         self._thread = None
         self._stop_lock = threading.Condition()

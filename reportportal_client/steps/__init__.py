@@ -137,8 +137,7 @@ class Step:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Exit the runtime context related to this object."""
-        # Cannot call _local.current() early since it will be initialized
-        # before client put something in there
+        # Cannot call local.current() early since it will be initialized before client put something in there
         rp_client = self.client or current()
         if not rp_client:
             return

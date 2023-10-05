@@ -15,9 +15,12 @@
 
 import logging
 import queue
+import warnings
 from threading import Lock
 
 from reportportal_client import helpers
+# noinspection PyProtectedMember
+from reportportal_client._internal.static.defines import NOT_FOUND
 from reportportal_client.core.rp_requests import (
     HttpRequest,
     RPFile,
@@ -26,12 +29,11 @@ from reportportal_client.core.rp_requests import (
 )
 from reportportal_client.core.worker import APIWorker
 from reportportal_client.logs import MAX_LOG_BATCH_SIZE, MAX_LOG_BATCH_PAYLOAD_SIZE
-from reportportal_client.static.defines import NOT_FOUND
 
 logger = logging.getLogger(__name__)
 
 
-class LogManager(object):
+class LogManager:
     """Manager of the log items."""
 
     def __init__(self, rp_url, session, api_version, launch_id, project_name,
@@ -51,6 +53,12 @@ class LogManager(object):
         :param max_payload_size: maximum size in bytes of logs that can be
                                  processed in one batch
         """
+        warnings.warn(
+            message='`LogManager` class is deprecated since 5.5.0 and will be subject for removing in the'
+                    ' next major version.',
+            category=DeprecationWarning,
+            stacklevel=2
+        )
         self._lock = Lock()
         self._batch = []
         self._payload_size = helpers.TYPICAL_MULTIPART_FOOTER_LENGTH

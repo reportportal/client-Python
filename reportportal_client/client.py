@@ -26,17 +26,21 @@ import requests
 from requests.adapters import HTTPAdapter, Retry, DEFAULT_RETRIES
 
 # noinspection PyProtectedMember
-from reportportal_client._local import set_current
+from reportportal_client._internal.local import set_current
+# noinspection PyProtectedMember
+from reportportal_client._internal.logs.batcher import LogBatcher
+# noinspection PyProtectedMember
+from reportportal_client._internal.services.statistics import send_event
+# noinspection PyProtectedMember
+from reportportal_client._internal.static.abstract import AbstractBaseClass
+# noinspection PyProtectedMember
+from reportportal_client._internal.static.defines import NOT_FOUND
 from reportportal_client.core.rp_issues import Issue
 from reportportal_client.core.rp_requests import (HttpRequest, ItemStartRequest, ItemFinishRequest, RPFile,
                                                   LaunchStartRequest, LaunchFinishRequest, RPRequestLog,
                                                   RPLogBatch)
 from reportportal_client.helpers import uri_join, verify_value_length, agent_name_version, LifoQueue
 from reportportal_client.logs import MAX_LOG_BATCH_PAYLOAD_SIZE
-from reportportal_client.logs.batcher import LogBatcher
-from reportportal_client.services.statistics import send_event
-from reportportal_client.static.abstract import AbstractBaseClass
-from reportportal_client.static.defines import NOT_FOUND
 from reportportal_client.steps import StepReporter
 
 logger = logging.getLogger(__name__)

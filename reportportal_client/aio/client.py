@@ -27,11 +27,24 @@ import certifi
 
 from reportportal_client import RP, OutputType
 # noinspection PyProtectedMember
-from reportportal_client._local import set_current
-from reportportal_client.aio.http import RetryingClientSession
-from reportportal_client.aio.tasks import (Task, BatchedTaskFactory, ThreadedTaskFactory, TriggerTaskBatcher,
-                                           BackgroundTaskList, DEFAULT_TASK_TRIGGER_NUM,
-                                           DEFAULT_TASK_TRIGGER_INTERVAL)
+from reportportal_client._internal.aio.http import RetryingClientSession
+# noinspection PyProtectedMember
+from reportportal_client._internal.aio.tasks import (BatchedTaskFactory, ThreadedTaskFactory,
+                                                     TriggerTaskBatcher, BackgroundTaskList)
+# noinspection PyProtectedMember
+from reportportal_client._internal.local import set_current
+# noinspection PyProtectedMember
+from reportportal_client._internal.logs.batcher import LogBatcher
+# noinspection PyProtectedMember
+from reportportal_client._internal.services.statistics import async_send_event
+# noinspection PyProtectedMember
+from reportportal_client._internal.static.abstract import (
+    AbstractBaseClass,
+    abstractmethod
+)
+# noinspection PyProtectedMember
+from reportportal_client._internal.static.defines import NOT_FOUND, NOT_SET
+from reportportal_client.aio.tasks import Task
 from reportportal_client.core.rp_issues import Issue
 from reportportal_client.core.rp_requests import (LaunchStartRequest, AsyncHttpRequest, AsyncItemStartRequest,
                                                   AsyncItemFinishRequest, LaunchFinishRequest, RPFile,
@@ -39,13 +52,6 @@ from reportportal_client.core.rp_requests import (LaunchStartRequest, AsyncHttpR
 from reportportal_client.helpers import (root_uri_join, verify_value_length, await_if_necessary,
                                          agent_name_version, LifoQueue, uri_join)
 from reportportal_client.logs import MAX_LOG_BATCH_PAYLOAD_SIZE
-from reportportal_client.logs.batcher import LogBatcher
-from reportportal_client.services.statistics import async_send_event
-from reportportal_client.static.abstract import (
-    AbstractBaseClass,
-    abstractmethod
-)
-from reportportal_client.static.defines import NOT_FOUND, NOT_SET
 from reportportal_client.steps import StepReporter
 
 logger = logging.getLogger(__name__)
@@ -55,6 +61,8 @@ _T = TypeVar('_T')
 
 DEFAULT_TASK_TIMEOUT: float = 60.0
 DEFAULT_SHUTDOWN_TIMEOUT: float = 120.0
+DEFAULT_TASK_TRIGGER_NUM: int = 10
+DEFAULT_TASK_TRIGGER_INTERVAL: float = 1.0
 
 
 class Client:

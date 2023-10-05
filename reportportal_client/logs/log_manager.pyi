@@ -23,9 +23,6 @@ from reportportal_client.core.worker import APIWorker as APIWorker
 
 logger: Logger
 
-MAX_LOG_BATCH_SIZE: int
-MAX_LOG_BATCH_PAYLOAD_SIZE: int
-
 
 class LogManager:
     _lock: Lock = ...

@@ -10,13 +10,23 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License
+#
+#  https://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License
 
 import os
 import re
 from uuid import UUID, uuid4
 
-from reportportal_client.services.client_id import get_client_id
-from reportportal_client.services.constants import RP_PROPERTIES_FILE_PATH
+# noinspection PyProtectedMember
+from reportportal_client._internal.services.client_id import get_client_id
+# noinspection PyProtectedMember
+from reportportal_client._internal.services.constants import RP_PROPERTIES_FILE_PATH
 
 
 def test_get_client_id_should_return_the_id_for_two_calls():

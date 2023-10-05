@@ -19,7 +19,7 @@ import threading
 from urllib.parse import urlparse
 
 # noinspection PyProtectedMember
-from reportportal_client._local import current, set_current
+from reportportal_client._internal.local import current, set_current
 from reportportal_client.helpers import timestamp, TYPICAL_MULTIPART_FOOTER_LENGTH
 
 MAX_LOG_BATCH_SIZE: int = 20

@@ -20,7 +20,8 @@ import aiohttp
 # noinspection PyPackageRequirements
 import pytest
 
-from reportportal_client.aio.http import RetryingClientSession
+# noinspection PyProtectedMember
+from reportportal_client._internal.aio.http import RetryingClientSession
 
 HTTP_TIMEOUT_TIME = 1.2
 

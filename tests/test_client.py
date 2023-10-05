@@ -10,10 +10,12 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License
+
 import pickle
 from io import StringIO
 from unittest import mock
 
+# noinspection PyPackageRequirements
 import pytest
 from requests import Response
 from requests.exceptions import ReadTimeout

@@ -10,17 +10,20 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License
-import sys
 import pickle
+import sys
 from unittest import mock
 
 import aiohttp
+# noinspection PyPackageRequirements
 import pytest
 
 from reportportal_client import OutputType
+# noinspection PyProtectedMember
+from reportportal_client._internal.aio.http import RetryingClientSession, DEFAULT_RETRY_NUMBER
+# noinspection PyProtectedMember
+from reportportal_client._internal.static.defines import NOT_SET
 from reportportal_client.aio.client import Client
-from reportportal_client.aio.http import RetryingClientSession, DEFAULT_RETRY_NUMBER
-from reportportal_client.static.defines import NOT_SET
 
 ENDPOINT = 'http://localhost:8080'
 PROJECT = 'default_personal'
