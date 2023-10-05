@@ -16,7 +16,7 @@
 import asyncio
 import sys
 from types import TracebackType
-from typing import Coroutine, Any, Optional, Type
+from typing import Coroutine, Any, Optional, Type, Callable
 
 from aenum import Enum
 from aiohttp import ClientSession, ClientResponse, ServerConnectionError, \
@@ -75,8 +75,8 @@ class RetryingClientSession:
         else:
             return self.__nothing()
 
-    async def request(
-            self, method: str, url: str, **kwargs: Any
+    async def __request(
+            self, method: Callable, url, **kwargs: Any
     ) -> ClientResponse:
         """Make a request and retry if necessary.
 
@@ -90,7 +90,7 @@ class RetryingClientSession:
         for i in range(self.__retry_number + 1):  # add one for the first attempt, which is not a retry
             retry_factor = None
             try:
-                result = await self._client.request(method, url, **kwargs)
+                result = await method(url, **kwargs)
             except Exception as exc:
                 exceptions.append(exc)
                 if isinstance(exc, ServerConnectionError) or isinstance(exc, ClientResponseError):
@@ -129,15 +129,15 @@ class RetryingClientSession:
     def get(self, url: str, *, allow_redirects: bool = True,
             **kwargs: Any) -> Coroutine[Any, Any, ClientResponse]:
         """Perform HTTP GET request."""
-        return self.request('GET', url, allow_redirects=allow_redirects, **kwargs)
+        return self.__request(self._client.get, url, allow_redirects=allow_redirects, **kwargs)
 
     def post(self, url: str, *, data: Any = None, **kwargs: Any) -> Coroutine[Any, Any, ClientResponse]:
         """Perform HTTP POST request."""
-        return self.request('POST', url, data=data, **kwargs)
+        return self.__request(self._client.post, url, data=data, **kwargs)
 
     def put(self, url: str, *, data: Any = None, **kwargs: Any) -> Coroutine[Any, Any, ClientResponse]:
         """Perform HTTP PUT request."""
-        return self.request('PUT', url, data=data, **kwargs)
+        return self.__request(self._client.put, url, data=data, **kwargs)
 
     def close(self) -> Coroutine:
         """Gracefully close internal aiohttp.ClientSession class instance."""

@@ -85,13 +85,13 @@ async def execute_http_request(port, retry_number, server_class, timeout_seconds
     session = RetryingClientSession(f'{protocol}://localhost:{port}', timeout=timeout,
                                     max_retry_number=retry_number, base_retry_delay=0.01, connector=connector)
     # noinspection PyProtectedMember
-    parent_request = session._client.request
+    parent_request = session._client.get
     async_mock = mock.Mock()
     async_mock.side_effect = parent_request
     exception = None
     result = None
     with get_http_server(server_handler=server_class, server_address=('', port)):
-        with mock.patch('reportportal_client.aio.http.ClientSession.request', async_mock):
+        with mock.patch('reportportal_client.aio.http.ClientSession.get', async_mock):
             async with session:
                 start_time = time.time()
                 try:
