@@ -1439,10 +1439,11 @@ class ThreadedRPClient(_RPClient):
         shutdown_start_time = datetime.time()
         with self._task_mutex:
             tasks = self._task_list.flush()
-        for task in tasks:
-            task.blocking_result()
-            if datetime.time() - shutdown_start_time >= self.shutdown_timeout:
-                break
+        if tasks:
+            for task in tasks:
+                task.blocking_result()
+                if datetime.time() - shutdown_start_time >= self.shutdown_timeout:
+                    break
         logs = self._log_batcher.flush()
         if logs:
             self._loop.create_task(self._log_batch(logs)).blocking_result()
