@@ -292,7 +292,6 @@ class RP(metaclass=AbstractBaseClass):
         """
         raise NotImplementedError('"log" method is not implemented!')
 
-
     @abstractmethod
     def current_item(self) -> Optional[str]:
         """Retrieve the last Item reported by the client (based on the internal FILO queue).

@@ -13,7 +13,7 @@
 
 from typing import Optional, Dict, Any, Callable, Union
 
-from reportportal_client import RP
+from reportportal_client.client import RP
 from reportportal_client.aio import Task
 
 

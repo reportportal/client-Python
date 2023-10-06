@@ -44,7 +44,8 @@ Usage with 'with' keyword:
 """
 from functools import wraps
 
-from reportportal_client import current
+# noinspection PyProtectedMember
+from reportportal_client._internal.local import current
 from reportportal_client.helpers import get_function_params, timestamp
 
 NESTED_STEP_ITEMS = ('step', 'scenario', 'before_class', 'before_groups',

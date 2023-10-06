@@ -11,25 +11,12 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License
 
-"""ReportPortal client context storing and retrieving module."""
+from typing import Optional
 
-from threading import local
-
-__INSTANCES = local()
+from reportportal_client import RP
 
 
-def current():
-    """Return current ReportPortal client."""
-    if hasattr(__INSTANCES, 'current'):
-        return __INSTANCES.current
+def current() -> Optional[RP]: ...
 
 
-def set_current(client):
-    """Save ReportPortal client as current.
-
-    The method is not intended to use used by users. ReportPortal client calls
-    it itself when new client is created.
-
-    :param client: ReportPortal client
-    """
-    __INSTANCES.current = client
+def set_current(client: Optional[RP]) -> None: ...
