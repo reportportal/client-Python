@@ -311,7 +311,7 @@ class RP(metaclass=AbstractBaseClass):
 
     @abstractmethod
     def close(self) -> None:
-        """Close current client connections and flush batches."""
+        """Close current client connections."""
         raise NotImplementedError('"clone" method is not implemented!')
 
     def start(self) -> None:
@@ -704,6 +704,7 @@ class RPClient(RP):
             message = response.message
         else:
             message = ""
+        self._log(self._log_batcher.flush())
         self.close()
         return message
 
@@ -883,8 +884,7 @@ class RPClient(RP):
         return cloned
 
     def close(self) -> None:
-        """Close current client connections and flush batches."""
-        self._log(self._log_batcher.flush())
+        """Close current client connections."""
         self.session.close()
 
     def __getstate__(self) -> Dict[str, Any]:

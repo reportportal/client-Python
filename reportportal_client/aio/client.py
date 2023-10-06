@@ -812,6 +812,7 @@ class AsyncRPClient(RP):
                                                        **kwargs)
         else:
             result = ""
+        await self.__client.log_batch(self._log_batcher.flush())
         await self.close()
         return result
 
@@ -937,8 +938,7 @@ class AsyncRPClient(RP):
         return cloned
 
     async def close(self) -> None:
-        """Close current client connections and flush batches."""
-        await self.__client.log_batch(self._log_batcher.flush())
+        """Close current client connections."""
         await self.__client.close()
 
 
@@ -1069,6 +1069,11 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
         :param coro: Coroutine which will be used for the Task creation.
         :return:     Task instance.
         """
+        raise NotImplementedError('"create_task" method is not implemented!')
+
+    @abstractmethod
+    def finish_tasks(self) -> None:
+        """Ensure all pending Tasks are finished, block current Thread if necessary."""
         raise NotImplementedError('"create_task" method is not implemented!')
 
     def _add_current_item(self, item: Task[_T]) -> None:
@@ -1219,7 +1224,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
             result_coro = self.__empty_str()
 
         result_task = self.create_task(result_coro)
-        self.close()
+        self.finish_tasks()
         return result_task
 
     def update_test_item(self,
@@ -1476,8 +1481,7 @@ class ThreadedRPClient(_RPClient):
         return cloned
 
     def close(self) -> None:
-        """Close current client connections and flush batches."""
-        self.finish_tasks()
+        """Close current client connections."""
         self._loop.create_task(self._close()).blocking_result()
 
     def __getstate__(self) -> Dict[str, Any]:
@@ -1657,8 +1661,7 @@ class BatchedRPClient(_RPClient):
         return cloned
 
     def close(self) -> None:
-        """Close current client connections and flush batches."""
-        self.finish_tasks()
+        """Close current client connections."""
         self._loop.run_until_complete(self._close())
 
     def __getstate__(self) -> Dict[str, Any]:
