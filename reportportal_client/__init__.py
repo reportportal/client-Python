@@ -14,13 +14,14 @@
 """This package is the base package for ReportPortal client."""
 
 # noinspection PyProtectedMember
-from reportportal_client._internal.local import current
+from reportportal_client._internal.local import current, set_current
 from reportportal_client.logs import RPLogger, RPLogHandler
 from reportportal_client.client import RP, RPClient, OutputType
 from reportportal_client.steps import step
 
 __all__ = [
     'current',
+    'set_current',
     'RP',
     'RPClient',
     'OutputType',

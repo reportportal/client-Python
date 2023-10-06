@@ -14,17 +14,20 @@
 """ReportPortal client context storing and retrieving module."""
 
 from threading import local
+from typing import Optional
+
+from reportportal_client import RP
 
 __INSTANCES = local()
 
 
-def current():
+def current() -> Optional[RP]:
     """Return current ReportPortal client."""
     if hasattr(__INSTANCES, 'current'):
         return __INSTANCES.current
 
 
-def set_current(client):
+def set_current(client: Optional[RP]) -> None:
     """Save ReportPortal client as current.
 
     The method is not intended to use used by users. ReportPortal client calls

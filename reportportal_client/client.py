@@ -292,23 +292,6 @@ class RP(metaclass=AbstractBaseClass):
         """
         raise NotImplementedError('"log" method is not implemented!')
 
-    def start(self) -> None:
-        """Start the client."""
-        warnings.warn(
-            message='`start` method is deprecated since 5.5.0 and will be subject for removing in the'
-                    ' next major version. There is no any necessity to call this method anymore.',
-            category=DeprecationWarning,
-            stacklevel=2
-        )
-
-    def terminate(self, *_: Any, **__: Any) -> None:
-        """Call this to terminate the client."""
-        warnings.warn(
-            message='`terminate` method is deprecated since 5.5.0 and will be subject for removing in the'
-                    ' next major version. There is no any necessity to call this method anymore.',
-            category=DeprecationWarning,
-            stacklevel=2
-        )
 
     @abstractmethod
     def current_item(self) -> Optional[str]:
@@ -326,6 +309,30 @@ class RP(metaclass=AbstractBaseClass):
         :rtype: RP
         """
         raise NotImplementedError('"clone" method is not implemented!')
+
+    @abstractmethod
+    def close(self) -> None:
+        """Close current client connections and flush batches."""
+        raise NotImplementedError('"clone" method is not implemented!')
+
+    def start(self) -> None:
+        """Start the client."""
+        warnings.warn(
+            message='`start` method is deprecated since 5.5.0 and will be subject for removing in the'
+                    ' next major version. There is no any necessity to call this method anymore.',
+            category=DeprecationWarning,
+            stacklevel=2
+        )
+
+    def terminate(self, *_: Any, **__: Any) -> None:
+        """Call this to terminate the client."""
+        warnings.warn(
+            message='`terminate` method is deprecated since 5.5.0 and will be subject for removing in the'
+                    ' next major version. There is no any necessity to call this method anymore.',
+            category=DeprecationWarning,
+            stacklevel=2
+        )
+        self.close()
 
 
 class RPClient(RP):
@@ -677,27 +684,29 @@ class RPClient(RP):
                             CANCELLED
         :param attributes:  Launch attributes
         """
-        self._log(self._log_batcher.flush())
-        if not self.use_own_launch:
-            return ""
-        if self.launch_uuid is NOT_FOUND or not self.launch_uuid:
-            logger.warning('Attempt to finish non-existent launch')
-            return
-        url = uri_join(self.base_url_v2, 'launch', self.launch_uuid, 'finish')
-        request_payload = LaunchFinishRequest(
-            end_time,
-            status=status,
-            attributes=attributes,
-            description=kwargs.get('description')
-        ).payload
-        response = HttpRequest(self.session.put, url=url, json=request_payload,
-                               verify_ssl=self.verify_ssl,
-                               name='Finish Launch').make()
-        if not response:
-            return
-        logger.debug('finish_launch - ID: %s', self.launch_uuid)
-        logger.debug('response message: %s', response.message)
-        return response.message
+        if self.use_own_launch:
+            if self.launch_uuid is NOT_FOUND or not self.launch_uuid:
+                logger.warning('Attempt to finish non-existent launch')
+                return
+            url = uri_join(self.base_url_v2, 'launch', self.launch_uuid, 'finish')
+            request_payload = LaunchFinishRequest(
+                end_time,
+                status=status,
+                attributes=attributes,
+                description=kwargs.get('description')
+            ).payload
+            response = HttpRequest(self.session.put, url=url, json=request_payload,
+                                   verify_ssl=self.verify_ssl,
+                                   name='Finish Launch').make()
+            if not response:
+                return
+            logger.debug('finish_launch - ID: %s', self.launch_uuid)
+            logger.debug('response message: %s', response.message)
+            message = response.message
+        else:
+            message = ""
+        self.close()
+        return message
 
     def update_test_item(self, item_uuid: str, attributes: Optional[Union[list, dict]] = None,
                          description: Optional[str] = None) -> Optional[str]:
@@ -873,6 +882,10 @@ class RPClient(RP):
         if current_item:
             cloned._add_current_item(current_item)
         return cloned
+
+    def close(self) -> None:
+        self._log(self._log_batcher.flush())
+        self.session.close()
 
     def __getstate__(self) -> Dict[str, Any]:
         """Control object pickling and return object fields as Dictionary.

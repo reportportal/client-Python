@@ -806,13 +806,13 @@ class AsyncRPClient(RP):
         :param attributes: Launch attributes. These attributes override attributes on Start Launch call.
         :return:           Response message or None.
         """
-        await self.__client.log_batch(self._log_batcher.flush())
-        if not self.use_own_launch:
-            return ""
-        result = await self.__client.finish_launch(self.launch_uuid, end_time, status=status,
-                                                   attributes=attributes,
-                                                   **kwargs)
-        await self.__client.close()
+        if self.use_own_launch:
+            result = await self.__client.finish_launch(self.launch_uuid, end_time, status=status,
+                                                       attributes=attributes,
+                                                       **kwargs)
+        else:
+            result = ""
+        await self.close()
         return result
 
     async def update_test_item(
@@ -935,6 +935,10 @@ class AsyncRPClient(RP):
         if current_item:
             cloned._add_current_item(current_item)
         return cloned
+
+    async def close(self) -> None:
+        await self.__client.log_batch(self._log_batcher.flush())
+        await self.__client.close()
 
 
 class _RPClient(RP, metaclass=AbstractBaseClass):
@@ -1064,11 +1068,6 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
         :param coro: Coroutine which will be used for the Task creation.
         :return:     Task instance.
         """
-        raise NotImplementedError('"create_task" method is not implemented!')
-
-    @abstractmethod
-    def finish_tasks(self) -> None:
-        """Ensure all pending Tasks are finished, block current Thread if necessary."""
         raise NotImplementedError('"create_task" method is not implemented!')
 
     def _add_current_item(self, item: Task[_T]) -> None:
@@ -1219,7 +1218,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
             result_coro = self.__empty_str()
 
         result_task = self.create_task(result_coro)
-        self.finish_tasks()
+        self.close()
         return result_task
 
     def update_test_item(self,
@@ -1446,7 +1445,6 @@ class ThreadedRPClient(_RPClient):
         logs = self._log_batcher.flush()
         if logs:
             self._loop.create_task(self._log_batch(logs)).blocking_result()
-        self._loop.create_task(self._close()).blocking_result()
 
     def clone(self) -> 'ThreadedRPClient':
         """Clone the Client object, set current Item ID as cloned Item ID.
@@ -1474,6 +1472,10 @@ class ThreadedRPClient(_RPClient):
         if current_item:
             cloned._add_current_item(current_item)
         return cloned
+
+    def close(self) -> None:
+        self.finish_tasks()
+        self._loop.create_task(self._close()).blocking_result()
 
     def __getstate__(self) -> Dict[str, Any]:
         """Control object pickling and return object fields as Dictionary.
@@ -1621,7 +1623,6 @@ class BatchedRPClient(_RPClient):
             if logs:
                 log_task = self._loop.create_task(self._log_batch(logs))
                 self._loop.run_until_complete(log_task)
-            self._loop.run_until_complete(self._close())
 
     def clone(self) -> 'BatchedRPClient':
         """Clone the Client object, set current Item ID as cloned Item ID.
@@ -1651,6 +1652,10 @@ class BatchedRPClient(_RPClient):
         if current_item:
             cloned._add_current_item(current_item)
         return cloned
+
+    def close(self) -> None:
+        self.finish_tasks()
+        self._loop.run_until_complete(self._close())
 
     def __getstate__(self) -> Dict[str, Any]:
         """Control object pickling and return object fields as Dictionary.
