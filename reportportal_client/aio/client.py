@@ -25,15 +25,13 @@ from typing import Union, Tuple, List, Dict, Any, Optional, Coroutine, TypeVar
 import aiohttp
 import certifi
 
-from reportportal_client import RP, OutputType
+from reportportal_client import RP, OutputType, set_current
 # noinspection PyProtectedMember
 from reportportal_client._internal.aio.http import RetryingClientSession
 # noinspection PyProtectedMember
 from reportportal_client._internal.aio.tasks import (BatchedTaskFactory, ThreadedTaskFactory,
                                                      TriggerTaskBatcher, BackgroundTaskList,
                                                      DEFAULT_TASK_TRIGGER_NUM, DEFAULT_TASK_TRIGGER_INTERVAL)
-# noinspection PyProtectedMember
-from reportportal_client._internal.local import set_current
 # noinspection PyProtectedMember
 from reportportal_client._internal.logs.batcher import LogBatcher
 # noinspection PyProtectedMember
