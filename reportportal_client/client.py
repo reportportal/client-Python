@@ -26,7 +26,7 @@ import requests
 from requests.adapters import HTTPAdapter, Retry, DEFAULT_RETRIES
 
 # noinspection PyProtectedMember
-from reportportal_client import set_current
+from reportportal_client._internal.local import set_current
 # noinspection PyProtectedMember
 from reportportal_client._internal.logs.batcher import LogBatcher
 # noinspection PyProtectedMember
