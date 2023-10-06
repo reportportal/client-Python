@@ -16,7 +16,7 @@
 from threading import local
 from typing import Optional
 
-from reportportal_client import RP
+from reportportal_client.client import RP
 
 __INSTANCES = local()
 
