@@ -884,6 +884,7 @@ class RPClient(RP):
         return cloned
 
     def close(self) -> None:
+        """Close current client connections and flush batches."""
         self._log(self._log_batcher.flush())
         self.session.close()
 

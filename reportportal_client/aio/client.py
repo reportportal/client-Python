@@ -935,6 +935,7 @@ class AsyncRPClient(RP):
         return cloned
 
     async def close(self) -> None:
+        """Close current client connections and flush batches."""
         await self.__client.log_batch(self._log_batcher.flush())
         await self.__client.close()
 
@@ -1472,6 +1473,7 @@ class ThreadedRPClient(_RPClient):
         return cloned
 
     def close(self) -> None:
+        """Close current client connections and flush batches."""
         self.finish_tasks()
         self._loop.create_task(self._close()).blocking_result()
 
@@ -1652,6 +1654,7 @@ class BatchedRPClient(_RPClient):
         return cloned
 
     def close(self) -> None:
+        """Close current client connections and flush batches."""
         self.finish_tasks()
         self._loop.run_until_complete(self._close())
 
