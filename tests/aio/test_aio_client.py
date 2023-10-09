@@ -199,3 +199,29 @@ async def test_verify_ssl_str(connector_mock: mock.Mock):
     assert certificate['subject'][1] == (('organizationName', 'Internet Security Research Group'),)
     assert certificate['notAfter'] == 'Jun  4 11:04:38 2035 GMT'
 
+
+@pytest.mark.skipif(sys.version_info < (3, 8),
+                    reason="For some reasons this does not work on Python 3.7 on Ubuntu, "
+                           "but works on my Mac. Unfortunately GHA use Python 3.7 on Ubuntu.")
+@mock.patch('reportportal_client.aio.client.aiohttp.TCPConnector')
+@pytest.mark.asyncio
+async def test_keepalive_timeout(connector_mock: mock.Mock):
+    keepalive_timeout = 33
+    client = Client('http://endpoint', 'project', api_key='api_key',
+                    keepalive_timeout=keepalive_timeout)
+    await client.session()
+    connector_mock.assert_called_once()
+    _, kwargs = connector_mock.call_args_list[0]
+    timeout = kwargs.get('keepalive_timeout', None)
+    assert timeout is not None and timeout == keepalive_timeout
+
+
+@pytest.mark.skipif(sys.version_info < (3, 8),
+                    reason="the test requires AsyncMock which was introduced in Python 3.8")
+@pytest.mark.asyncio
+async def test_close(aio_client: Client):
+    # noinspection PyTypeChecker
+    session: mock.AsyncMock = await aio_client.session()
+    await (aio_client.close())
+    assert aio_client._session is None
+    session.close.assert_awaited_once()
