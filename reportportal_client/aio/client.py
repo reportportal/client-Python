@@ -143,26 +143,7 @@ class Client:
         self.print_output = print_output
         self._session = None
         self.__stat_task = None
-
         self.api_key = api_key
-        if not self.api_key:
-            if 'token' in kwargs:
-                warnings.warn(
-                    message='Argument `token` is deprecated since 5.3.5 and will be subject for removing in '
-                            'the next major version. Use `api_key` argument instead.',
-                    category=DeprecationWarning,
-                    stacklevel=2
-                )
-                self.api_key = kwargs['token']
-
-            if not self.api_key:
-                warnings.warn(
-                    message='Argument `api_key` is `None` or empty string, that is not supposed to happen '
-                            'because Report Portal is usually requires an authorization key. Please check '
-                            'your code.',
-                    category=RuntimeWarning,
-                    stacklevel=2
-                )
 
     async def session(self) -> RetryingClientSession:
         """Return aiohttp.ClientSession class instance, initialize it if necessary.
@@ -172,13 +153,13 @@ class Client:
         if self._session:
             return self._session
 
-        ssl_config = self.verify_ssl
-        if ssl_config:
-            if type(ssl_config) == str:
-                sl_config = ssl.create_default_context()
-                sl_config.load_cert_chain(ssl_config)
+        if self.verify_ssl is None or (type(self.verify_ssl) == bool and not self.verify_ssl):
+            ssl_config = False
+        else:
+            if type(self.verify_ssl) == str:
+                ssl_config = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH, cafile=self.verify_ssl)
             else:
-                ssl_config = ssl.create_default_context(cafile=certifi.where())
+                ssl_config = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH, cafile=certifi.where())
 
         connection_params = {
             'ssl': ssl_config,

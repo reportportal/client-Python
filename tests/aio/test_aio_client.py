@@ -10,8 +10,10 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License
+import os
 import pickle
 import sys
+from ssl import SSLContext
 from unittest import mock
 
 import aiohttp
@@ -115,10 +117,8 @@ def test_clone():
 
 
 LAUNCH_ID = 333
-EXPECTED_DEFAULT_URL = 'http://endpoint/ui/#project/launches/all/' + str(
-    LAUNCH_ID)
-EXPECTED_DEBUG_URL = 'http://endpoint/ui/#project/userdebug/all/' + str(
-    LAUNCH_ID)
+EXPECTED_DEFAULT_URL = f'http://endpoint/ui/#project/launches/all/{LAUNCH_ID}'
+EXPECTED_DEBUG_URL = f'http://endpoint/ui/#project/userdebug/all/{LAUNCH_ID}'
 
 
 @pytest.mark.skipif(sys.version_info < (3, 8),
@@ -133,7 +133,7 @@ EXPECTED_DEBUG_URL = 'http://endpoint/ui/#project/userdebug/all/' + str(
     ]
 )
 @pytest.mark.asyncio
-async def test_launch_url_get(aio_client, launch_mode, project_name, expected_url):
+async def test_launch_url_get(aio_client, launch_mode: str, project_name: str, expected_url: str):
     aio_client.project = project_name
     response = mock.AsyncMock()
     response.is_success = True
@@ -145,3 +145,53 @@ async def test_launch_url_get(aio_client, launch_mode, project_name, expected_ur
     (await aio_client.session()).get.side_effect = get_call
 
     assert await (aio_client.get_launch_ui_url('test_launch_uuid')) == expected_url
+
+
+@pytest.mark.skipif(sys.version_info < (3, 8),
+                    reason="the test requires AsyncMock which was introduced in Python 3.8")
+@pytest.mark.parametrize('default', [True, False])
+@mock.patch('reportportal_client.aio.client.aiohttp.TCPConnector')
+@pytest.mark.asyncio
+async def test_verify_ssl_default(connector_mock: mock.Mock, default: bool):
+    if default:
+        client = Client('http://endpoint', 'project', api_key='api_key')
+    else:
+        client = Client('http://endpoint', 'project', api_key='api_key', verify_ssl=True)
+    await client.session()
+    connector_mock.assert_called_once()
+    _, kwargs = connector_mock.call_args_list[0]
+    ssl_context: SSLContext = kwargs.get('ssl', None)
+    assert ssl_context is not None and isinstance(ssl_context, SSLContext)
+    assert len(ssl_context.get_ca_certs()) > 0
+
+
+@pytest.mark.skipif(sys.version_info < (3, 8),
+                    reason="the test requires AsyncMock which was introduced in Python 3.8")
+@pytest.mark.parametrize('param_value', [False, None])
+@mock.patch('reportportal_client.aio.client.aiohttp.TCPConnector')
+@pytest.mark.asyncio
+async def test_verify_ssl_off(connector_mock: mock.Mock, param_value):
+    client = Client('http://endpoint', 'project', api_key='api_key', verify_ssl=param_value)
+    await client.session()
+    connector_mock.assert_called_once()
+    _, kwargs = connector_mock.call_args_list[0]
+    ssl_context: SSLContext = kwargs.get('ssl', None)
+    assert ssl_context is not None and isinstance(ssl_context, bool) and not ssl_context
+
+
+@pytest.mark.skipif(sys.version_info < (3, 8),
+                    reason="the test requires AsyncMock which was introduced in Python 3.8")
+@mock.patch('reportportal_client.aio.client.aiohttp.TCPConnector')
+@pytest.mark.asyncio
+async def test_verify_ssl_str(connector_mock: mock.Mock):
+    client = Client('http://endpoint', 'project', api_key='api_key',
+                    verify_ssl=os.path.join(os.getcwd(), 'test_res/root.pem'))
+    await client.session()
+    connector_mock.assert_called_once()
+    _, kwargs = connector_mock.call_args_list[0]
+    ssl_context: SSLContext = kwargs.get('ssl', None)
+    assert ssl_context is not None and isinstance(ssl_context, SSLContext)
+    assert len(ssl_context.get_ca_certs()) == 1
+    certificate = ssl_context.get_ca_certs()[0]
+    assert certificate['subject'][1] == (('organizationName', 'Internet Security Research Group'),)
+    assert certificate['notAfter'] == 'Jun  4 11:04:38 2035 GMT'

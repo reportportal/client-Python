@@ -1,2 +1,3 @@
 include MANIFEST.in
 include README.md CONTRIBUTING.rst requirements.txt
+exclude test_res/*

@@ -21,7 +21,7 @@ def read_file(fname):
 
 setup(
     name='reportportal-client',
-    packages=find_packages(exclude=('tests', 'tests.*')),
+    packages=find_packages(exclude=['tests', 'test_res']),
     package_data={
         'reportportal_client.steps': TYPE_STUBS,
         'reportportal_client.core': TYPE_STUBS,
