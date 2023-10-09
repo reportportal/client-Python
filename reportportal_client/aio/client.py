@@ -949,13 +949,14 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
 
     log_batch_size: int
     log_batch_payload_limit: int
+    own_launch: bool
+    own_client: bool
     _item_stack: LifoQueue
     _log_batcher: LogBatcher
     __client: Client
     __launch_uuid: Optional[Task[str]]
     __endpoint: str
     __project: str
-    use_own_launch: bool
     __step_reporter: StepReporter
 
     @property
@@ -1044,21 +1045,20 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
 
         self.log_batch_size = log_batch_size
         self.log_batch_payload_limit = log_batch_payload_limit
-        if log_batcher:
-            self._log_batcher = log_batcher
-        else:
-            self._log_batcher = LogBatcher(log_batch_size, log_batch_payload_limit)
+        self._log_batcher = log_batcher or LogBatcher(log_batch_size, log_batch_payload_limit)
 
         if client:
             self.__client = client
+            self.own_client = False
         else:
             self.__client = Client(endpoint, project, **kwargs)
+            self.own_client = False
 
         if launch_uuid:
             self.__launch_uuid = launch_uuid
-            self.use_own_launch = False
+            self.own_launch = False
         else:
-            self.use_own_launch = True
+            self.own_launch = True
 
         set_current(self)
 
@@ -1125,7 +1125,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
                             'rerun' option.
         :return:            Launch UUID if successfully started or None.
         """
-        if not self.use_own_launch:
+        if not self.own_launch:
             return self.launch_uuid
         launch_uuid_coro = self.__client.start_launch(name, start_time, description=description,
                                                       attributes=attributes, rerun=rerun, rerun_of=rerun_of,
@@ -1217,7 +1217,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
         :return:           Response message or None.
         """
         self.create_task(self.__client.log_batch(self._log_batcher.flush()))
-        if self.use_own_launch:
+        if self.own_launch:
             result_coro = self.__client.finish_launch(self.launch_uuid, end_time, status=status,
                                                       attributes=attributes, **kwargs)
         else:
@@ -1323,8 +1323,10 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
         self.create_task(self._log(rp_log))
         return None
 
-    async def _close(self):
-        await self.__client.close()
+    def close(self) -> None:
+        """Close current client connections."""
+        if self.own_client:
+            self.create_task(self.__client.close()).blocking_result()
 
 
 class ThreadedRPClient(_RPClient):
@@ -1459,13 +1461,12 @@ class ThreadedRPClient(_RPClient):
         :return: Cloned client object.
         :rtype: ThreadedRPClient
         """
-        cloned_client = self.client.clone()
         # noinspection PyTypeChecker
         cloned = ThreadedRPClient(
             endpoint=self.endpoint,
             project=self.project,
             launch_uuid=self.launch_uuid,
-            client=cloned_client,
+            client=self.client,
             log_batch_size=self.log_batch_size,
             log_batch_payload_limit=self.log_batch_payload_limit,
             log_batcher=self._log_batcher,
@@ -1479,10 +1480,6 @@ class ThreadedRPClient(_RPClient):
         if current_item:
             cloned._add_current_item(current_item)
         return cloned
-
-    def close(self) -> None:
-        """Close current client connections."""
-        self._loop.create_task(self._close()).blocking_result()
 
     def __getstate__(self) -> Dict[str, Any]:
         """Control object pickling and return object fields as Dictionary.
@@ -1637,13 +1634,12 @@ class BatchedRPClient(_RPClient):
         :return: Cloned client object.
         :rtype: BatchedRPClient
         """
-        cloned_client = self.client.clone()
         # noinspection PyTypeChecker
         cloned = BatchedRPClient(
             endpoint=self.endpoint,
             project=self.project,
             launch_uuid=self.launch_uuid,
-            client=cloned_client,
+            client=self.client,
             log_batch_size=self.log_batch_size,
             log_batch_payload_limit=self.log_batch_payload_limit,
             log_batcher=self._log_batcher,
@@ -1659,10 +1655,6 @@ class BatchedRPClient(_RPClient):
         if current_item:
             cloned._add_current_item(current_item)
         return cloned
-
-    def close(self) -> None:
-        """Close current client connections."""
-        self._loop.run_until_complete(self._close())
 
     def __getstate__(self) -> Dict[str, Any]:
         """Control object pickling and return object fields as Dictionary.
