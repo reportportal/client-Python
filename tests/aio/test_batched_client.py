@@ -45,7 +45,7 @@ def test_clone():
             cloned is not None
             and async_client is not cloned
             and cloned.client is not None
-            and cloned.client is not client
+            and cloned.client is client
             and cloned.step_reporter is not None
             and cloned.step_reporter is not step_reporter
             and cloned._task_list is async_client._task_list
