@@ -24,13 +24,13 @@ import aiohttp
 import pytest
 from aiohttp import ServerConnectionError
 
-from core.rp_requests import AsyncRPRequestLog
 from reportportal_client import OutputType
 # noinspection PyProtectedMember
 from reportportal_client._internal.aio.http import RetryingClientSession, DEFAULT_RETRY_NUMBER
 # noinspection PyProtectedMember
 from reportportal_client._internal.static.defines import NOT_SET
 from reportportal_client.aio.client import Client
+from reportportal_client.core.rp_requests import AsyncRPRequestLog
 from reportportal_client.helpers import timestamp
 
 ENDPOINT = 'http://localhost:8080'
