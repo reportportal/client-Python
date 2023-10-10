@@ -335,7 +335,7 @@ async def test_no_launch_uuid_print():
     output_mock = mock.Mock()
     output_mock.get_output.side_effect = lambda: str_io
     client = Client(endpoint='http://endpoint', project='project',
-                      api_key='test', launch_uuid_print=False, print_output=output_mock)
+                    api_key='test', launch_uuid_print=False, print_output=output_mock)
     client._session = mock.AsyncMock()
     client._skip_analytics = True
     await client.start_launch('Test Launch', timestamp())
@@ -348,7 +348,7 @@ async def test_no_launch_uuid_print():
 @mock.patch('reportportal_client.client.sys.stdout', new_callable=StringIO)
 async def test_launch_uuid_print_default_io(mock_stdout):
     client = Client(endpoint='http://endpoint', project='project',
-                      api_key='test', launch_uuid_print=True)
+                    api_key='test', launch_uuid_print=True)
     client._session = mock.AsyncMock()
     client._skip_analytics = True
     await client.start_launch('Test Launch', timestamp())
@@ -361,7 +361,7 @@ async def test_launch_uuid_print_default_io(mock_stdout):
 @mock.patch('reportportal_client.client.sys.stdout', new_callable=StringIO)
 async def test_launch_uuid_print_default_print(mock_stdout):
     client = Client(endpoint='http://endpoint', project='project',
-                      api_key='test')
+                    api_key='test')
     client._session = mock.AsyncMock()
     client._skip_analytics = True
     await client.start_launch('Test Launch', timestamp())
