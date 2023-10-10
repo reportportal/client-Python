@@ -13,6 +13,7 @@
 import os
 import pickle
 import sys
+from io import StringIO
 from ssl import SSLContext
 from typing import List
 from unittest import mock
@@ -27,6 +28,7 @@ from reportportal_client._internal.aio.http import RetryingClientSession, DEFAUL
 # noinspection PyProtectedMember
 from reportportal_client._internal.static.defines import NOT_SET
 from reportportal_client.aio.client import Client
+from reportportal_client.helpers import timestamp
 
 ENDPOINT = 'http://localhost:8080'
 PROJECT = 'default_personal'
@@ -308,3 +310,59 @@ async def test_start_launch_event_send(async_send_event):
     assert args[1] == agent_name
     assert args[2] == agent_version
     assert len(kwargs.items()) == 0
+
+
+@pytest.mark.skipif(sys.version_info < (3, 8),
+                    reason="the test requires AsyncMock which was introduced in Python 3.8")
+@pytest.mark.asyncio
+async def test_launch_uuid_print():
+    str_io = StringIO()
+    output_mock = mock.Mock()
+    output_mock.get_output.side_effect = lambda: str_io
+    client = Client(endpoint='http://endpoint', project='project',
+                    api_key='test', launch_uuid_print=True, print_output=output_mock)
+    client._session = mock.AsyncMock()
+    client._skip_analytics = True
+    await client.start_launch('Test Launch', timestamp())
+    assert 'ReportPortal Launch UUID: ' in str_io.getvalue()
+
+
+@pytest.mark.skipif(sys.version_info < (3, 8),
+                    reason="the test requires AsyncMock which was introduced in Python 3.8")
+@pytest.mark.asyncio
+async def test_no_launch_uuid_print():
+    str_io = StringIO()
+    output_mock = mock.Mock()
+    output_mock.get_output.side_effect = lambda: str_io
+    client = Client(endpoint='http://endpoint', project='project',
+                      api_key='test', launch_uuid_print=False, print_output=output_mock)
+    client._session = mock.AsyncMock()
+    client._skip_analytics = True
+    await client.start_launch('Test Launch', timestamp())
+    assert 'ReportPortal Launch UUID: ' not in str_io.getvalue()
+
+
+@pytest.mark.skipif(sys.version_info < (3, 8),
+                    reason="the test requires AsyncMock which was introduced in Python 3.8")
+@pytest.mark.asyncio
+@mock.patch('reportportal_client.client.sys.stdout', new_callable=StringIO)
+async def test_launch_uuid_print_default_io(mock_stdout):
+    client = Client(endpoint='http://endpoint', project='project',
+                      api_key='test', launch_uuid_print=True)
+    client._session = mock.AsyncMock()
+    client._skip_analytics = True
+    await client.start_launch('Test Launch', timestamp())
+    assert 'ReportPortal Launch UUID: ' in mock_stdout.getvalue()
+
+
+@pytest.mark.skipif(sys.version_info < (3, 8),
+                    reason="the test requires AsyncMock which was introduced in Python 3.8")
+@pytest.mark.asyncio
+@mock.patch('reportportal_client.client.sys.stdout', new_callable=StringIO)
+async def test_launch_uuid_print_default_print(mock_stdout):
+    client = Client(endpoint='http://endpoint', project='project',
+                      api_key='test')
+    client._session = mock.AsyncMock()
+    client._skip_analytics = True
+    await client.start_launch('Test Launch', timestamp())
+    assert 'ReportPortal Launch UUID: ' not in mock_stdout.getvalue()
