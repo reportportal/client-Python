@@ -14,6 +14,7 @@ import os
 import pickle
 import sys
 from io import StringIO
+from json import JSONDecodeError
 from ssl import SSLContext
 from typing import List
 from unittest import mock
@@ -21,6 +22,7 @@ from unittest import mock
 import aiohttp
 # noinspection PyPackageRequirements
 import pytest
+from aiohttp import ServerTimeoutError
 
 from reportportal_client import OutputType
 # noinspection PyProtectedMember
@@ -318,7 +320,7 @@ async def test_start_launch_event_send(async_send_event):
 async def test_launch_uuid_print():
     str_io = StringIO()
     output_mock = mock.Mock()
-    output_mock.get_output.side_effect = lambda: str_io
+    output_mock.get_output.return_value = str_io
     client = Client(endpoint='http://endpoint', project='project',
                     api_key='test', launch_uuid_print=True, print_output=output_mock)
     client._session = mock.AsyncMock()
@@ -333,7 +335,7 @@ async def test_launch_uuid_print():
 async def test_no_launch_uuid_print():
     str_io = StringIO()
     output_mock = mock.Mock()
-    output_mock.get_output.side_effect = lambda: str_io
+    output_mock.get_output.return_value = str_io
     client = Client(endpoint='http://endpoint', project='project',
                     api_key='test', launch_uuid_print=False, print_output=output_mock)
     client._session = mock.AsyncMock()
@@ -366,3 +368,46 @@ async def test_launch_uuid_print_default_print(mock_stdout):
     client._skip_analytics = True
     await client.start_launch('Test Launch', timestamp())
     assert 'ReportPortal Launch UUID: ' not in mock_stdout.getvalue()
+
+
+def connection_error(*args, **kwargs):
+    raise ServerTimeoutError()
+
+
+def json_error(*args, **kwargs):
+    raise JSONDecodeError('invalid Json', '502 Gateway Timeout', 0)
+
+
+def response_error(*args, **kwargs):
+    result = mock.AsyncMock()
+    result.ok = False
+    result.json.side_effect = json_error
+    result.status_code = 502
+    return result
+
+
+@pytest.mark.parametrize(
+    'requests_method, client_method, client_params',
+    [
+        ('post', 'start_launch', ['Test Launch', timestamp()]),
+        ('put', 'finish_launch', ['launch_uuid', timestamp()]),
+        ('post', 'start_test_item', ['launch_uuid', 'Test Item', timestamp(), 'STEP']),
+        ('put', 'finish_test_item', ['launch_uuid', 'test_item_id', timestamp()]),
+        ('put', 'update_test_item', ['test_item_id']),
+        ('get', 'get_item_id_by_uuid', ['test_item_uuid']),
+        ('get', 'get_launch_info', ['launch_uuid']),
+        ('get', 'get_launch_ui_id', ['launch_uuid']),
+        ('get', 'get_launch_ui_url', ['launch_uuid']),
+        ('get', 'get_project_settings', [])
+    ]
+)
+@pytest.mark.asyncio
+async def test_connection_errors(aio_client, requests_method, client_method,
+                                 client_params):
+    getattr(await aio_client.session(), requests_method).side_effect = connection_error
+    result = await getattr(aio_client, client_method)(*client_params)
+    assert result is None
+
+    getattr(await aio_client.session(), requests_method).side_effect = response_error
+    result = await getattr(aio_client, client_method)(*client_params)
+    assert result is None

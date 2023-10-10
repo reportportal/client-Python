@@ -29,11 +29,11 @@ from reportportal_client import RP, OutputType
 # noinspection PyProtectedMember
 from reportportal_client._internal.aio.http import RetryingClientSession
 # noinspection PyProtectedMember
-from reportportal_client._internal.local import set_current
-# noinspection PyProtectedMember
 from reportportal_client._internal.aio.tasks import (BatchedTaskFactory, ThreadedTaskFactory,
                                                      TriggerTaskBatcher, BackgroundTaskList,
                                                      DEFAULT_TASK_TRIGGER_NUM, DEFAULT_TASK_TRIGGER_INTERVAL)
+# noinspection PyProtectedMember
+from reportportal_client._internal.local import set_current
 # noinspection PyProtectedMember
 from reportportal_client._internal.logs.batcher import LogBatcher
 # noinspection PyProtectedMember
@@ -443,12 +443,12 @@ class Client:
         response = await AsyncHttpRequest((await self.session()).get, url=url).make()
         if not response:
             return
+        launch_info = None
         if response.is_success:
             launch_info = await response.json
             logger.debug('get_launch_info - Launch info: %s', launch_info)
         else:
             logger.warning('get_launch_info - Launch info: Failed to fetch launch ID from the API.')
-            launch_info = {}
         return launch_info
 
     async def __get_item_uuid_url(self, item_uuid_future: Union[str, Task[str]]) -> Optional[str]:
@@ -466,7 +466,7 @@ class Client:
         """
         url = self.__get_item_uuid_url(item_uuid_future)
         response = await AsyncHttpRequest((await self.session()).get, url=url).make()
-        return response.id if response else None
+        return await response.id if response else None
 
     async def get_launch_ui_id(self, launch_uuid_future: Union[str, Task[str]]) -> Optional[int]:
         """Get Launch ID of the given Launch.
