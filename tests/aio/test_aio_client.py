@@ -386,6 +386,8 @@ def response_error(*args, **kwargs):
     return result
 
 
+@pytest.mark.skipif(sys.version_info < (3, 8),
+                    reason="the test requires AsyncMock which was introduced in Python 3.8")
 @pytest.mark.parametrize(
     'requests_method, client_method, client_params',
     [
