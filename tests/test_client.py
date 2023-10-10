@@ -38,8 +38,8 @@ def response_error(*args, **kwargs):
 def invalid_response(*args, **kwargs):
     result = Response()
     result._content = \
-        '<html><head><title>405 Not Allowed</title></head></html>'
-    result.status_code = 405
+        '<html><head><title>Hello World!</title></head></html>'
+    result.status_code = 200
     return result
 
 
@@ -69,25 +69,6 @@ def test_connection_errors(rp_client, requests_method, client_method,
     result = getattr(rp_client, client_method)(*client_params)
     assert result is None
 
-
-@pytest.mark.parametrize(
-    'requests_method, client_method, client_params',
-    [
-        ('put', 'finish_launch', [timestamp()]),
-        ('put', 'finish_test_item', ['test_item_id', timestamp()]),
-        ('get', 'get_item_id_by_uuid', ['test_item_uuid']),
-        ('get', 'get_launch_info', []),
-        ('get', 'get_launch_ui_id', []),
-        ('get', 'get_launch_ui_url', []),
-        ('get', 'get_project_settings', []),
-        ('post', 'start_launch', ['Test Launch', timestamp()]),
-        ('post', 'start_test_item', ['Test Item', timestamp(), 'STEP']),
-        ('put', 'update_test_item', ['test_item_id'])
-    ]
-)
-def test_invalid_responses(rp_client, requests_method, client_method,
-                           client_params):
-    rp_client._RPClient__launch_uuid = 'test_launch_id'
     getattr(rp_client.session, requests_method).side_effect = invalid_response
     result = getattr(rp_client, client_method)(*client_params)
     assert result is None

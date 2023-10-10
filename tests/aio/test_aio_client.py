@@ -24,6 +24,7 @@ import aiohttp
 import pytest
 from aiohttp import ServerConnectionError
 
+from core.rp_requests import AsyncRPRequestLog
 from reportportal_client import OutputType
 # noinspection PyProtectedMember
 from reportportal_client._internal.aio.http import RetryingClientSession, DEFAULT_RETRY_NUMBER
@@ -289,7 +290,7 @@ async def test_start_launch(aio_client: Client):
                     reason="the test requires AsyncMock which was introduced in Python 3.8")
 @mock.patch('reportportal_client.aio.client.async_send_event')
 @pytest.mark.asyncio
-async def test_start_launch_event_send(async_send_event):
+async def test_start_launch_statistics_send(async_send_event):
     # noinspection PyTypeChecker
     session = mock.AsyncMock()
     client = Client('http://endpoint', 'project', api_key='api_key')
@@ -312,6 +313,28 @@ async def test_start_launch_event_send(async_send_event):
     assert args[1] == agent_name
     assert args[2] == agent_version
     assert len(kwargs.items()) == 0
+
+
+@pytest.mark.skipif(sys.version_info < (3, 8),
+                    reason="the test requires AsyncMock which was introduced in Python 3.8")
+@mock.patch('reportportal_client.aio.client.getenv')
+@mock.patch('reportportal_client.aio.client.async_send_event')
+@pytest.mark.asyncio
+async def test_start_launch_no_statistics_send(async_send_event: mock.AsyncMock, getenv):
+    getenv.return_value = '1'
+    # noinspection PyTypeChecker
+    session = mock.AsyncMock()
+    client = Client('http://endpoint', 'project', api_key='api_key')
+    client._session = session
+    mock_basic_post_response(session)
+
+    launch_name = 'Test Launch'
+    start_time = str(1696921416000)
+    agent_name = 'pytest-reportportal'
+    agent_version = '5.0.4'
+    attributes = {'agent': f'{agent_name}|{agent_version}'}
+    await client.start_launch(launch_name, start_time, attributes=attributes)
+    async_send_event.assert_not_called()
 
 
 @pytest.mark.skipif(sys.version_info < (3, 8),
@@ -386,6 +409,14 @@ def response_error(*args, **kwargs):
     return result
 
 
+def invalid_response(*args, **kwargs):
+    result = mock.AsyncMock()
+    result.ok = True
+    result.json.side_effect = json_error
+    result.status_code = 200
+    return result
+
+
 @pytest.mark.skipif(sys.version_info < (3, 8),
                     reason="the test requires AsyncMock which was introduced in Python 3.8")
 @pytest.mark.parametrize(
@@ -400,7 +431,8 @@ def response_error(*args, **kwargs):
         ('get', 'get_launch_info', ['launch_uuid']),
         ('get', 'get_launch_ui_id', ['launch_uuid']),
         ('get', 'get_launch_ui_url', ['launch_uuid']),
-        ('get', 'get_project_settings', [])
+        ('get', 'get_project_settings', []),
+        ('post', 'log_batch', [[AsyncRPRequestLog('launch_uuid', timestamp(), item_uuid='test_item_uuid')]])
     ]
 )
 @pytest.mark.asyncio
@@ -410,8 +442,13 @@ async def test_connection_errors(aio_client, requests_method, client_method,
     try:
         await getattr(aio_client, client_method)(*client_params)
     except Exception as e:
+        # On this level we pass all errors through by design
         assert type(e) == ServerConnectionError
 
     getattr(await aio_client.session(), requests_method).side_effect = response_error
+    result = await getattr(aio_client, client_method)(*client_params)
+    assert result is None
+
+    getattr(await aio_client.session(), requests_method).side_effect = invalid_response
     result = await getattr(aio_client, client_method)(*client_params)
     assert result is None
