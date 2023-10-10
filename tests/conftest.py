@@ -46,6 +46,7 @@ def rp_client():
     """Prepare instance of the RPClient for testing."""
     client = RPClient('http://endpoint', 'project', 'api_key')
     client.session = mock.Mock()
+    client._skip_analytics = True
     return client
 
 
@@ -54,4 +55,5 @@ def aio_client():
     """Prepare instance of the Client for testing."""
     client = Client('http://endpoint', 'project', api_key='api_key')
     client._session = mock.AsyncMock()
+    client._skip_analytics = True
     return client

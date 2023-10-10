@@ -333,14 +333,17 @@ def calculate_file_part_size(file: Optional[RPFile]) -> int:
     return size
 
 
-def agent_name_version(attributes: Optional[Union[List, Dict]] = None) -> Tuple[Optional[str], Optional[str]]:
+def agent_name_version(attributes: Optional[Union[list, dict]] = None) -> Tuple[Optional[str], Optional[str]]:
     """Extract Agent name and version from given Launch attributes.
 
     :param attributes: Launch attributes as they provided to Start Launch call
     :return: Tuple of (agent name, version)
     """
+    my_attributes = attributes
+    if isinstance(my_attributes, dict):
+        my_attributes = dict_to_payload(my_attributes)
     agent_name, agent_version = None, None
-    agent_attribute = [a for a in attributes if a.get('key') == 'agent'] if attributes else []
+    agent_attribute = [a for a in my_attributes if a.get('key') == 'agent'] if my_attributes else []
     if len(agent_attribute) > 0 and agent_attribute[0].get('value'):
         agent_name, agent_version = agent_attribute[0]['value'].split('|')
     return agent_name, agent_version

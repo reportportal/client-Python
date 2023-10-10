@@ -14,6 +14,7 @@ import os
 import pickle
 import sys
 from ssl import SSLContext
+from typing import List
 from unittest import mock
 
 import aiohttp
@@ -30,6 +31,8 @@ from reportportal_client.aio.client import Client
 ENDPOINT = 'http://localhost:8080'
 PROJECT = 'default_personal'
 API_KEY = 'test_key'
+RESPONSE_ID = 'test_launch_uuid'
+RETURN_JSON = {'id': RESPONSE_ID}
 
 
 def test_client_pickling():
@@ -225,3 +228,82 @@ async def test_close(aio_client: Client):
     await (aio_client.close())
     assert aio_client._session is None
     session.close.assert_awaited_once()
+
+
+def mock_basic_post_response(session: mock.AsyncMock):
+    return_object = mock.AsyncMock()
+    return_object.json.return_value = RETURN_JSON
+    session.post.return_value = return_object
+
+
+def verify_attributes(expected_attributes: dict, actual_attributes: List[dict]):
+    if expected_attributes is None:
+        assert actual_attributes is None
+        return
+    else:
+        assert actual_attributes is not None
+    assert len(actual_attributes) == len(expected_attributes.items())
+    for attribute in actual_attributes:
+        if 'key' in attribute:
+            assert expected_attributes.get(attribute.get('key')) == attribute.get('value')
+            assert attribute.get('system') is False
+
+
+@pytest.mark.skipif(sys.version_info < (3, 8),
+                    reason="the test requires AsyncMock which was introduced in Python 3.8")
+@pytest.mark.asyncio
+async def test_start_launch(aio_client: Client):
+    # noinspection PyTypeChecker
+    session: mock.AsyncMock = await aio_client.session()
+    mock_basic_post_response(session)
+
+    launch_name = 'Test Launch'
+    start_time = str(1696921416000)
+    description = 'Test Launch description'
+    attributes = {'attribute_key': 'attribute_value'}
+    rerun_of = 'test_prent_launch_uuid'
+    result = await aio_client.start_launch(launch_name, start_time, description=description,
+                                           attributes=attributes, rerun=True, rerun_of=rerun_of)
+
+    assert result == RESPONSE_ID
+    session.post.assert_called_once()
+    call_args = session.post.call_args_list[0]
+    assert '/api/v2/project/launch' == call_args[0][0]
+    kwargs = call_args[1]
+    assert kwargs.get('data') is None
+    actual_json = kwargs.get('json')
+    assert actual_json is not None
+    assert actual_json.get('rerun') is True
+    assert actual_json.get('rerunOf') == rerun_of
+    assert actual_json.get('description') == description
+    assert actual_json.get('startTime') == start_time
+    actual_attributes = actual_json.get('attributes')
+    verify_attributes(attributes, actual_attributes)
+
+
+@pytest.mark.skipif(sys.version_info < (3, 8),
+                    reason="the test requires AsyncMock which was introduced in Python 3.8")
+@mock.patch('reportportal_client.aio.client.async_send_event')
+@pytest.mark.asyncio
+async def test_start_launch_event_send(async_send_event):
+    # noinspection PyTypeChecker
+    session = mock.AsyncMock()
+    client = Client('http://endpoint', 'project', api_key='api_key')
+    client._session = session
+    mock_basic_post_response(session)
+
+    launch_name = 'Test Launch'
+    start_time = str(1696921416000)
+    agent_name = 'pytest-reportportal'
+    agent_version = '5.0.4'
+    attributes = {'agent': f'{agent_name}|{agent_version}'}
+    await client.start_launch(launch_name, start_time, attributes=attributes)
+    async_send_event.assert_called_once()
+    call_args = async_send_event.call_args_list[0]
+    args = call_args[0]
+    kwargs = call_args[1]
+    assert len(args) == 3
+    assert args[0] == 'start_launch'
+    assert args[1] == agent_name
+    assert args[2] == agent_version
+    assert len(kwargs.items()) == 0
