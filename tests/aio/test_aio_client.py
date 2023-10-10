@@ -281,20 +281,15 @@ async def test_start_launch(aio_client: Client):
     verify_attributes(attributes, actual_attributes)
 
 
-if sys.version_info >= (3, 8):
-    ASYNC_STAT_MOCK = mock.AsyncMock()
-else:
-    ASYNC_STAT_MOCK = None
-
-
 @pytest.mark.skipif(sys.version_info < (3, 8),
                     reason="the test requires AsyncMock which was introduced in Python 3.8")
-@mock.patch('reportportal_client.aio.client.async_send_event', ASYNC_STAT_MOCK)
+@mock.patch('reportportal_client.aio.client.async_send_event')
 @pytest.mark.asyncio
-async def test_start_launch_event_send():
+async def test_start_launch_event_send(async_send_event):
     # noinspection PyTypeChecker
     session = mock.AsyncMock()
     client = Client('http://endpoint', 'project', api_key='api_key')
+    client._skip_analytics = False
     client._session = session
     mock_basic_post_response(session)
 
@@ -304,12 +299,8 @@ async def test_start_launch_event_send():
     agent_version = '5.0.4'
     attributes = {'agent': f'{agent_name}|{agent_version}'}
     await client.start_launch(launch_name, start_time, attributes=attributes)
-    # noinspection PyUnresolvedReferences
-    stat_task = client._Client__stat_task
-    assert stat_task is not None
-    await stat_task
-    ASYNC_STAT_MOCK.assert_called_once()
-    call_args = ASYNC_STAT_MOCK.call_args_list[0]
+    async_send_event.assert_called_once()
+    call_args = async_send_event.call_args_list[0]
     args = call_args[0]
     kwargs = call_args[1]
     assert len(args) == 3
