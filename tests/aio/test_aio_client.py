@@ -22,7 +22,7 @@ from unittest import mock
 import aiohttp
 # noinspection PyPackageRequirements
 import pytest
-from aiohttp import ServerTimeoutError, ServerConnectionError
+from aiohttp import ServerConnectionError
 
 from reportportal_client import OutputType
 # noinspection PyProtectedMember
