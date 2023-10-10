@@ -255,7 +255,7 @@ def verify_attributes(expected_attributes: dict, actual_attributes: List[dict]):
 
 
 @pytest.mark.skipif(sys.version_info < (3, 8),
-                    reason="the test requires AsyncMock which was introduced in Python 3.8")
+                    reason='the test requires AsyncMock which was introduced in Python 3.8')
 @pytest.mark.asyncio
 async def test_start_launch(aio_client: Client):
     # noinspection PyTypeChecker
@@ -287,7 +287,7 @@ async def test_start_launch(aio_client: Client):
 
 
 @pytest.mark.skipif(sys.version_info < (3, 8),
-                    reason="the test requires AsyncMock which was introduced in Python 3.8")
+                    reason='the test requires AsyncMock which was introduced in Python 3.8')
 @mock.patch('reportportal_client.aio.client.async_send_event')
 @pytest.mark.asyncio
 async def test_start_launch_statistics_send(async_send_event):
@@ -316,11 +316,11 @@ async def test_start_launch_statistics_send(async_send_event):
 
 
 @pytest.mark.skipif(sys.version_info < (3, 8),
-                    reason="the test requires AsyncMock which was introduced in Python 3.8")
+                    reason='the test requires AsyncMock which was introduced in Python 3.8')
 @mock.patch('reportportal_client.aio.client.getenv')
 @mock.patch('reportportal_client.aio.client.async_send_event')
 @pytest.mark.asyncio
-async def test_start_launch_no_statistics_send(async_send_event: mock.AsyncMock, getenv):
+async def test_start_launch_no_statistics_send(async_send_event, getenv):
     getenv.return_value = '1'
     # noinspection PyTypeChecker
     session = mock.AsyncMock()
