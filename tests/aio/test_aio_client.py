@@ -230,7 +230,7 @@ async def test_close(aio_client: Client):
     session.close.assert_awaited_once()
 
 
-def mock_basic_post_response(session: mock.AsyncMock):
+def mock_basic_post_response(session):
     return_object = mock.AsyncMock()
     return_object.json.return_value = RETURN_JSON
     session.post.return_value = return_object
