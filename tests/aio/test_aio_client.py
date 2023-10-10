@@ -31,7 +31,7 @@ from reportportal_client._internal.aio.http import RetryingClientSession, DEFAUL
 from reportportal_client._internal.static.defines import NOT_SET
 from reportportal_client.aio.client import Client
 from reportportal_client.core.rp_requests import AsyncRPRequestLog
-from reportportal_client.helpers import timestamp
+from reportportal_client.helpers import timestamp, dict_to_payload
 
 ENDPOINT = 'http://localhost:8080'
 PROJECT = 'default_personal'
@@ -247,7 +247,7 @@ def verify_attributes(expected_attributes: dict, actual_attributes: List[dict]):
         return
     else:
         assert actual_attributes is not None
-    assert len(actual_attributes) == len(expected_attributes.items())
+    assert len(actual_attributes) == len(expected_attributes)
     for attribute in actual_attributes:
         if 'key' in attribute:
             assert expected_attributes.get(attribute.get('key')) == attribute.get('value')
@@ -452,3 +452,68 @@ async def test_connection_errors(aio_client, requests_method, client_method,
     getattr(await aio_client.session(), requests_method).side_effect = invalid_response
     result = await getattr(aio_client, client_method)(*client_params)
     assert result is None
+
+
+def verify_parameters(expected_parameters: dict, actual_parameters: List[dict]):
+    if expected_parameters is None:
+        assert actual_parameters is None
+        return
+    else:
+        assert actual_parameters is not None
+    assert len(actual_parameters) == len(expected_parameters)
+    for attribute in actual_parameters:
+        assert expected_parameters.get(attribute.get('key')) == attribute.get('value')
+
+
+@pytest.mark.skipif(sys.version_info < (3, 8),
+                    reason='the test requires AsyncMock which was introduced in Python 3.8')
+@pytest.mark.parametrize(
+    'parent_id, expected_uri',
+    [
+        ('test_parent_uuid', '/api/v2/project/item/test_parent_uuid'),
+        (None, '/api/v2/project/item'),
+    ]
+)
+@pytest.mark.asyncio
+async def test_start_test_item(aio_client: Client, parent_id, expected_uri):
+    # noinspection PyTypeChecker
+    session: mock.AsyncMock = await aio_client.session()
+    mock_basic_post_response(session)
+
+    launch_uuid = 'test_launch_uuid'
+    item_name = 'Test Item'
+    start_time = str(1696921416000)
+    item_type = 'STEP'
+    description = 'Test Launch description'
+    attributes = {'attribute_key': 'attribute_value'}
+    parameters = {'parameter_key': 'parameter_value'}
+    code_ref = 'io.reportportal.test'
+    test_case_id = 'test_prent_launch_uuid[parameter_value]'
+    result = await aio_client.start_test_item(launch_uuid, item_name, start_time, item_type,
+                                              parent_item_id=parent_id, description=description,
+                                              attributes=dict_to_payload(attributes), parameters=parameters,
+                                              has_stats=False, code_ref=code_ref, test_case_id=test_case_id,
+                                              retry=True)
+
+    assert result == RESPONSE_ID
+    session.post.assert_called_once()
+    call_args = session.post.call_args_list[0]
+    assert expected_uri == call_args[0][0]
+    kwargs = call_args[1]
+    assert kwargs.get('data') is None
+    actual_json = kwargs.get('json')
+    assert actual_json is not None
+    assert actual_json.get('retry') is True
+    assert actual_json.get('testCaseId') == test_case_id
+    assert actual_json.get('codeRef') == code_ref
+    assert actual_json.get('hasStats') is False
+    assert actual_json.get('description') == description
+    assert actual_json.get('parentId') is None
+    assert actual_json.get('type') == item_type
+    assert actual_json.get('startTime') == start_time
+    assert actual_json.get('name') == item_name
+    assert actual_json.get('launchUuid') == launch_uuid
+    actual_attributes = actual_json.get('attributes')
+    verify_attributes(attributes, actual_attributes)
+    actual_parameters = actual_json.get('parameters')
+    verify_parameters(parameters, actual_parameters)

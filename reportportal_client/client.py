@@ -563,7 +563,7 @@ class RPClient(RP):
                         start_time: str,
                         item_type: str,
                         description: Optional[str] = None,
-                        attributes: Optional[List[Dict]] = None,
+                        attributes: Optional[List[dict]] = None,
                         parameters: Optional[dict] = None,
                         parent_item_id: Optional[str] = None,
                         has_stats: bool = True,
