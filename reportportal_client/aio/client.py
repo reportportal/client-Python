@@ -223,7 +223,7 @@ class Client:
                            start_time: str,
                            *,
                            description: Optional[str] = None,
-                           attributes: Optional[Union[List, Dict]] = None,
+                           attributes: Optional[Union[list, dict]] = None,
                            rerun: bool = False,
                            rerun_of: Optional[str] = None,
                            **kwargs) -> Optional[str]:
@@ -271,8 +271,8 @@ class Client:
                               *,
                               parent_item_id: Optional[Union[str, Task[str]]] = None,
                               description: Optional[str] = None,
-                              attributes: Optional[List[Dict]] = None,
-                              parameters: Optional[Dict] = None,
+                              attributes: Optional[List[dict]] = None,
+                              parameters: Optional[dict] = None,
                               code_ref: Optional[str] = None,
                               test_case_id: Optional[str] = None,
                               has_stats: bool = True,
@@ -332,7 +332,7 @@ class Client:
                                *,
                                status: str = None,
                                description: str = None,
-                               attributes: Optional[Union[List, Dict]] = None,
+                               attributes: Optional[Union[list, dict]] = None,
                                issue: Optional[Issue] = None,
                                retry: bool = False,
                                **kwargs: Any) -> Optional[str]:
@@ -374,7 +374,7 @@ class Client:
                             end_time: str,
                             *,
                             status: str = None,
-                            attributes: Optional[Union[List, Dict]] = None,
+                            attributes: Optional[Union[list, dict]] = None,
                             **kwargs: Any) -> Optional[str]:
         """Finish a Launch.
 
@@ -404,7 +404,7 @@ class Client:
     async def update_test_item(self,
                                item_uuid: Union[str, Task[str]],
                                *,
-                               attributes: Optional[Union[List, Dict]] = None,
+                               attributes: Optional[Union[list, dict]] = None,
                                description: Optional[str] = None) -> Optional[str]:
         """Update existing Test Item at the ReportPortal.
 
@@ -433,7 +433,7 @@ class Client:
         logger.debug('get_launch_info - ID: %s', launch_uuid)
         return root_uri_join(self.base_url_v1, 'launch', 'uuid', launch_uuid)
 
-    async def get_launch_info(self, launch_uuid_future: Union[str, Task[str]]) -> Optional[Dict]:
+    async def get_launch_info(self, launch_uuid_future: Union[str, Task[str]]) -> Optional[dict]:
         """Get Launch information by Launch UUID.
 
         :param launch_uuid_future: Str or Task UUID returned on the Launch start.
@@ -501,7 +501,7 @@ class Client:
         logger.debug('get_launch_ui_url - ID: %s', launch_uuid)
         return url
 
-    async def get_project_settings(self) -> Optional[Dict]:
+    async def get_project_settings(self) -> Optional[dict]:
         """Get settings of the current Project.
 
         :return: Settings response in Dictionary.
@@ -681,7 +681,7 @@ class AsyncRPClient(RP):
                            name: str,
                            start_time: str,
                            description: Optional[str] = None,
-                           attributes: Optional[Union[List, Dict]] = None,
+                           attributes: Optional[Union[list, dict]] = None,
                            rerun: bool = False,
                            rerun_of: Optional[str] = None,
                            **kwargs) -> Optional[str]:
@@ -709,8 +709,8 @@ class AsyncRPClient(RP):
                               start_time: str,
                               item_type: str,
                               description: Optional[str] = None,
-                              attributes: Optional[List[Dict]] = None,
-                              parameters: Optional[Dict] = None,
+                              attributes: Optional[List[dict]] = None,
+                              parameters: Optional[dict] = None,
                               parent_item_id: Optional[str] = None,
                               has_stats: bool = True,
                               code_ref: Optional[str] = None,
@@ -750,7 +750,7 @@ class AsyncRPClient(RP):
                                end_time: str,
                                status: str = None,
                                issue: Optional[Issue] = None,
-                               attributes: Optional[Union[List, Dict]] = None,
+                               attributes: Optional[Union[list, dict]] = None,
                                description: str = None,
                                retry: bool = False,
                                **kwargs: Any) -> Optional[str]:
@@ -777,7 +777,7 @@ class AsyncRPClient(RP):
     async def finish_launch(self,
                             end_time: str,
                             status: str = None,
-                            attributes: Optional[Union[List, Dict]] = None,
+                            attributes: Optional[Union[list, dict]] = None,
                             **kwargs: Any) -> Optional[str]:
         """Finish a Launch.
 
@@ -800,7 +800,7 @@ class AsyncRPClient(RP):
     async def update_test_item(
             self,
             item_uuid: str,
-            attributes: Optional[Union[List, Dict]] = None,
+            attributes: Optional[Union[list, dict]] = None,
             description: Optional[str] = None
     ) -> Optional[str]:
         """Update existing Test Item at the ReportPortal.
@@ -862,7 +862,7 @@ class AsyncRPClient(RP):
             return
         return await self.__client.get_launch_ui_url(self.launch_uuid)
 
-    async def get_project_settings(self) -> Optional[Dict]:
+    async def get_project_settings(self) -> Optional[dict]:
         """Get settings of the current Project.
 
         :return: Settings response in Dictionary.
@@ -874,7 +874,7 @@ class AsyncRPClient(RP):
             time: str,
             message: str,
             level: Optional[Union[int, str]] = None,
-            attachment: Optional[Dict] = None,
+            attachment: Optional[dict] = None,
             item_id: Optional[str] = None
     ) -> Optional[Tuple[str, ...]]:
         """Send Log message to the ReportPortal and attach it to a Test Item or Launch.
@@ -1091,7 +1091,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
                      name: str,
                      start_time: str,
                      description: Optional[str] = None,
-                     attributes: Optional[Union[List, Dict]] = None,
+                     attributes: Optional[Union[list, dict]] = None,
                      rerun: bool = False,
                      rerun_of: Optional[str] = None,
                      **kwargs) -> Task[str]:
@@ -1119,8 +1119,8 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
                         start_time: str,
                         item_type: str,
                         description: Optional[str] = None,
-                        attributes: Optional[List[Dict]] = None,
-                        parameters: Optional[Dict] = None,
+                        attributes: Optional[List[dict]] = None,
+                        parameters: Optional[dict] = None,
                         parent_item_id: Optional[Task[str]] = None,
                         has_stats: bool = True,
                         code_ref: Optional[str] = None,
@@ -1159,7 +1159,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
                          end_time: str,
                          status: str = None,
                          issue: Optional[Issue] = None,
-                         attributes: Optional[Union[List, Dict]] = None,
+                         attributes: Optional[Union[list, dict]] = None,
                          description: str = None,
                          retry: bool = False,
                          **kwargs: Any) -> Task[str]:
@@ -1187,7 +1187,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
     def finish_launch(self,
                       end_time: str,
                       status: str = None,
-                      attributes: Optional[Union[List, Dict]] = None,
+                      attributes: Optional[Union[list, dict]] = None,
                       **kwargs: Any) -> Task[str]:
         """Finish a Launch.
 
@@ -1210,7 +1210,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
 
     def update_test_item(self,
                          item_uuid: Task[str],
-                         attributes: Optional[Union[List, Dict]] = None,
+                         attributes: Optional[Union[list, dict]] = None,
                          description: Optional[str] = None) -> Task:
         """Update existing Test Item at the ReportPortal.
 
@@ -1283,7 +1283,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
         return await self._log_batch(await self._log_batcher.append_async(log_rq))
 
     def log(self, time: str, message: str, level: Optional[Union[int, str]] = None,
-            attachment: Optional[Dict] = None, item_id: Optional[Task[str]] = None) -> None:
+            attachment: Optional[dict] = None, item_id: Optional[Task[str]] = None) -> None:
         """Send Log message to the ReportPortal and attach it to a Test Item or Launch.
 
         This method stores Log messages in internal batch and sent it when batch is full, so not every method
