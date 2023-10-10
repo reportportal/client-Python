@@ -22,7 +22,7 @@ from unittest import mock
 import aiohttp
 # noinspection PyPackageRequirements
 import pytest
-from aiohttp import ServerTimeoutError
+from aiohttp import ServerTimeoutError, ServerConnectionError
 
 from reportportal_client import OutputType
 # noinspection PyProtectedMember
@@ -371,7 +371,7 @@ async def test_launch_uuid_print_default_print(mock_stdout):
 
 
 def connection_error(*args, **kwargs):
-    raise ServerTimeoutError()
+    raise ServerConnectionError()
 
 
 def json_error(*args, **kwargs):
@@ -405,8 +405,10 @@ def response_error(*args, **kwargs):
 async def test_connection_errors(aio_client, requests_method, client_method,
                                  client_params):
     getattr(await aio_client.session(), requests_method).side_effect = connection_error
-    result = await getattr(aio_client, client_method)(*client_params)
-    assert result is None
+    try:
+        await getattr(aio_client, client_method)(*client_params)
+    except Exception as e:
+        assert type(e) == ServerConnectionError
 
     getattr(await aio_client.session(), requests_method).side_effect = response_error
     result = await getattr(aio_client, client_method)(*client_params)
