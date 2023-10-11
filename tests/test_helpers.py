@@ -15,10 +15,13 @@
 
 from unittest import mock
 
+# noinspection PyPackageRequirements
+import pytest
+
 from reportportal_client.helpers import (
     gen_attributes,
     get_launch_sys_attrs,
-    verify_value_length
+    verify_value_length, ATTRIBUTE_LENGTH_LIMIT, TRUNCATE_REPLACEMENT
 )
 
 
@@ -59,10 +62,35 @@ def test_get_launch_sys_attrs_docker():
     assert result['cpu'] == 'unknown'
 
 
-def test_verify_value_length():
+@pytest.mark.parametrize(
+    'attributes, expected_attributes',
+    [
+        ({'tn': 'v' * 129}, [{'key': 'tn', 'value': 'v' * (
+                ATTRIBUTE_LENGTH_LIMIT - len(TRUNCATE_REPLACEMENT)) + TRUNCATE_REPLACEMENT}]),
+        ({'tn': 'v' * 128}, [{'key': 'tn', 'value': 'v' * 128}]),
+        ({'k' * 129: 'v'}, [{'key': 'k' * (
+                ATTRIBUTE_LENGTH_LIMIT - len(TRUNCATE_REPLACEMENT)) + TRUNCATE_REPLACEMENT, 'value': 'v'}]),
+        ({'k' * 128: 'v'}, [{'key': 'k' * 128, 'value': 'v'}]),
+        ({'tn': 'v' * 128, 'system': True}, [{'key': 'tn', 'value': 'v' * 128, 'system': True}]),
+        ({'tn': 'v' * 129, 'system': True}, [{'key': 'tn', 'value': 'v' * (
+                ATTRIBUTE_LENGTH_LIMIT - len(TRUNCATE_REPLACEMENT)) + TRUNCATE_REPLACEMENT, 'system': True}]),
+        ({'k' * 129: 'v', 'system': False}, [{'key': 'k' * (
+                ATTRIBUTE_LENGTH_LIMIT - len(TRUNCATE_REPLACEMENT)) + TRUNCATE_REPLACEMENT, 'value': 'v',
+                                              'system': False}]),
+        ([{'key': 'tn', 'value': 'v' * 129}], [{'key': 'tn', 'value': 'v' * (
+                ATTRIBUTE_LENGTH_LIMIT - len(TRUNCATE_REPLACEMENT)) + TRUNCATE_REPLACEMENT}]),
+        ([{'key': 'k' * 129, 'value': 'v'}], [{'key': 'k' * (
+                ATTRIBUTE_LENGTH_LIMIT - len(TRUNCATE_REPLACEMENT)) + TRUNCATE_REPLACEMENT, 'value': 'v'}]),
+
+    ]
+)
+def test_verify_value_length(attributes, expected_attributes):
     """Test for validate verify_value_length() function."""
-    inputl = [{'key': 'tn', 'value': 'v' * 130}, [1, 2],
-              {'value': 'tv2'}, {'value': 300}]
-    expected = [{'key': 'tn', 'value': 'v' * 128}, [1, 2],
-                {'value': 'tv2'}, {'value': 300}]
-    assert verify_value_length(inputl) == expected
+    result = verify_value_length(attributes)
+    assert len(result) == len(expected_attributes)
+    for i, element in enumerate(result):
+        expected = expected_attributes[i]
+        assert len(element) == len(expected)
+        assert element.get('key') == expected.get('key')
+        assert element.get('value') == expected.get('value')
+        assert element.get('system') == expected.get('system')

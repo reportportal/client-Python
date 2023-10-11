@@ -25,11 +25,11 @@ from platform import machine, processor, system
 from typing import Optional, Any, List, Dict, Callable, Tuple, Union, TypeVar, Generic
 
 from reportportal_client.core.rp_file import RPFile
-# noinspection PyProtectedMember
-from reportportal_client._internal.static.defines import ATTRIBUTE_LENGTH_LIMIT
 
 logger: logging.Logger = logging.getLogger(__name__)
 _T = TypeVar('_T')
+ATTRIBUTE_LENGTH_LIMIT: int = 128
+TRUNCATE_REPLACEMENT: str = '...'
 
 
 class LifoQueue(Generic[_T]):
@@ -99,7 +99,7 @@ def generate_uuid() -> str:
     return str(uuid.uuid4())
 
 
-def dict_to_payload(dictionary: dict) -> List[dict]:
+def dict_to_payload(dictionary: Optional[dict]) -> Optional[List[dict]]:
     """Convert incoming dictionary to the list of dictionaries.
 
     This function transforms the given dictionary of tags/attributes into
@@ -109,11 +109,18 @@ def dict_to_payload(dictionary: dict) -> List[dict]:
     :param dictionary:  Dictionary containing tags/attributes
     :return list:       List of tags/attributes in the required format
     """
-    hidden = dictionary.pop('system', False)
-    return [
-        {'key': key, 'value': str(value), 'system': hidden}
-        for key, value in sorted(dictionary.items())
-    ]
+    if not dictionary:
+        return dictionary
+    my_dictionary = dict(dictionary)
+
+    hidden = my_dictionary.pop('system', None)
+    result = []
+    for key, value in sorted(my_dictionary.items()):
+        attribute = {'key': str(key), 'value': str(value)}
+        if hidden is not None:
+            attribute['system'] = hidden
+        result.append(attribute)
+    return result
 
 
 def gen_attributes(rp_attributes: List[str]) -> List[Dict[str, str]]:
@@ -202,28 +209,46 @@ def get_package_version(package_name: str) -> Optional[str]:
     return get_package_parameters(package_name, ['version'])[0]
 
 
-def verify_value_length(attributes):
+def truncate_attribute_string(text: str) -> str:
+    truncation_length = len(TRUNCATE_REPLACEMENT)
+    if len(text) > ATTRIBUTE_LENGTH_LIMIT and len(text) > truncation_length:
+        return text[:ATTRIBUTE_LENGTH_LIMIT - truncation_length] + TRUNCATE_REPLACEMENT
+    return text
+
+
+def verify_value_length(attributes: Optional[Union[List[dict], dict]]) -> Optional[List[dict]]:
     """Verify length of the attribute value.
 
     The length of the attribute value should have size from '1' to '128'.
     Otherwise, HTTP response will return an error.
     Example of the input list:
     [{'key': 'tag_name', 'value': 'tag_value1'}, {'value': 'tag_value2'}]
+
     :param attributes: List of attributes(tags)
     :return:           List of attributes with corrected value length
     """
-    if attributes is not None:
-        for pair in attributes:
-            if not isinstance(pair, dict):
-                continue
-            attr_value = pair.get('value')
-            if attr_value is None:
-                continue
-            try:
-                pair['value'] = attr_value[:ATTRIBUTE_LENGTH_LIMIT]
-            except TypeError:
-                continue
-    return attributes
+    if attributes is None:
+        return
+
+    my_attributes = attributes
+    if isinstance(my_attributes, dict):
+        my_attributes = dict_to_payload(my_attributes)
+
+    result = []
+    for pair in my_attributes:
+        if not isinstance(pair, dict):
+            continue
+        attr_value = pair.get('value')
+        if attr_value is None:
+            continue
+        truncated = {}
+        truncated.update(pair)
+        result.append(truncated)
+        attr_key = pair.get('key')
+        if attr_key:
+            truncated['key'] = truncate_attribute_string(str(attr_key))
+        truncated['value'] = truncate_attribute_string(str(attr_value))
+    return result
 
 
 def timestamp() -> str:

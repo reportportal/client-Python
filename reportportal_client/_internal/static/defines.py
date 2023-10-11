@@ -14,6 +14,7 @@
 """This module provides RP client static objects and variables."""
 
 import aenum as enum
+from reportportal_client.helpers import ATTRIBUTE_LENGTH_LIMIT as ATTRIBUTE_LIMIT
 
 
 RP_LOG_LEVELS = {
@@ -76,7 +77,7 @@ class Priority(enum.IntEnum):
     PRIORITY_LOW = 0x3
 
 
-ATTRIBUTE_LENGTH_LIMIT = 128
+ATTRIBUTE_LENGTH_LIMIT = ATTRIBUTE_LIMIT
 DEFAULT_PRIORITY = Priority.PRIORITY_MEDIUM
 LOW_PRIORITY = Priority.PRIORITY_LOW
 NOT_FOUND = _PresenceSentinel()
