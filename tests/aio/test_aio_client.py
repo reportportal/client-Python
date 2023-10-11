@@ -250,11 +250,12 @@ def verify_attributes(expected_attributes: dict, actual_attributes: List[dict]):
         return
     else:
         assert actual_attributes is not None
+    hidden = expected_attributes.pop('system', None)
     assert len(actual_attributes) == len(expected_attributes)
     for attribute in actual_attributes:
         if 'key' in attribute:
-            assert expected_attributes.get(attribute.get('key')) == attribute.get('value')
-            assert attribute.get('system') is False
+            assert attribute.get('value') == expected_attributes.get(attribute.get('key'))
+            assert attribute.get('system') == hidden
 
 
 @pytest.mark.skipif(sys.version_info < (3, 8),
@@ -579,7 +580,7 @@ async def test_finish_test_item(aio_client: Client):
     end_time = str(1696921416000)
     status = 'FAILED'
     description = 'Test Launch description'
-    attributes = {'attribute_key': 'attribute_value'}
+    attributes = {'attribute_key': 'attribute_value', 'system': True}
     issue = Issue('pb001', comment='Horrible bug!')
 
     result = await aio_client.finish_test_item(launch_uuid, item_id, end_time, status=status,
