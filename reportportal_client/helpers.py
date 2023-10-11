@@ -203,13 +203,18 @@ def get_package_parameters(package_name: str, parameters: List[str] = None) -> L
 def get_package_version(package_name: str) -> Optional[str]:
     """Get version of the given package.
 
-    :param package_name: Name of the package
-    :return:             Version of the package
+    :param package_name: Name of the package.
+    :return:             Version of the package.
     """
     return get_package_parameters(package_name, ['version'])[0]
 
 
 def truncate_attribute_string(text: str) -> str:
+    """Truncate a text if it's longer than allowed.
+
+    :param text: Text to truncate.
+    :return:     Truncated text.
+    """
     truncation_length = len(TRUNCATE_REPLACEMENT)
     if len(text) > ATTRIBUTE_LENGTH_LIMIT and len(text) > truncation_length:
         return text[:ATTRIBUTE_LENGTH_LIMIT - truncation_length] + TRUNCATE_REPLACEMENT
