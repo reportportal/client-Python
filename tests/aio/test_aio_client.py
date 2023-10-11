@@ -736,3 +736,39 @@ async def test_update_item(aio_client: Client):
     assert actual_json is not None
     actual_attributes = actual_json.get('attributes')
     verify_attributes(attributes, actual_attributes)
+
+
+@pytest.mark.skipif(sys.version_info < (3, 8),
+                    reason='the test requires AsyncMock which was introduced in Python 3.8')
+@pytest.mark.asyncio
+async def test_get_item_id_by_uuid(aio_client: Client):
+    # noinspection PyTypeChecker
+    session: mock.AsyncMock = await aio_client.session()
+    mock_basic_get_response(session)
+
+    item_id = 'test_item_uuid'
+    expected_uri = f'/api/v1/project/item/uuid/{item_id}'
+
+    result = await aio_client.get_item_id_by_uuid(item_id)
+    assert result == GET_RESPONSE_ID
+    session.get.assert_called_once()
+    call_args = session.get.call_args_list[0]
+    assert expected_uri == call_args[0][0]
+
+
+@pytest.mark.skipif(sys.version_info < (3, 8),
+                    reason='the test requires AsyncMock which was introduced in Python 3.8')
+@pytest.mark.asyncio
+async def test_get_launch_ui_url(aio_client: Client):
+    # noinspection PyTypeChecker
+    session: mock.AsyncMock = await aio_client.session()
+    mock_basic_get_response(session)
+
+    launch_id = 'test_launch_uuid'
+    expected_uri = f'/api/v1/project/launch/uuid/{launch_id}'
+
+    result = await aio_client.get_launch_ui_url(launch_id)
+    assert result == f'http://endpoint/ui/#project/launches/all/{GET_RESPONSE_ID}'
+    session.get.assert_called_once()
+    call_args = session.get.call_args_list[0]
+    assert expected_uri == call_args[0][0]

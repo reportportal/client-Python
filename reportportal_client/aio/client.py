@@ -494,9 +494,7 @@ class Client:
 
         launch_type = 'launches' if mode.upper() == 'DEFAULT' else 'userdebug'
 
-        path = 'ui/#{project_name}/{launch_type}/all/{launch_id}'.format(
-            project_name=self.project.lower(), launch_type=launch_type,
-            launch_id=launch_id)
+        path = f'ui/#{self.project.lower()}/{launch_type}/all/{launch_id}'
         url = uri_join(self.endpoint, path)
         logger.debug('get_launch_ui_url - ID: %s', launch_uuid)
         return url
