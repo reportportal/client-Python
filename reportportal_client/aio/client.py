@@ -271,7 +271,7 @@ class Client:
                               *,
                               parent_item_id: Optional[Union[str, Task[str]]] = None,
                               description: Optional[str] = None,
-                              attributes: Optional[List[dict]] = None,
+                              attributes: Optional[Union[List[dict], dict]] = None,
                               parameters: Optional[dict] = None,
                               code_ref: Optional[str] = None,
                               test_case_id: Optional[str] = None,
@@ -319,7 +319,7 @@ class Client:
         if not response:
             return
         item_id = await response.id
-        if item_id is NOT_FOUND:
+        if item_id is NOT_FOUND or item_id is None:
             logger.warning('start_test_item - invalid response: %s', str(await response.json))
         else:
             logger.debug('start_test_item - ID: %s', item_id)
@@ -355,7 +355,7 @@ class Client:
             end_time,
             launch_uuid,
             status,
-            attributes=attributes,
+            attributes=verify_value_length(attributes),
             description=description,
             is_skipped_an_issue=self.is_skipped_an_issue,
             issue=issue,
@@ -389,7 +389,7 @@ class Client:
         request_payload = LaunchFinishRequest(
             end_time,
             status=status,
-            attributes=attributes,
+            attributes=verify_value_length(attributes),
             description=kwargs.get('description')
         ).payload
         response = await AsyncHttpRequest((await self.session()).put, url=url, json=request_payload,

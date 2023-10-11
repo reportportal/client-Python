@@ -30,14 +30,17 @@ from reportportal_client._internal.aio.http import RetryingClientSession, DEFAUL
 # noinspection PyProtectedMember
 from reportportal_client._internal.static.defines import NOT_SET
 from reportportal_client.aio.client import Client
+from reportportal_client.core.rp_issues import Issue
 from reportportal_client.core.rp_requests import AsyncRPRequestLog
-from reportportal_client.helpers import timestamp, dict_to_payload
+from reportportal_client.helpers import timestamp
 
 ENDPOINT = 'http://localhost:8080'
 PROJECT = 'default_personal'
 API_KEY = 'test_key'
 RESPONSE_ID = 'test_launch_uuid'
-RETURN_JSON = {'id': RESPONSE_ID}
+RETURN_POST_JSON = {'id': RESPONSE_ID}
+RESPONSE_MESSAGE = 'Item finished successfully'
+RETURN_PUT_JSON = {'message': RESPONSE_MESSAGE}
 
 
 def test_client_pickling():
@@ -237,7 +240,7 @@ async def test_close(aio_client: Client):
 
 def mock_basic_post_response(session):
     return_object = mock.AsyncMock()
-    return_object.json.return_value = RETURN_JSON
+    return_object.json.return_value = RETURN_POST_JSON
     session.post.return_value = return_object
 
 
@@ -488,10 +491,10 @@ async def test_start_test_item(aio_client: Client, parent_id, expected_uri):
     attributes = {'attribute_key': 'attribute_value'}
     parameters = {'parameter_key': 'parameter_value'}
     code_ref = 'io.reportportal.test'
-    test_case_id = 'test_prent_launch_uuid[parameter_value]'
+    test_case_id = 'io.reportportal.test[parameter_value]'
     result = await aio_client.start_test_item(launch_uuid, item_name, start_time, item_type,
                                               parent_item_id=parent_id, description=description,
-                                              attributes=dict_to_payload(attributes), parameters=parameters,
+                                              attributes=attributes, parameters=parameters,
                                               has_stats=False, code_ref=code_ref, test_case_id=test_case_id,
                                               retry=True)
 
@@ -517,3 +520,119 @@ async def test_start_test_item(aio_client: Client, parent_id, expected_uri):
     verify_attributes(attributes, actual_attributes)
     actual_parameters = actual_json.get('parameters')
     verify_parameters(parameters, actual_parameters)
+
+
+@pytest.mark.skipif(sys.version_info < (3, 8),
+                    reason='the test requires AsyncMock which was introduced in Python 3.8')
+@pytest.mark.asyncio
+async def test_start_test_item_default_values(aio_client: Client):
+    # noinspection PyTypeChecker
+    session: mock.AsyncMock = await aio_client.session()
+    mock_basic_post_response(session)
+
+    expected_uri = '/api/v2/project/item'
+    launch_uuid = 'test_launch_uuid'
+    item_name = 'Test Item'
+    start_time = str(1696921416000)
+    item_type = 'STEP'
+    result = await aio_client.start_test_item(launch_uuid, item_name, start_time, item_type)
+
+    assert result == RESPONSE_ID
+    session.post.assert_called_once()
+    call_args = session.post.call_args_list[0]
+    assert expected_uri == call_args[0][0]
+    kwargs = call_args[1]
+    assert kwargs.get('data') is None
+    actual_json = kwargs.get('json')
+    assert actual_json is not None
+    assert actual_json.get('retry') is False
+    assert actual_json.get('testCaseId') is None
+    assert actual_json.get('codeRef') is None
+    assert actual_json.get('hasStats') is True
+    assert actual_json.get('description') is None
+    assert actual_json.get('parentId') is None
+    assert actual_json.get('type') == item_type
+    assert actual_json.get('startTime') == start_time
+    assert actual_json.get('name') == item_name
+    assert actual_json.get('launchUuid') == launch_uuid
+    assert actual_json.get('attributes') is None
+    assert actual_json.get('parameters') is None
+
+
+def mock_basic_put_response(session):
+    return_object = mock.AsyncMock()
+    return_object.json.return_value = RETURN_PUT_JSON
+    session.put.return_value = return_object
+
+
+@pytest.mark.skipif(sys.version_info < (3, 8),
+                    reason='the test requires AsyncMock which was introduced in Python 3.8')
+@pytest.mark.asyncio
+async def test_finish_test_item(aio_client: Client):
+    # noinspection PyTypeChecker
+    session: mock.AsyncMock = await aio_client.session()
+    mock_basic_put_response(session)
+
+    launch_uuid = 'test_launch_uuid'
+    item_id = 'test_item_uuid'
+    expected_uri = f'/api/v2/project/item/{item_id}'
+    end_time = str(1696921416000)
+    status = 'FAILED'
+    description = 'Test Launch description'
+    attributes = {'attribute_key': 'attribute_value'}
+    issue = Issue('pb001', comment='Horrible bug!')
+
+    result = await aio_client.finish_test_item(launch_uuid, item_id, end_time, status=status,
+                                               description=description, attributes=attributes,
+                                               issue=issue, retry=True)
+    assert result == RESPONSE_MESSAGE
+    session.put.assert_called_once()
+    call_args = session.put.call_args_list[0]
+    assert expected_uri == call_args[0][0]
+    kwargs = call_args[1]
+    assert kwargs.get('data') is None
+    actual_json = kwargs.get('json')
+    assert actual_json is not None
+    assert actual_json.get('retry') is True
+    assert actual_json.get('description') == description
+    assert actual_json.get('launchUuid') == launch_uuid
+    assert actual_json.get('endTime') == end_time
+    assert actual_json.get('status') == status
+    actual_attributes = actual_json.get('attributes')
+    verify_attributes(attributes, actual_attributes)
+    actual_issue = actual_json.get('issue')
+    expected_issue = issue.payload
+    assert len(actual_issue) == len(expected_issue)
+    for entry in actual_issue.items():
+        assert entry[1] == expected_issue[entry[0]]
+
+
+@pytest.mark.skipif(sys.version_info < (3, 8),
+                    reason='the test requires AsyncMock which was introduced in Python 3.8')
+@pytest.mark.asyncio
+async def test_finish_test_item_default_values(aio_client: Client):
+    # noinspection PyTypeChecker
+    session: mock.AsyncMock = await aio_client.session()
+    mock_basic_put_response(session)
+
+    launch_uuid = 'test_launch_uuid'
+    item_id = 'test_item_uuid'
+    expected_uri = f'/api/v2/project/item/{item_id}'
+    end_time = str(1696921416000)
+
+    result = await aio_client.finish_test_item(launch_uuid, item_id, end_time)
+    assert result == RESPONSE_MESSAGE
+    session.put.assert_called_once()
+    call_args = session.put.call_args_list[0]
+    assert expected_uri == call_args[0][0]
+    kwargs = call_args[1]
+    assert kwargs.get('data') is None
+    actual_json = kwargs.get('json')
+    assert actual_json is not None
+    assert actual_json.get('retry') is False
+    assert actual_json.get('description') is None
+    assert actual_json.get('launchUuid') == launch_uuid
+    assert actual_json.get('endTime') == end_time
+    assert actual_json.get('status') is None
+    assert actual_json.get('attributes') is None
+    assert actual_json.get('issue') is None
