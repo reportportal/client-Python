@@ -12,6 +12,11 @@
 #  limitations under the License
 
 import pickle
+import sys
+from unittest import mock
+
+# noinspection PyPackageRequirements
+import pytest
 
 from reportportal_client.aio import AsyncRPClient
 
@@ -55,3 +60,40 @@ def test_clone():
     )
     assert cloned._item_stack.qsize() == 1 \
            and async_client.current_item() == cloned.current_item()
+
+
+@pytest.mark.skipif(sys.version_info < (3, 8),
+                    reason='the test requires AsyncMock which was introduced in Python 3.8')
+@pytest.mark.parametrize(
+    'launch_uuid',
+    [
+        'test_launch_uuid',
+        None,
+    ]
+)
+@pytest.mark.asyncio
+async def test_start_launch(launch_uuid):
+    aio_client = mock.AsyncMock()
+    client = AsyncRPClient('http://endpoint', 'project', api_key='api_key',
+                           client=aio_client, launch_uuid=launch_uuid)
+    launch_name = 'Test Launch'
+    start_time = str(1696921416000)
+    description = 'Test Launch description'
+    attributes = {'attribute_key': 'attribute_value'}
+    rerun = True
+    rerun_of = 'test_prent_launch_uuid'
+    result = await client.start_launch(launch_name, start_time, description=description,
+                                       attributes=attributes, rerun=rerun, rerun_of=rerun_of)
+    if launch_uuid:
+        assert result == launch_uuid
+        aio_client.start_launch.assert_not_called()
+    else:
+        assert result is not None
+        aio_client.start_launch.assert_called_once()
+        args, kwargs = aio_client.start_launch.call_args_list[0]
+        assert args[0] == launch_name
+        assert args[1] == start_time
+        assert kwargs.get('description') == description
+        assert kwargs.get('attributes') == attributes
+        assert kwargs.get('rerun') == rerun
+        assert kwargs.get('rerun_of') == rerun_of
