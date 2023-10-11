@@ -16,7 +16,7 @@ import sys
 from io import StringIO
 from json import JSONDecodeError
 from ssl import SSLContext
-from typing import List
+from typing import List, Optional
 from unittest import mock
 
 import aiohttp
@@ -37,10 +37,12 @@ from reportportal_client.helpers import timestamp
 ENDPOINT = 'http://localhost:8080'
 PROJECT = 'default_personal'
 API_KEY = 'test_key'
-RESPONSE_ID = 'test_launch_uuid'
-RETURN_POST_JSON = {'id': RESPONSE_ID}
+POST_RESPONSE_ID = 'test_launch_uuid'
+RETURN_POST_JSON = {'id': POST_RESPONSE_ID}
 RESPONSE_MESSAGE = 'Item finished successfully'
 RETURN_PUT_JSON = {'message': RESPONSE_MESSAGE}
+GET_RESPONSE_ID = 'test_item_id'
+RETURN_GET_JSON = {'id': GET_RESPONSE_ID}
 
 
 def test_client_pickling():
@@ -244,7 +246,7 @@ def mock_basic_post_response(session):
     session.post.return_value = return_object
 
 
-def verify_attributes(expected_attributes: dict, actual_attributes: List[dict]):
+def verify_attributes(expected_attributes: Optional[dict], actual_attributes: Optional[List[dict]]):
     if expected_attributes is None:
         assert actual_attributes is None
         return
@@ -255,7 +257,7 @@ def verify_attributes(expected_attributes: dict, actual_attributes: List[dict]):
     for attribute in actual_attributes:
         if 'key' in attribute:
             assert attribute.get('value') == expected_attributes.get(attribute.get('key'))
-            assert attribute.get('system') == hidden
+        assert attribute.get('system') == hidden
 
 
 @pytest.mark.skipif(sys.version_info < (3, 8),
@@ -274,7 +276,7 @@ async def test_start_launch(aio_client: Client):
     result = await aio_client.start_launch(launch_name, start_time, description=description,
                                            attributes=attributes, rerun=True, rerun_of=rerun_of)
 
-    assert result == RESPONSE_ID
+    assert result == POST_RESPONSE_ID
     session.post.assert_called_once()
     call_args = session.post.call_args_list[0]
     assert '/api/v2/project/launch' == call_args[0][0]
@@ -421,6 +423,10 @@ def invalid_response(*args, **kwargs):
     return result
 
 
+def request_error(*args, **kwargs):
+    raise ValueError()
+
+
 @pytest.mark.skipif(sys.version_info < (3, 8),
                     reason="the test requires AsyncMock which was introduced in Python 3.8")
 @pytest.mark.parametrize(
@@ -454,6 +460,10 @@ async def test_connection_errors(aio_client, requests_method, client_method,
     assert result is None
 
     getattr(await aio_client.session(), requests_method).side_effect = invalid_response
+    result = await getattr(aio_client, client_method)(*client_params)
+    assert result is None
+
+    getattr(await aio_client.session(), requests_method).side_effect = request_error
     result = await getattr(aio_client, client_method)(*client_params)
     assert result is None
 
@@ -499,7 +509,7 @@ async def test_start_test_item(aio_client: Client, parent_id, expected_uri):
                                               has_stats=False, code_ref=code_ref, test_case_id=test_case_id,
                                               retry=True)
 
-    assert result == RESPONSE_ID
+    assert result == POST_RESPONSE_ID
     session.post.assert_called_once()
     call_args = session.post.call_args_list[0]
     assert expected_uri == call_args[0][0]
@@ -538,7 +548,7 @@ async def test_start_test_item_default_values(aio_client: Client):
     item_type = 'STEP'
     result = await aio_client.start_test_item(launch_uuid, item_name, start_time, item_type)
 
-    assert result == RESPONSE_ID
+    assert result == POST_RESPONSE_ID
     session.post.assert_called_once()
     call_args = session.post.call_args_list[0]
     assert expected_uri == call_args[0][0]
@@ -637,3 +647,92 @@ async def test_finish_test_item_default_values(aio_client: Client):
     assert actual_json.get('status') is None
     assert actual_json.get('attributes') is None
     assert actual_json.get('issue') is None
+
+
+@pytest.mark.skipif(sys.version_info < (3, 8),
+                    reason='the test requires AsyncMock which was introduced in Python 3.8')
+@pytest.mark.asyncio
+async def test_finish_launch(aio_client: Client):
+    # noinspection PyTypeChecker
+    session: mock.AsyncMock = await aio_client.session()
+    mock_basic_put_response(session)
+
+    launch_uuid = 'test_launch_uuid'
+    expected_uri = f'/api/v2/project/launch/{launch_uuid}/finish'
+    end_time = str(1696921416000)
+    status = 'FAILED'
+    attributes = {'attribute_key': 'attribute_value', 'system': False}
+
+    result = await aio_client.finish_launch(launch_uuid, end_time, status=status, attributes=attributes)
+    assert result == RESPONSE_MESSAGE
+    session.put.assert_called_once()
+    call_args = session.put.call_args_list[0]
+    assert expected_uri == call_args[0][0]
+    kwargs = call_args[1]
+    assert kwargs.get('data') is None
+    actual_json = kwargs.get('json')
+    assert actual_json is not None
+    assert actual_json.get('endTime') == end_time
+    assert actual_json.get('status') == status
+    actual_attributes = actual_json.get('attributes')
+    verify_attributes(attributes, actual_attributes)
+
+
+@pytest.mark.skipif(sys.version_info < (3, 8),
+                    reason='the test requires AsyncMock which was introduced in Python 3.8')
+@pytest.mark.asyncio
+async def test_finish_launch_default_values(aio_client: Client):
+    # noinspection PyTypeChecker
+    session: mock.AsyncMock = await aio_client.session()
+    mock_basic_put_response(session)
+
+    launch_uuid = 'test_launch_uuid'
+    expected_uri = f'/api/v2/project/launch/{launch_uuid}/finish'
+    end_time = str(1696921416000)
+
+    result = await aio_client.finish_launch(launch_uuid, end_time)
+    assert result == RESPONSE_MESSAGE
+    session.put.assert_called_once()
+    call_args = session.put.call_args_list[0]
+    assert expected_uri == call_args[0][0]
+    kwargs = call_args[1]
+    assert kwargs.get('data') is None
+    actual_json = kwargs.get('json')
+    assert actual_json is not None
+    assert actual_json.get('endTime') == end_time
+    assert actual_json.get('status') is None
+    actual_attributes = actual_json.get('attributes')
+    verify_attributes(None, actual_attributes)
+
+
+def mock_basic_get_response(session):
+    return_object = mock.AsyncMock()
+    return_object.json.return_value = RETURN_GET_JSON
+    session.get.return_value = return_object
+
+
+@pytest.mark.skipif(sys.version_info < (3, 8),
+                    reason='the test requires AsyncMock which was introduced in Python 3.8')
+@pytest.mark.asyncio
+async def test_update_item(aio_client: Client):
+    # noinspection PyTypeChecker
+    session: mock.AsyncMock = await aio_client.session()
+    mock_basic_put_response(session)
+    mock_basic_get_response(session)
+
+    item_id = 'test_item_uuid'
+    expected_uri = f'/api/v1/project/item/{GET_RESPONSE_ID}/update'
+    description = 'Test Launch description'
+    attributes = {'attribute_key': 'attribute_value', 'system': True}
+
+    result = await aio_client.update_test_item(item_id, description=description, attributes=attributes)
+    assert result == RESPONSE_MESSAGE
+    session.put.assert_called_once()
+    call_args = session.put.call_args_list[0]
+    assert expected_uri == call_args[0][0]
+    kwargs = call_args[1]
+    assert kwargs.get('data') is None
+    actual_json = kwargs.get('json')
+    assert actual_json is not None
+    actual_attributes = actual_json.get('attributes')
+    verify_attributes(attributes, actual_attributes)

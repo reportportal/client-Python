@@ -510,7 +510,7 @@ class Client:
         response = await AsyncHttpRequest((await self.session()).get, url=url).make()
         return await response.json if response else None
 
-    async def log_batch(self, log_batch: Optional[List[AsyncRPRequestLog]]) -> Tuple[str, ...]:
+    async def log_batch(self, log_batch: Optional[List[AsyncRPRequestLog]]) -> Optional[Tuple[str, ...]]:
         """Send batch logging message to the ReportPortal.
 
         :param log_batch: A list of log message objects.
@@ -520,6 +520,8 @@ class Client:
         if log_batch:
             response = await AsyncHttpRequest((await self.session()).post, url=url,
                                               data=AsyncRPLogBatch(log_batch).payload).make()
+            if not response:
+                return
             return await response.messages
 
     def clone(self) -> 'Client':
@@ -1283,7 +1285,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
         return await self._log_batch(await self._log_batcher.append_async(log_rq))
 
     def log(self, time: str, message: str, level: Optional[Union[int, str]] = None,
-            attachment: Optional[dict] = None, item_id: Optional[Task[str]] = None) -> None:
+            attachment: Optional[dict] = None, item_id: Optional[Task[str]] = None) -> Task[Tuple[str, ...]]:
         """Send Log message to the ReportPortal and attach it to a Test Item or Launch.
 
         This method stores Log messages in internal batch and sent it when batch is full, so not every method
@@ -1296,13 +1298,9 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
         :param item_id:    UUID of the ReportPortal Item the message belongs to.
         :return:           Response message Tuple if Log message batch was sent or None.
         """
-        if item_id is NOT_FOUND:
-            logger.warning("Attempt to log to non-existent item")
-            return
         rp_file = RPFile(**attachment) if attachment else None
         rp_log = AsyncRPRequestLog(self.launch_uuid, time, rp_file, item_id, level, message)
-        self.create_task(self._log(rp_log))
-        return None
+        return self.create_task(self._log(rp_log))
 
     def close(self) -> None:
         """Close current client connections."""
