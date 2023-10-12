@@ -13,13 +13,16 @@
 
 from typing import Any, Dict, Optional, Text
 
+
 class RPFile:
     content: Any = ...
     content_type: Text = ...
     name: Text = ...
+
     def __init__(self,
                  name: Optional[Text],
                  content: Any,
                  content_type: Optional[Text]) -> None: ...
+
     @property
     def payload(self) -> Dict: ...

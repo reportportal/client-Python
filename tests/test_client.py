@@ -10,12 +10,15 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License
-from io import StringIO
 
+import pickle
+from io import StringIO
+from unittest import mock
+
+# noinspection PyPackageRequirements
 import pytest
 from requests import Response
 from requests.exceptions import ReadTimeout
-from six.moves import mock
 
 from reportportal_client import RPClient
 from reportportal_client.helpers import timestamp
@@ -35,8 +38,8 @@ def response_error(*args, **kwargs):
 def invalid_response(*args, **kwargs):
     result = Response()
     result._content = \
-        '<html><head><title>405 Not Allowed</title></head></html>'
-    result.status_code = 405
+        '<html><head><title>Hello World!</title></head></html>'
+    result.status_code = 200
     return result
 
 
@@ -57,7 +60,7 @@ def invalid_response(*args, **kwargs):
 )
 def test_connection_errors(rp_client, requests_method, client_method,
                            client_params):
-    rp_client.launch_id = 'test_launch_id'
+    rp_client._RPClient__launch_uuid = 'test_launch_id'
     getattr(rp_client.session, requests_method).side_effect = connection_error
     result = getattr(rp_client, client_method)(*client_params)
     assert result is None
@@ -66,25 +69,6 @@ def test_connection_errors(rp_client, requests_method, client_method,
     result = getattr(rp_client, client_method)(*client_params)
     assert result is None
 
-
-@pytest.mark.parametrize(
-    'requests_method, client_method, client_params',
-    [
-        ('put', 'finish_launch', [timestamp()]),
-        ('put', 'finish_test_item', ['test_item_id', timestamp()]),
-        ('get', 'get_item_id_by_uuid', ['test_item_uuid']),
-        ('get', 'get_launch_info', []),
-        ('get', 'get_launch_ui_id', []),
-        ('get', 'get_launch_ui_url', []),
-        ('get', 'get_project_settings', []),
-        ('post', 'start_launch', ['Test Launch', timestamp()]),
-        ('post', 'start_test_item', ['Test Item', timestamp(), 'STEP']),
-        ('put', 'update_test_item', ['test_item_id'])
-    ]
-)
-def test_invalid_responses(rp_client, requests_method, client_method,
-                           client_params):
-    rp_client.launch_id = 'test_launch_id'
     getattr(rp_client.session, requests_method).side_effect = invalid_response
     result = getattr(rp_client, client_method)(*client_params)
     assert result is None
@@ -107,8 +91,8 @@ EXPECTED_DEBUG_URL = 'http://endpoint/ui/#project/userdebug/all/' + str(
     ]
 )
 def test_launch_url_get(rp_client, launch_mode, project_name, expected_url):
-    rp_client.launch_id = 'test_launch_id'
-    rp_client.project = project_name
+    rp_client._RPClient__launch_uuid = 'test_launch_id'
+    rp_client._RPClient__project = project_name
 
     response = mock.Mock()
     response.is_success = True
@@ -155,16 +139,19 @@ def test_clone():
     cloned = client.clone()
     assert cloned is not None and client is not cloned
     assert cloned.endpoint == args[0] and cloned.project == args[1]
-    assert cloned.api_key == kwargs[
-        'api_key'] and cloned.log_batch_size == kwargs[
-               'log_batch_size'] and cloned.is_skipped_an_issue == kwargs[
-               'is_skipped_an_issue'] and cloned.verify_ssl == kwargs[
-               'verify_ssl'] and cloned.retries == kwargs[
-               'retries'] and cloned.max_pool_size == kwargs[
-               'max_pool_size'] and cloned.launch_id == kwargs[
-               'launch_id'] and cloned.http_timeout == kwargs[
-               'http_timeout'] and cloned.log_batch_payload_size == kwargs[
-               'log_batch_payload_size'] and cloned.mode == kwargs['mode']
+    assert (
+            cloned.api_key == kwargs['api_key']
+            and cloned.log_batch_size == kwargs['log_batch_size']
+            and cloned.is_skipped_an_issue == kwargs['is_skipped_an_issue']
+            and cloned.verify_ssl == kwargs['verify_ssl']
+            and cloned.retries == kwargs['retries']
+            and cloned.max_pool_size == kwargs['max_pool_size']
+            and cloned.launch_uuid == kwargs['launch_id']
+            and cloned.launch_id == kwargs['launch_id']
+            and cloned.http_timeout == kwargs['http_timeout']
+            and cloned.log_batch_payload_size == kwargs['log_batch_payload_size']
+            and cloned.mode == kwargs['mode']
+    )
     assert cloned._item_stack.qsize() == 1 \
            and client.current_item() == cloned.current_item()
 
@@ -201,8 +188,10 @@ def test_empty_api_key_argument(warn):
 
 def test_launch_uuid_print():
     str_io = StringIO()
+    output_mock = mock.Mock()
+    output_mock.get_output.side_effect = lambda: str_io
     client = RPClient(endpoint='http://endpoint', project='project',
-                      api_key='test', launch_uuid_print=True, print_output=str_io)
+                      api_key='test', launch_uuid_print=True, print_output=output_mock)
     client.session = mock.Mock()
     client._skip_analytics = True
     client.start_launch('Test Launch', timestamp())
@@ -211,8 +200,10 @@ def test_launch_uuid_print():
 
 def test_no_launch_uuid_print():
     str_io = StringIO()
+    output_mock = mock.Mock()
+    output_mock.get_output.side_effect = lambda: str_io
     client = RPClient(endpoint='http://endpoint', project='project',
-                      api_key='test', launch_uuid_print=False, print_output=str_io)
+                      api_key='test', launch_uuid_print=False, print_output=output_mock)
     client.session = mock.Mock()
     client._skip_analytics = True
     client.start_launch('Test Launch', timestamp())
@@ -239,3 +230,10 @@ def test_launch_uuid_print_default_print(mock_stdout):
     client.start_launch('Test Launch', timestamp())
 
     assert 'ReportPortal Launch UUID: ' not in mock_stdout.getvalue()
+
+
+def test_client_pickling():
+    client = RPClient('http://localhost:8080', 'default_personal', api_key='test_key')
+    pickled_client = pickle.dumps(client)
+    unpickled_client = pickle.loads(pickled_client)
+    assert unpickled_client is not None

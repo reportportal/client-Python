@@ -11,6 +11,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License
 
+# noinspection PyPackageRequirements
 import pytest
 
 from reportportal_client.core.rp_file import RPFile

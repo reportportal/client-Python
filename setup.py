@@ -4,7 +4,7 @@ import os
 
 from setuptools import setup, find_packages
 
-__version__ = '5.4.2'
+__version__ = '5.5.0'
 
 TYPE_STUBS = ['*.pyi']
 
@@ -21,10 +21,12 @@ def read_file(fname):
 
 setup(
     name='reportportal-client',
-    packages=find_packages(exclude=('tests', 'tests.*')),
+    packages=find_packages(exclude=['tests', 'test_res']),
     package_data={
-        'reportportal_client': TYPE_STUBS,
-        'reportportal_client.steps': TYPE_STUBS
+        'reportportal_client.steps': TYPE_STUBS,
+        'reportportal_client.core': TYPE_STUBS,
+        'reportportal_client.logs': TYPE_STUBS,
+        'reportportal_client.services': TYPE_STUBS,
     },
     version=__version__,
     description='Python client for ReportPortal v5.',
@@ -38,12 +40,11 @@ setup(
     license='Apache 2.0.',
     keywords=['testing', 'reporting', 'reportportal', 'client'],
     classifiers=[
-        'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
     ],
     install_requires=read_file('requirements.txt').splitlines(),
 )

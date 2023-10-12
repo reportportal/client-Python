@@ -11,17 +11,16 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License
 
-from six.moves import mock
+from unittest import mock
 
+# noinspection PyPackageRequirements
 from pytest import fixture
 
 from reportportal_client.client import RPClient
-from reportportal_client.steps import StepReporter
 
 
 @fixture
 def rp_client():
     client = RPClient('http://endpoint', 'project', 'api_key')
     client.session = mock.Mock()
-    client.step_reporter = StepReporter(client)
     return client

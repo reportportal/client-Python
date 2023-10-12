@@ -1,5 +1,3 @@
-"""This module contains management functionality for processing logs."""
-
 #  Copyright (c) 2022 EPAM Systems
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -13,12 +11,16 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License
 
+"""This module contains management functionality for processing logs."""
+
 import logging
+import queue
+import warnings
 from threading import Lock
 
-from six.moves import queue
-
 from reportportal_client import helpers
+# noinspection PyProtectedMember
+from reportportal_client._internal.static.defines import NOT_FOUND
 from reportportal_client.core.rp_requests import (
     HttpRequest,
     RPFile,
@@ -26,15 +28,12 @@ from reportportal_client.core.rp_requests import (
     RPRequestLog
 )
 from reportportal_client.core.worker import APIWorker
-from reportportal_client.static.defines import NOT_FOUND
+from reportportal_client.logs import MAX_LOG_BATCH_SIZE, MAX_LOG_BATCH_PAYLOAD_SIZE
 
 logger = logging.getLogger(__name__)
 
-MAX_LOG_BATCH_SIZE = 20
-MAX_LOG_BATCH_PAYLOAD_SIZE = 65000000
 
-
-class LogManager(object):
+class LogManager:
     """Manager of the log items."""
 
     def __init__(self, rp_url, session, api_version, launch_id, project_name,
@@ -54,6 +53,12 @@ class LogManager(object):
         :param max_payload_size: maximum size in bytes of logs that can be
                                  processed in one batch
         """
+        warnings.warn(
+            message='`LogManager` class is deprecated since 5.5.0 and will be subject for removing in the'
+                    ' next major version.',
+            category=DeprecationWarning,
+            stacklevel=2
+        )
         self._lock = Lock()
         self._batch = []
         self._payload_size = helpers.TYPICAL_MULTIPART_FOOTER_LENGTH
@@ -79,8 +84,7 @@ class LogManager(object):
         http_request = HttpRequest(
             self.session.post, self._log_endpoint, files=batch.payload,
             verify_ssl=self.verify_ssl)
-        batch.http_request = http_request
-        self._worker.send(batch)
+        self._worker.send(http_request)
         self._batch = []
         self._payload_size = helpers.TYPICAL_MULTIPART_FOOTER_LENGTH
 

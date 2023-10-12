@@ -11,22 +11,17 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License
 
+import queue
 from logging import Logger
 from threading import Lock
 from typing import Dict, List, Optional, Text
 
 from requests import Session
-from six.moves import queue
 
-from reportportal_client.core.rp_requests import (
-    RPRequestLog as RPRequestLog
-)
+from reportportal_client.core.rp_requests import RPRequestLog
 from reportportal_client.core.worker import APIWorker as APIWorker
 
 logger: Logger
-
-MAX_LOG_BATCH_SIZE: int
-MAX_LOG_BATCH_PAYLOAD_SIZE: int
 
 
 class LogManager:
