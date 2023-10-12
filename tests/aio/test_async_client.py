@@ -119,19 +119,24 @@ async def test_launch_uuid_usage(launch_uuid, method, params):
                            client=aio_client, launch_uuid=launch_uuid, log_batch_size=1)
     actual_launch_uuid = await client.start_launch('Test Launch', timestamp())
     await getattr(client, method)(*params)
+    finish_launch_message = await client.finish_launch(timestamp())
 
     if launch_uuid is None:
         aio_client.start_launch.assert_called_once()
         assert actual_launch_uuid == started_launch_uuid
         assert client.launch_uuid == started_launch_uuid
+        aio_client.finish_launch.assert_called_once()
+        assert finish_launch_message
     else:
         aio_client.start_launch.assert_not_called()
         assert actual_launch_uuid == launch_uuid
         assert client.launch_uuid == launch_uuid
+        aio_client.finish_launch.assert_not_called()
+        assert finish_launch_message == ''
     assert client.launch_uuid == actual_launch_uuid
 
     if method == 'log':
-        getattr(aio_client, 'log_batch').assert_called_once()
+        assert len(getattr(aio_client, 'log_batch').call_args_list) == 2
         args, kwargs = getattr(aio_client, 'log_batch').call_args_list[0]
         batch = args[0]
         assert isinstance(batch, list)
