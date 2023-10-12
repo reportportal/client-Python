@@ -56,7 +56,7 @@ class LogBatcher(Generic[T_co]):
                 if len(self._batch) > 0:
                     batch = self._batch
                     self._batch = [log_req]
-                    self._payload_size = 0
+                    self._payload_size = size
                     return batch
             self._batch.append(log_req)
             self._payload_size += size
@@ -91,6 +91,7 @@ class LogBatcher(Generic[T_co]):
             if len(self._batch) > 0:
                 batch = self._batch
                 self._batch = []
+                self._payload_size = 0
                 return batch
 
     def __getstate__(self) -> Dict[str, Any]:
