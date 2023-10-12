@@ -1351,6 +1351,9 @@ class ThreadedRPClient(_RPClient):
                                             daemon=True)
             self._thread.start()
 
+    async def __return_value(self, value):
+        return value
+
     def __init__(
             self,
             endpoint: str,
@@ -1358,6 +1361,7 @@ class ThreadedRPClient(_RPClient):
             *,
             task_timeout: float = DEFAULT_TASK_TIMEOUT,
             shutdown_timeout: float = DEFAULT_SHUTDOWN_TIMEOUT,
+            launch_uuid: Optional[Union[str, Task[str]]] = None,
             task_list: Optional[BackgroundTaskList[Task[_T]]] = None,
             task_mutex: Optional[threading.RLock] = None,
             loop: Optional[asyncio.AbstractEventLoop] = None,
@@ -1399,11 +1403,15 @@ class ThreadedRPClient(_RPClient):
         :param loop:                    Event Loop which is used to process Tasks. The Client creates own one
                                         if this argument is None.
         """
-        super().__init__(endpoint, project, **kwargs)
         self.task_timeout = task_timeout
         self.shutdown_timeout = shutdown_timeout
         self.__init_task_list(task_list, task_mutex)
         self.__init_loop(loop)
+        if type(launch_uuid) == str:
+            super().__init__(endpoint, project,
+                             launch_uuid=self.create_task(self.__return_value(launch_uuid)), **kwargs)
+        else:
+            super().__init__(endpoint, project, launch_uuid=launch_uuid, **kwargs)
 
     def create_task(self, coro: Coroutine[Any, Any, _T]) -> Optional[Task[_T]]:
         """Create a Task from given Coroutine.
@@ -1518,6 +1526,9 @@ class BatchedRPClient(_RPClient):
             self._loop = asyncio.new_event_loop()
             self._loop.set_task_factory(BatchedTaskFactory())
 
+    async def __return_value(self, value):
+        return value
+
     def __init__(
             self,
             endpoint: str,
@@ -1525,6 +1536,7 @@ class BatchedRPClient(_RPClient):
             *,
             task_timeout: float = DEFAULT_TASK_TIMEOUT,
             shutdown_timeout: float = DEFAULT_SHUTDOWN_TIMEOUT,
+            launch_uuid: Optional[Union[str, Task[str]]] = None,
             task_list: Optional[TriggerTaskBatcher] = None,
             task_mutex: Optional[threading.RLock] = None,
             loop: Optional[asyncio.AbstractEventLoop] = None,
@@ -1570,7 +1582,6 @@ class BatchedRPClient(_RPClient):
         :param trigger_num:             Number of tasks which triggers Task batch execution.
         :param trigger_interval:        Time limit which triggers Task batch execution.
         """
-        super().__init__(endpoint, project, **kwargs)
         self.task_timeout = task_timeout
         self.shutdown_timeout = shutdown_timeout
         self.trigger_num = trigger_num
@@ -1578,6 +1589,11 @@ class BatchedRPClient(_RPClient):
         self.__init_task_list(task_list, task_mutex)
         self.__last_run_time = datetime.time()
         self.__init_loop(loop)
+        if type(launch_uuid) == str:
+            super().__init__(endpoint, project,
+                             launch_uuid=self.create_task(self.__return_value(launch_uuid)), **kwargs)
+        else:
+            super().__init__(endpoint, project, launch_uuid=launch_uuid, **kwargs)
 
     def create_task(self, coro: Coroutine[Any, Any, _T]) -> Optional[Task[_T]]:
         """Create a Task from given Coroutine.

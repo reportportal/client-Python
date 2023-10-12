@@ -59,7 +59,7 @@ def test_clone():
     )
     assert (
             cloned.client.api_key == kwargs['api_key']
-            and cloned.launch_uuid == kwargs['launch_uuid']
+            and cloned.launch_uuid.blocking_result() == kwargs['launch_uuid']
             and cloned.log_batch_size == kwargs['log_batch_size']
             and cloned.log_batch_payload_limit == kwargs['log_batch_payload_limit']
             and cloned.task_timeout == kwargs['task_timeout']
