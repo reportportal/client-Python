@@ -19,6 +19,7 @@ from unittest import mock
 import pytest
 
 from reportportal_client.aio import AsyncRPClient
+from reportportal_client.helpers import timestamp
 
 
 def test_async_rp_client_pickling():
@@ -64,18 +65,11 @@ def test_clone():
 
 @pytest.mark.skipif(sys.version_info < (3, 8),
                     reason='the test requires AsyncMock which was introduced in Python 3.8')
-@pytest.mark.parametrize(
-    'launch_uuid',
-    [
-        'test_launch_uuid',
-        None,
-    ]
-)
 @pytest.mark.asyncio
-async def test_start_launch(launch_uuid):
+async def test_start_launch():
     aio_client = mock.AsyncMock()
     client = AsyncRPClient('http://endpoint', 'project', api_key='api_key',
-                           client=aio_client, launch_uuid=launch_uuid)
+                           client=aio_client)
     launch_name = 'Test Launch'
     start_time = str(1696921416000)
     description = 'Test Launch description'
@@ -84,16 +78,72 @@ async def test_start_launch(launch_uuid):
     rerun_of = 'test_prent_launch_uuid'
     result = await client.start_launch(launch_name, start_time, description=description,
                                        attributes=attributes, rerun=rerun, rerun_of=rerun_of)
-    if launch_uuid:
-        assert result == launch_uuid
-        aio_client.start_launch.assert_not_called()
-    else:
-        assert result is not None
+
+    assert result is not None
+    assert client.launch_uuid == result
+    aio_client.start_launch.assert_called_once()
+    args, kwargs = aio_client.start_launch.call_args_list[0]
+    assert args[0] == launch_name
+    assert args[1] == start_time
+    assert kwargs.get('description') == description
+    assert kwargs.get('attributes') == attributes
+    assert kwargs.get('rerun') == rerun
+    assert kwargs.get('rerun_of') == rerun_of
+
+
+@pytest.mark.skipif(sys.version_info < (3, 8),
+                    reason='the test requires AsyncMock which was introduced in Python 3.8')
+@pytest.mark.parametrize(
+    'launch_uuid, method, params',
+    [
+        ('test_launch_uuid', 'start_test_item', ['Test Item', timestamp(), 'STEP']),
+        ('test_launch_uuid', 'finish_test_item', ['test_item_id', timestamp()]),
+        ('test_launch_uuid', 'get_launch_info', []),
+        ('test_launch_uuid', 'get_launch_ui_id', []),
+        ('test_launch_uuid', 'get_launch_ui_url', []),
+        ('test_launch_uuid', 'log', [timestamp(), 'Test message']),
+        (None, 'start_test_item', ['Test Item', timestamp(), 'STEP']),
+        (None, 'finish_test_item', ['test_item_id', timestamp()]),
+        (None, 'get_launch_info', []),
+        (None, 'get_launch_ui_id', []),
+        (None, 'get_launch_ui_url', []),
+        (None, 'log', [timestamp(), 'Test message']),
+    ]
+)
+@pytest.mark.asyncio
+async def test_launch_uuid_usage(launch_uuid, method, params):
+    started_launch_uuid = 'new_test_launch_uuid'
+    aio_client = mock.AsyncMock()
+    aio_client.start_launch.return_value = started_launch_uuid
+    client = AsyncRPClient('http://endpoint', 'project', api_key='api_key',
+                           client=aio_client, launch_uuid=launch_uuid, log_batch_size=1)
+
+    actual_launch_uuid = await client.start_launch('Test Launch', timestamp())
+    await getattr(client, method)(*params)
+
+    if launch_uuid is None:
         aio_client.start_launch.assert_called_once()
-        args, kwargs = aio_client.start_launch.call_args_list[0]
-        assert args[0] == launch_name
-        assert args[1] == start_time
-        assert kwargs.get('description') == description
-        assert kwargs.get('attributes') == attributes
-        assert kwargs.get('rerun') == rerun
-        assert kwargs.get('rerun_of') == rerun_of
+        assert actual_launch_uuid == started_launch_uuid
+        assert client.launch_uuid == started_launch_uuid
+    else:
+        aio_client.start_launch.assert_not_called()
+        assert actual_launch_uuid == launch_uuid
+        assert client.launch_uuid == launch_uuid
+    assert client.launch_uuid == actual_launch_uuid
+
+    if method == 'log':
+        getattr(aio_client, 'log_batch').assert_called_once()
+        args, kwargs = getattr(aio_client, 'log_batch').call_args_list[0]
+        batch = args[0]
+        assert isinstance(batch, list)
+        assert len(batch) == 1
+        log = batch[0]
+        assert log.launch_uuid == actual_launch_uuid
+        assert log.time == params[0]
+        assert log.message == params[1]
+    else:
+        getattr(aio_client, method).assert_called_once()
+        args, kwargs = getattr(aio_client, method).call_args_list[0]
+        assert args[0] == actual_launch_uuid
+        for i, param in enumerate(params):
+            assert args[i + 1] == param
