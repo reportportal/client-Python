@@ -151,3 +151,23 @@ async def test_launch_uuid_usage(launch_uuid, method, params):
         assert args[0] == actual_launch_uuid
         for i, param in enumerate(params):
             assert args[i + 1] == param
+
+
+@pytest.mark.skipif(sys.version_info < (3, 8),
+                    reason='the test requires AsyncMock which was introduced in Python 3.8')
+@pytest.mark.asyncio
+async def test_start_item_tracking(async_client: AsyncRPClient):
+    aio_client = async_client.client
+
+    started_launch_uuid = 'new_test_launch_uuid'
+    aio_client.start_launch.return_value = started_launch_uuid
+    test_item_id = 'test_item_uuid'
+    aio_client.start_test_item.return_value = test_item_id
+
+    await async_client.start_launch('Test Launch', timestamp())
+    actual_item_id = await async_client.start_test_item('Test Item Name', timestamp(), 'STEP')
+    assert actual_item_id == test_item_id
+    assert async_client.current_item() == test_item_id
+
+    await async_client.finish_test_item(actual_item_id, timestamp())
+    assert async_client.current_item() is None
