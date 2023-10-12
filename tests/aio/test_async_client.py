@@ -117,7 +117,6 @@ async def test_launch_uuid_usage(launch_uuid, method, params):
     aio_client.start_launch.return_value = started_launch_uuid
     client = AsyncRPClient('http://endpoint', 'project', api_key='api_key',
                            client=aio_client, launch_uuid=launch_uuid, log_batch_size=1)
-
     actual_launch_uuid = await client.start_launch('Test Launch', timestamp())
     await getattr(client, method)(*params)
 
