@@ -90,8 +90,10 @@ def create_client(
     :type shutdown_timeout:         float
     :param trigger_num:             For Async Batched Client only. Number of tasks which triggers Task batch
                                     execution.
+    :type trigger_num:              int
     :param trigger_interval:        For Async Batched Client only. Time limit which triggers Task batch
                                     execution.
+    :type trigger_interval:         float
     :return: ReportPortal Client instance.
     """
     if client_type is ClientType.SYNC:
