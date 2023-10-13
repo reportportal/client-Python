@@ -423,7 +423,7 @@ class RPClient(RP):
             api_key: str = None,
             log_batch_size: int = 20,
             is_skipped_an_issue: bool = True,
-            verify_ssl: bool = True,
+            verify_ssl: Union[bool, str] = True,
             retries: int = None,
             max_pool_size: int = 50,
             launch_uuid: str = None,

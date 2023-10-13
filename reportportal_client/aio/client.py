@@ -25,7 +25,6 @@ from typing import Union, Tuple, List, Dict, Any, Optional, Coroutine, TypeVar
 import aiohttp
 import certifi
 
-from reportportal_client import RP, OutputType
 # noinspection PyProtectedMember
 from reportportal_client._internal.aio.http import RetryingClientSession
 # noinspection PyProtectedMember
@@ -46,6 +45,7 @@ from reportportal_client._internal.static.abstract import (
 # noinspection PyProtectedMember
 from reportportal_client._internal.static.defines import NOT_FOUND, NOT_SET
 from reportportal_client.aio.tasks import Task
+from reportportal_client.client import RP, OutputType
 from reportportal_client.core.rp_issues import Issue
 from reportportal_client.core.rp_requests import (LaunchStartRequest, AsyncHttpRequest, AsyncItemStartRequest,
                                                   AsyncItemFinishRequest, LaunchFinishRequest, RPFile,
