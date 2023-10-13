@@ -13,9 +13,9 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License
 
+import queue
 import time
-
-from six.moves import queue, mock
+from unittest import mock
 
 from reportportal_client.core.rp_requests import (
     HttpRequest,
@@ -44,27 +44,23 @@ def test_worker_continue_working_on_request_error():
     http_fail = HttpRequest(
         fail_session, LOG_REQUEST_URL, files=log_batch.payload,
         verify_ssl=False)
-    log_batch.http_request = http_fail
-    worker.send(log_batch)
+    worker.send(http_fail)
 
     start_time = time.time()
     while fail_session.call_count < 1 and time.time() - start_time < 10:
         time.sleep(0.1)
 
     assert fail_session.call_count == 1
-    assert log_batch.response is None
 
     pass_session = mock.Mock()
     http_pass = HttpRequest(
         pass_session, LOG_REQUEST_URL, files=log_batch.payload,
         verify_ssl=False)
-    log_batch.http_request = http_pass
-    worker.send(log_batch)
+    worker.send(http_pass)
 
     start_time = time.time()
     while pass_session.call_count < 1 and time.time() - start_time < 10:
         time.sleep(0.1)
 
     assert pass_session.call_count == 1
-    assert log_batch.response
     worker.stop()

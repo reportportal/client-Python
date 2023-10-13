@@ -12,10 +12,11 @@
 #  limitations under the License
 import random
 import time
+from unittest import mock
 
 from reportportal_client import step
-from reportportal_client._local import set_current
-from six.moves import mock
+# noinspection PyProtectedMember
+from reportportal_client._internal.local import set_current
 
 NESTED_STEP_NAME = 'test nested step'
 PARENT_STEP_ID = '123-123-1234-123'
@@ -81,7 +82,7 @@ def test_nested_step_decorator(rp_client):
 
     assert rp_client.session.post.call_count == 1
     assert rp_client.session.put.call_count == 1
-    assert len(rp_client._log_manager._batch) == 0
+    assert len(rp_client._log_batcher._batch) == 0
 
 
 def test_nested_step_failed(rp_client):
@@ -136,8 +137,8 @@ def test_verify_parameters_logging_default_value(rp_client):
     rp_client.session.post.side_effect = item_id_gen
     rp_client._add_current_item(PARENT_STEP_ID)
     nested_step_params(1, 'two')
-    assert len(rp_client._log_manager._batch) == 1
-    assert rp_client._log_manager._batch[0].message \
+    assert len(rp_client._log_batcher._batch) == 1
+    assert rp_client._log_batcher._batch[0].message \
            == "Parameters: param1: 1; param2: two"
 
 
@@ -145,8 +146,8 @@ def test_verify_parameters_logging_no_default_value(rp_client):
     rp_client.session.post.side_effect = item_id_gen
     rp_client._add_current_item(PARENT_STEP_ID)
     nested_step_params(1, 'two', 'three')
-    assert len(rp_client._log_manager._batch) == 1
-    assert rp_client._log_manager._batch[0].message \
+    assert len(rp_client._log_batcher._batch) == 1
+    assert rp_client._log_batcher._batch[0].message \
            == "Parameters: param1: 1; param2: two; param3: three"
 
 
@@ -154,8 +155,8 @@ def test_verify_parameters_logging_named_value(rp_client):
     rp_client.session.post.side_effect = item_id_gen
     rp_client._add_current_item(PARENT_STEP_ID)
     nested_step_params(1, 'two', param3='three')
-    assert len(rp_client._log_manager._batch) == 1
-    assert rp_client._log_manager._batch[0].message \
+    assert len(rp_client._log_batcher._batch) == 1
+    assert rp_client._log_batcher._batch[0].message \
            == "Parameters: param1: 1; param2: two; param3: three"
 
 
@@ -164,8 +165,8 @@ def test_verify_parameters_inline_logging(rp_client):
     rp_client._add_current_item(PARENT_STEP_ID)
     with step(NESTED_STEP_NAME, params={'param1': 1, 'param2': 'two'}):
         pass
-    assert len(rp_client._log_manager._batch) == 1
-    assert rp_client._log_manager._batch[0].message \
+    assert len(rp_client._log_batcher._batch) == 1
+    assert rp_client._log_batcher._batch[0].message \
            == "Parameters: param1: 1; param2: two"
 
 
@@ -181,7 +182,7 @@ def test_two_level_nested_step_decorator(rp_client):
 
     assert rp_client.session.post.call_count == 2
     assert rp_client.session.put.call_count == 2
-    assert len(rp_client._log_manager._batch) == 0
+    assert len(rp_client._log_batcher._batch) == 0
 
     request_uri = rp_client.session.post.call_args_list[0][0][0]
     first_parent_id = request_uri[request_uri.rindex('/') + 1:]

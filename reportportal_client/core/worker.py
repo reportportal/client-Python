@@ -1,5 +1,3 @@
-"""This module contains worker that makes non-blocking HTTP requests."""
-
 #  Copyright (c) 2022 EPAM Systems
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -13,13 +11,18 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License
 
+"""This module contains worker that makes non-blocking HTTP requests."""
+
 import logging
+import queue
 import threading
+import warnings
 from threading import current_thread, Thread
 
 from aenum import auto, Enum, unique
-from reportportal_client.static.defines import Priority
-from six.moves import queue
+
+# noinspection PyProtectedMember
+from reportportal_client._internal.static.defines import Priority
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
@@ -58,6 +61,12 @@ class APIWorker(object):
 
     def __init__(self, task_queue):
         """Initialize instance attributes."""
+        warnings.warn(
+            message='`APIWorker` class is deprecated since 5.5.0 and will be subject for removing in the'
+                    ' next major version.',
+            category=DeprecationWarning,
+            stacklevel=2
+        )
         self._queue = task_queue
         self._thread = None
         self._stop_lock = threading.Condition()
@@ -91,11 +100,10 @@ class APIWorker(object):
         """Send request to RP and update response attribute of the request."""
         logger.debug('[%s] Processing {%s} request', self.name, request)
         try:
-            request.response = request.http_request.make()
+            request.make()
         except Exception as err:
             logger.exception('[%s] Unknown exception has occurred. '
                              'Skipping it.', err)
-        self._queue.task_done()
 
     def _monitor(self):
         """Monitor worker queues and process them.

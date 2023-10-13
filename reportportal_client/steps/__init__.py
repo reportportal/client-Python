@@ -10,6 +10,7 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License
+
 """ReportPortal Nested Step handling module.
 
 The module for handling and reporting ReportPortal Nested Steps inside python
@@ -43,7 +44,8 @@ Usage with 'with' keyword:
 """
 from functools import wraps
 
-from reportportal_client._local import current
+# noinspection PyProtectedMember
+from reportportal_client._internal.local import current
 from reportportal_client.helpers import get_function_params, timestamp
 
 NESTED_STEP_ITEMS = ('step', 'scenario', 'before_class', 'before_groups',
@@ -136,8 +138,7 @@ class Step:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Exit the runtime context related to this object."""
-        # Cannot call _local.current() early since it will be initialized
-        # before client put something in there
+        # Cannot call local.current() early since it will be initialized before client put something in there
         rp_client = self.client or current()
         if not rp_client:
             return
@@ -155,6 +156,7 @@ class Step:
 
         :param func: function reference
         """
+
         @wraps(func)
         def wrapper(*args, **kwargs):
             __tracebackhide__ = True

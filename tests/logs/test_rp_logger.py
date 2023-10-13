@@ -10,15 +10,18 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License
+
 import inspect
 import logging
 import sys
 from logging import LogRecord
+from unittest import mock
 
+# noinspection PyPackageRequirements
 import pytest
-from six.moves import mock
 
-from reportportal_client._local import set_current
+# noinspection PyProtectedMember
+from reportportal_client._internal.local import set_current
 from reportportal_client.logs import RPLogger, RPLogHandler
 
 

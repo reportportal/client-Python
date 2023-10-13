@@ -1,6 +1,18 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- `RP` class in `reportportal_client.client` module as common interface for all ReportPortal clients, by @HardNorth
+- `reportportal_client.aio` with asynchronous clients and auxiliary classes, by @HardNorth
+- Dependency on `aiohttp` and `certifi`, by @HardNorth
+### Changed
+- RPClient class does not use separate Thread for log processing anymore, by @HardNorth
+- Use `importlib.metadata` package for distribution data extraction for Python versions starting 3.8, by @HardNorth
+- `helpers.verify_value_length` function updated to truncate attribute keys also and reveal attributes were truncated, by @HardNorth
+### Removed
+- Dependency on `six`, by @HardNorth
+
+## [5.4.1]
 ### Changed
 - Unified ReportPortal product naming, by @HardNorth
 - `RPClient` internal item stack implementation changed to `LifoQueue` to maintain concurrency better, by @HardNorth

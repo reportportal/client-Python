@@ -11,14 +11,14 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License
 import re
+# noinspection PyUnresolvedReferences
+from unittest import mock
 
 # noinspection PyPackageRequirements
 import pytest
-# noinspection PyUnresolvedReferences
-from six.moves import mock
 
 # noinspection PyProtectedMember
-from reportportal_client._local import set_current
+from reportportal_client._internal.local import set_current
 from reportportal_client.logs import RPLogHandler, RPLogger
 
 
@@ -96,7 +96,7 @@ def test_emit_custom_level(mocked_handle):
     log_handler = RPLogHandler()
     log_handler.emit(record)
     assert mock_client.log.call_count == 1
-    call_kwargs = mock_client.log.call_args[1]
+    call_args, call_kwargs = mock_client.log.call_args
     assert call_kwargs['level'] == 'WARN'
 
 
