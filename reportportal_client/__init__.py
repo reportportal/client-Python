@@ -12,8 +12,8 @@
 #  limitations under the License
 
 """This package is the base package for ReportPortal client."""
+import typing
 import warnings
-from typing import Optional, Any, Union
 
 import aenum
 
@@ -41,8 +41,8 @@ def create_client(
         project: str,
         *,
         api_key: str = None,
-        **kwargs: Any
-) -> Optional[RP]:
+        **kwargs: typing.Any
+) -> typing.Optional[RP]:
     """Create and ReportPortal Client based on the type and arguments provided.
 
     :param client_type:             Type of the Client to create.
@@ -59,7 +59,7 @@ def create_client(
                                     side.
     :type is_skipped_an_issue:      bool
     :param verify_ssl:              Option to skip ssl verification.
-    :type verify_ssl:               Union[str, bool]
+    :type verify_ssl:               typing.Union[bool, str]
     :param retries:                 Number of retry attempts to make in case of connection / server
                                     errors.
     :type retries:                  int
