@@ -794,7 +794,6 @@ class AsyncRPClient(RP):
         else:
             result = ""
         await self.__client.log_batch(self._log_batcher.flush())
-        await self.close()
         return result
 
     async def update_test_item(

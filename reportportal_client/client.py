@@ -705,7 +705,6 @@ class RPClient(RP):
         else:
             message = ""
         self._log(self._log_batcher.flush())
-        self.close()
         return message
 
     def update_test_item(self, item_uuid: str, attributes: Optional[Union[list, dict]] = None,

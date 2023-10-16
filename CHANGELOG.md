@@ -1,6 +1,10 @@
 # Changelog
 
 ## [Unreleased]
+### Fixed
+- Multipart file upload for Async clients, by @HardNorth
+
+## [5.5.0]
 ### Added
 - `RP` class in `reportportal_client.client` module as common interface for all ReportPortal clients, by @HardNorth
 - `reportportal_client.aio` with asynchronous clients and auxiliary classes, by @HardNorth
