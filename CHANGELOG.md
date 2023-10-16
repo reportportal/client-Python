@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Fixed
+- Multipart file upload for Async clients, by @HardNorth
 
 ## [5.5.0]
 ### Added

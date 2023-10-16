@@ -578,6 +578,7 @@ class AsyncRPLogBatch(RPLogBatch):
         mp_writer = aiohttp.MultipartWriter('form-data')
         mp_writer.append_payload(json_payload)
         for _, file in self._get_files():
-            file_payload = aiohttp.Payload(file[1], content_type=file[2], filename=file[0])
+            file_payload = aiohttp.BytesPayload(file[1], content_type=file[2])
+            file_payload.set_content_disposition('form-data', name='file', filename=file[0])
             mp_writer.append_payload(file_payload)
         return mp_writer
