@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.5.2]
 ### Fixed
 - Attribute truncation for every method with attributes, by @HardNorth
 
