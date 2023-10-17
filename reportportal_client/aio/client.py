@@ -1406,7 +1406,7 @@ class ThreadedRPClient(_RPClient):
         self.shutdown_timeout = shutdown_timeout
         self.__init_task_list(task_list, task_mutex)
         self.__init_loop(loop)
-        if type(launch_uuid) == str:
+        if type(launch_uuid) is str:
             super().__init__(endpoint, project,
                              launch_uuid=self.create_task(self.__return_value(launch_uuid)), **kwargs)
         else:
@@ -1588,7 +1588,7 @@ class BatchedRPClient(_RPClient):
         self.__init_task_list(task_list, task_mutex)
         self.__last_run_time = datetime.time()
         self.__init_loop(loop)
-        if type(launch_uuid) == str:
+        if type(launch_uuid) is str:
             super().__init__(endpoint, project,
                              launch_uuid=self.create_task(self.__return_value(launch_uuid)), **kwargs)
         else:
