@@ -74,6 +74,8 @@ def create_client(
     :type launch_uuid_print:        bool
     :param print_output:            Set output stream for Launch UUID printing.
     :type print_output:             OutputType
+    :param truncate_attributes:     Truncate test item attributes to default maximum length.
+    :type truncate_attributes:      bool
     :param log_batch_size:          Option to set the maximum number of logs that can be processed in one
                                     batch.
     :type log_batch_size:           int

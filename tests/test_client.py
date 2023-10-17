@@ -237,3 +237,27 @@ def test_client_pickling():
     pickled_client = pickle.dumps(client)
     unpickled_client = pickle.loads(pickled_client)
     assert unpickled_client is not None
+
+
+@pytest.mark.parametrize(
+    'method, call_method, arguments',
+    [
+        ('start_launch', 'post', ['Test Launch', timestamp()]),
+        ('start_test_item', 'post', ['Test Item', timestamp(), 'SUITE']),
+        ('finish_test_item', 'put', ['test_item_uuid', timestamp()]),
+        ('finish_launch', 'put', [timestamp()]),
+        ('update_test_item', 'put', ['test_item_uuid']),
+    ]
+)
+def test_attribute_truncation(rp_client: RPClient, method, call_method, arguments):
+    # noinspection PyTypeChecker
+    session: mock.Mock = rp_client.session
+    if method != 'start_launch':
+        rp_client._RPClient__launch_uuid = 'test_launch_id'
+
+    getattr(rp_client, method)(*arguments, **{'attributes': {'key': 'value' * 26}})
+    getattr(session, call_method).assert_called_once()
+    kwargs = getattr(session, call_method).call_args_list[0][1]
+    assert 'attributes' in kwargs['json']
+    assert kwargs['json']['attributes']
+    assert len(kwargs['json']['attributes'][0]['value']) == 128

@@ -363,6 +363,7 @@ class RPClient(RP):
     mode: str
     launch_uuid_print: Optional[bool]
     print_output: OutputType
+    truncate_attributes: bool
     _skip_analytics: str
     _item_stack: LifoQueue
     _log_batcher: LogBatcher[RPRequestLog]
@@ -433,6 +434,7 @@ class RPClient(RP):
             launch_uuid_print: bool = False,
             print_output: OutputType = OutputType.STDOUT,
             log_batcher: Optional[LogBatcher[RPRequestLog]] = None,
+            truncate_attributes: bool = True,
             **kwargs: Any
     ) -> None:
         """Initialize the class instance with arguments.
@@ -455,6 +457,7 @@ class RPClient(RP):
         :param launch_uuid_print:      Print Launch UUID into passed TextIO or by default to stdout.
         :param print_output:           Set output stream for Launch UUID printing.
         :param log_batcher:            Use existing LogBatcher instance instead of creation of own one.
+        :param truncate_attributes:    Truncate test item attributes to default maximum length.
         """
         set_current(self)
         self.api_v1, self.api_v2 = 'v1', 'v2'
@@ -490,6 +493,7 @@ class RPClient(RP):
         self._skip_analytics = getenv('AGENT_NO_ANALYTICS')
         self.launch_uuid_print = launch_uuid_print
         self.print_output = print_output
+        self.truncate_attributes = truncate_attributes
 
         self.api_key = api_key
         if not self.api_key:
@@ -505,7 +509,7 @@ class RPClient(RP):
             if not self.api_key:
                 warnings.warn(
                     message='Argument `api_key` is `None` or empty string, that is not supposed to happen '
-                            'because Report Portal is usually requires an authorization key. Please check '
+                            'because ReportPortal is usually requires an authorization key. Please check '
                             'your code.',
                     category=RuntimeWarning,
                     stacklevel=2
@@ -538,7 +542,7 @@ class RPClient(RP):
         request_payload = LaunchStartRequest(
             name=name,
             start_time=start_time,
-            attributes=attributes,
+            attributes=verify_value_length(attributes) if self.truncate_attributes else attributes,
             description=description,
             mode=self.mode,
             rerun=rerun,
@@ -601,7 +605,7 @@ class RPClient(RP):
             start_time,
             item_type,
             self.launch_uuid,
-            attributes=verify_value_length(attributes),
+            attributes=verify_value_length(attributes) if self.truncate_attributes else attributes,
             code_ref=code_ref,
             description=description,
             has_stats=has_stats,
@@ -655,7 +659,7 @@ class RPClient(RP):
             end_time,
             self.launch_uuid,
             status,
-            attributes=attributes,
+            attributes=verify_value_length(attributes) if self.truncate_attributes else attributes,
             description=description,
             is_skipped_an_issue=self.is_skipped_an_issue,
             issue=issue,
@@ -691,7 +695,7 @@ class RPClient(RP):
             request_payload = LaunchFinishRequest(
                 end_time,
                 status=status,
-                attributes=attributes,
+                attributes=verify_value_length(attributes) if self.truncate_attributes else attributes,
                 description=kwargs.get('description')
             ).payload
             response = HttpRequest(self.session.put, url=url, json=request_payload,
@@ -718,7 +722,7 @@ class RPClient(RP):
         """
         data = {
             'description': description,
-            'attributes': verify_value_length(attributes),
+            'attributes': verify_value_length(attributes) if self.truncate_attributes else attributes,
         }
         item_id = self.get_item_id_by_uuid(item_uuid)
         url = uri_join(self.base_url_v1, 'item', item_id, 'update')

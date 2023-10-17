@@ -88,6 +88,7 @@ class Client:
     mode: str
     launch_uuid_print: bool
     print_output: OutputType
+    truncate_attributes: bool
     _skip_analytics: str
     _session: Optional[RetryingClientSession]
     __stat_task: Optional[asyncio.Task]
@@ -107,6 +108,7 @@ class Client:
             mode: str = 'DEFAULT',
             launch_uuid_print: bool = False,
             print_output: OutputType = OutputType.STDOUT,
+            truncate_attributes: bool = True,
             **kwargs: Any
     ) -> None:
         """Initialize the class instance with arguments.
@@ -125,6 +127,7 @@ class Client:
         :param mode:                   Launch mode, all Launches started by the client will be in that mode.
         :param launch_uuid_print:      Print Launch UUID into passed TextIO or by default to stdout.
         :param print_output:           Set output stream for Launch UUID printing.
+        :param truncate_attributes:    Truncate test item attributes to default maximum length.
         """
         self.api_v1, self.api_v2 = 'v1', 'v2'
         self.endpoint = endpoint
@@ -144,6 +147,7 @@ class Client:
         self._session = None
         self.__stat_task = None
         self.api_key = api_key
+        self.truncate_attributes = truncate_attributes
 
     async def session(self) -> RetryingClientSession:
         """Return aiohttp.ClientSession class instance, initialize it if necessary.
@@ -156,7 +160,7 @@ class Client:
         if self.verify_ssl is None or (type(self.verify_ssl) == bool and not self.verify_ssl):
             ssl_config = False
         else:
-            if type(self.verify_ssl) == str:
+            if type(self.verify_ssl) is str:
                 ssl_config = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH, cafile=self.verify_ssl)
             else:
                 ssl_config = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH, cafile=certifi.where())
@@ -242,7 +246,7 @@ class Client:
         request_payload = LaunchStartRequest(
             name=name,
             start_time=start_time,
-            attributes=attributes,
+            attributes=verify_value_length(attributes) if self.truncate_attributes else attributes,
             description=description,
             mode=self.mode,
             rerun=rerun,
@@ -306,7 +310,7 @@ class Client:
             start_time,
             item_type,
             launch_uuid,
-            attributes=verify_value_length(attributes),
+            attributes=verify_value_length(attributes) if self.truncate_attributes else attributes,
             code_ref=code_ref,
             description=description,
             has_stats=has_stats,
@@ -355,7 +359,7 @@ class Client:
             end_time,
             launch_uuid,
             status,
-            attributes=verify_value_length(attributes),
+            attributes=verify_value_length(attributes) if self.truncate_attributes else attributes,
             description=description,
             is_skipped_an_issue=self.is_skipped_an_issue,
             issue=issue,
@@ -389,7 +393,7 @@ class Client:
         request_payload = LaunchFinishRequest(
             end_time,
             status=status,
-            attributes=verify_value_length(attributes),
+            attributes=verify_value_length(attributes) if self.truncate_attributes else attributes,
             description=kwargs.get('description')
         ).payload
         response = await AsyncHttpRequest((await self.session()).put, url=url, json=request_payload,
@@ -415,7 +419,7 @@ class Client:
         """
         data = {
             'description': description,
-            'attributes': verify_value_length(attributes),
+            'attributes': verify_value_length(attributes) if self.truncate_attributes else attributes,
         }
         item_id = await self.get_item_id_by_uuid(item_uuid)
         url = root_uri_join(self.base_url_v1, 'item', item_id, 'update')
@@ -650,6 +654,7 @@ class AsyncRPClient(RP):
         :param mode:                    Launch mode, all Launches started by the client will be in that mode.
         :param launch_uuid_print:       Print Launch UUID into passed TextIO or by default to stdout.
         :param print_output:            Set output stream for Launch UUID printing.
+        :param truncate_attributes:     Truncate test item attributes to default maximum length.
         :param client:                  ReportPortal async Client instance to use. If set, all above arguments
                                         will be ignored.
         :param launch_uuid:             A launch UUID to use instead of starting own one.
@@ -1009,6 +1014,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
         :param mode:                    Launch mode, all Launches started by the client will be in that mode.
         :param launch_uuid_print:       Print Launch UUID into passed TextIO or by default to stdout.
         :param print_output:            Set output stream for Launch UUID printing.
+        :param truncate_attributes:     Truncate test item attributes to default maximum length.
         :param client:                  ReportPortal async Client instance to use. If set, all above arguments
                                         will be ignored.
         :param launch_uuid:             A launch UUID to use instead of starting own one.
@@ -1384,6 +1390,7 @@ class ThreadedRPClient(_RPClient):
         :param mode:                    Launch mode, all Launches started by the client will be in that mode.
         :param launch_uuid_print:       Print Launch UUID into passed TextIO or by default to stdout.
         :param print_output:            Set output stream for Launch UUID printing.
+        :param truncate_attributes:     Truncate test item attributes to default maximum length.
         :param client:                  ReportPortal async Client instance to use. If set, all above arguments
                                         will be ignored.
         :param launch_uuid:             A launch UUID to use instead of starting own one.
@@ -1406,7 +1413,7 @@ class ThreadedRPClient(_RPClient):
         self.shutdown_timeout = shutdown_timeout
         self.__init_task_list(task_list, task_mutex)
         self.__init_loop(loop)
-        if type(launch_uuid) == str:
+        if type(launch_uuid) is str:
             super().__init__(endpoint, project,
                              launch_uuid=self.create_task(self.__return_value(launch_uuid)), **kwargs)
         else:
@@ -1561,6 +1568,7 @@ class BatchedRPClient(_RPClient):
         :param mode:                    Launch mode, all Launches started by the client will be in that mode.
         :param launch_uuid_print:       Print Launch UUID into passed TextIO or by default to stdout.
         :param print_output:            Set output stream for Launch UUID printing.
+        :param truncate_attributes:     Truncate test item attributes to default maximum length.
         :param client:                  ReportPortal async Client instance to use. If set, all above arguments
                                         will be ignored.
         :param launch_uuid:             A launch UUID to use instead of starting own one.
@@ -1588,7 +1596,7 @@ class BatchedRPClient(_RPClient):
         self.__init_task_list(task_list, task_mutex)
         self.__last_run_time = datetime.time()
         self.__init_loop(loop)
-        if type(launch_uuid) == str:
+        if type(launch_uuid) is str:
             super().__init__(endpoint, project,
                              launch_uuid=self.create_task(self.__return_value(launch_uuid)), **kwargs)
         else:

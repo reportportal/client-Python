@@ -772,3 +772,31 @@ async def test_get_launch_ui_url(aio_client: Client):
     session.get.assert_called_once()
     call_args = session.get.call_args_list[0]
     assert expected_uri == call_args[0][0]
+
+
+@pytest.mark.skipif(sys.version_info < (3, 8),
+                    reason='the test requires AsyncMock which was introduced in Python 3.8')
+@pytest.mark.parametrize(
+    'method, mock_method, call_method, arguments',
+    [
+        ('start_launch', mock_basic_post_response, 'post', ['Test Launch', timestamp()]),
+        ('start_test_item', mock_basic_post_response, 'post', ['test_launch_uuid', 'Test Item', timestamp(),
+                                                               'SUITE']),
+        ('finish_test_item', mock_basic_post_response, 'put', ['test_launch_uuid', 'test_item_uuid',
+                                                               timestamp()]),
+        ('finish_launch', mock_basic_post_response, 'put', ['test_launch_uuid', timestamp()]),
+        ('update_test_item', mock_basic_post_response, 'put', ['test_item_uuid']),
+    ]
+)
+@pytest.mark.asyncio
+async def test_attribute_truncation(aio_client: Client, method, mock_method, call_method, arguments):
+    # noinspection PyTypeChecker
+    session: mock.AsyncMock = await aio_client.session()
+    mock_method(session)
+
+    await getattr(aio_client, method)(*arguments, **{'attributes': {'key': 'value' * 26}})
+    getattr(session, call_method).assert_called_once()
+    kwargs = getattr(session, call_method).call_args_list[0][1]
+    assert 'attributes' in kwargs['json']
+    assert kwargs['json']['attributes']
+    assert len(kwargs['json']['attributes'][0]['value']) == 128
