@@ -505,7 +505,7 @@ class RPClient(RP):
             if not self.api_key:
                 warnings.warn(
                     message='Argument `api_key` is `None` or empty string, that is not supposed to happen '
-                            'because Report Portal is usually requires an authorization key. Please check '
+                            'because ReportPortal is usually requires an authorization key. Please check '
                             'your code.',
                     category=RuntimeWarning,
                     stacklevel=2
