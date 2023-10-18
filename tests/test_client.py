@@ -261,3 +261,35 @@ def test_attribute_truncation(rp_client: RPClient, method, call_method, argument
     assert 'attributes' in kwargs['json']
     assert kwargs['json']['attributes']
     assert len(kwargs['json']['attributes'][0]['value']) == 128
+
+
+@pytest.mark.parametrize(
+    'method, call_method, arguments',
+    [
+        ('start_launch', 'post', ['Test Launch', timestamp()]),
+        ('start_test_item', 'post', ['Test Item', timestamp(), 'SUITE']),
+        ('finish_test_item', 'put', ['test_item_uuid', timestamp()]),
+        ('finish_launch', 'put', [timestamp()]),
+        ('update_test_item', 'put', ['test_item_uuid']),
+        ('get_launch_info', 'get', []),
+        ('get_project_settings', 'get', []),
+        ('get_item_id_by_uuid', 'get', ['test_item_uuid']),
+        ('log', 'post', [timestamp(), 'Test Message']),
+    ]
+)
+def test_http_timeout_bypass(method, call_method, arguments):
+    http_timeout = (35.1, 33.3)
+    rp_client = RPClient('http://endpoint', 'project', 'api_key',
+                         http_timeout=http_timeout, log_batch_size=1)
+    session: mock.Mock = mock.Mock()
+    rp_client.session = session
+    rp_client._skip_analytics = True
+
+    if method != 'start_launch':
+        rp_client._RPClient__launch_uuid = 'test_launch_id'
+
+    getattr(rp_client, method)(*arguments)
+    getattr(session, call_method).assert_called_once()
+    kwargs = getattr(session, call_method).call_args_list[0][1]
+    assert 'timeout' in kwargs
+    assert kwargs['timeout'] == http_timeout

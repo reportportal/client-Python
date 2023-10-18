@@ -548,8 +548,8 @@ class RPClient(RP):
             rerun=rerun,
             rerun_of=rerun_of
         ).payload
-        response = HttpRequest(self.session.post, url=url, json=request_payload,
-                               verify_ssl=self.verify_ssl).make()
+        response = HttpRequest(self.session.post, url=url, json=request_payload, verify_ssl=self.verify_ssl,
+                               http_timeout=self.http_timeout).make()
         if not response:
             return
 
@@ -614,10 +614,8 @@ class RPClient(RP):
             test_case_id=test_case_id
         ).payload
 
-        response = HttpRequest(self.session.post,
-                               url=url,
-                               json=request_payload,
-                               verify_ssl=self.verify_ssl).make()
+        response = HttpRequest(self.session.post, url=url, json=request_payload, verify_ssl=self.verify_ssl,
+                               http_timeout=self.http_timeout).make()
         if not response:
             return
         item_id = response.id
@@ -665,8 +663,8 @@ class RPClient(RP):
             issue=issue,
             retry=retry
         ).payload
-        response = HttpRequest(self.session.put, url=url, json=request_payload,
-                               verify_ssl=self.verify_ssl).make()
+        response = HttpRequest(self.session.put, url=url, json=request_payload, verify_ssl=self.verify_ssl,
+                               http_timeout=self.http_timeout).make()
         if not response:
             return
         self._remove_current_item()
@@ -699,8 +697,8 @@ class RPClient(RP):
                 description=kwargs.get('description')
             ).payload
             response = HttpRequest(self.session.put, url=url, json=request_payload,
-                                   verify_ssl=self.verify_ssl,
-                                   name='Finish Launch').make()
+                                   verify_ssl=self.verify_ssl, name='Finish Launch',
+                                   http_timeout=self.http_timeout).make()
             if not response:
                 return
             logger.debug('finish_launch - ID: %s', self.launch_uuid)
@@ -726,8 +724,8 @@ class RPClient(RP):
         }
         item_id = self.get_item_id_by_uuid(item_uuid)
         url = uri_join(self.base_url_v1, 'item', item_id, 'update')
-        response = HttpRequest(self.session.put, url=url, json=data,
-                               verify_ssl=self.verify_ssl).make()
+        response = HttpRequest(self.session.put, url=url, json=data, verify_ssl=self.verify_ssl,
+                               http_timeout=self.http_timeout).make()
         if not response:
             return
         logger.debug('update_test_item - Item: %s', item_id)
@@ -737,7 +735,7 @@ class RPClient(RP):
         if batch:
             url = uri_join(self.base_url_v2, 'log')
             response = HttpRequest(self.session.post, url, files=RPLogBatch(batch).payload,
-                                   verify_ssl=self.verify_ssl).make()
+                                   verify_ssl=self.verify_ssl, http_timeout=self.http_timeout).make()
             return response.messages
 
     def log(self,
@@ -772,8 +770,8 @@ class RPClient(RP):
         :return:          Test Item ID.
         """
         url = uri_join(self.base_url_v1, 'item', 'uuid', item_uuid)
-        response = HttpRequest(self.session.get, url=url,
-                               verify_ssl=self.verify_ssl).make()
+        response = HttpRequest(self.session.get, url=url, verify_ssl=self.verify_ssl,
+                               http_timeout=self.http_timeout).make()
         return response.id if response else None
 
     def get_launch_info(self) -> Optional[dict]:
@@ -785,8 +783,8 @@ class RPClient(RP):
             return {}
         url = uri_join(self.base_url_v1, 'launch', 'uuid', self.launch_uuid)
         logger.debug('get_launch_info - ID: %s', self.launch_uuid)
-        response = HttpRequest(self.session.get, url=url,
-                               verify_ssl=self.verify_ssl).make()
+        response = HttpRequest(self.session.get, url=url, verify_ssl=self.verify_ssl,
+                               http_timeout=self.http_timeout).make()
         if not response:
             return
         launch_info = None
@@ -835,8 +833,8 @@ class RPClient(RP):
         :return: Settings response in Dictionary.
         """
         url = uri_join(self.base_url_v1, 'settings')
-        response = HttpRequest(self.session.get, url=url,
-                               verify_ssl=self.verify_ssl).make()
+        response = HttpRequest(self.session.get, url=url, verify_ssl=self.verify_ssl,
+                               http_timeout=self.http_timeout).make()
         return response.json if response else None
 
     def _add_current_item(self, item: str) -> None:

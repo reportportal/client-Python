@@ -259,7 +259,7 @@ class Client:
 
         if not self._skip_analytics:
             stat_coro = async_send_event('start_launch', *agent_name_version(attributes))
-            self.__stat_task = asyncio.create_task(stat_coro, name='Statistics update')
+            self.__stat_task = asyncio.create_task(stat_coro)
 
         launch_uuid = await response.id
         logger.debug(f'start_launch - ID: {launch_uuid}')
@@ -675,8 +675,8 @@ class AsyncRPClient(RP):
             self.__client = client
         else:
             self.__client = Client(endpoint, project, **kwargs)
+        self.__launch_uuid = launch_uuid
         if launch_uuid:
-            self.__launch_uuid = launch_uuid
             self.use_own_launch = False
         else:
             self.use_own_launch = True
@@ -1040,8 +1040,8 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
             self.__client = Client(endpoint, project, **kwargs)
             self.own_client = False
 
+        self.__launch_uuid = launch_uuid
         if launch_uuid:
-            self.__launch_uuid = launch_uuid
             self.own_launch = False
         else:
             self.own_launch = True

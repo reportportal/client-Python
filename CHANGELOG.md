@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 ### Fixed
+- Python 3.7 support, by @HardNorth
+- Launch UUID attribute for AIO clients, by @HardNorth
+- Http timeout bypass for Sync Client, by @HardNorth
+
+## [5.5.2]
+### Fixed
 - Attribute truncation for every method with attributes, by @HardNorth
 
 ## [5.5.1]
