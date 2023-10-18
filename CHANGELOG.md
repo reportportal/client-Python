@@ -1,6 +1,9 @@
 # Changelog
 
 ## [Unreleased]
+### Fixed
+- Python 3.7 support, by @HardNorth
+- Launch UUID attribute for AIO clients, by @HardNorth
 
 ## [5.5.2]
 ### Fixed
