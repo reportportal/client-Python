@@ -20,7 +20,7 @@ https://github.com/reportportal/documentation/blob/master/src/md/src/DevGuides/r
 
 import logging
 from json import JSONDecodeError
-from typing import Any, Optional, Generator, Mapping, Tuple
+from typing import Any, Optional, Generator, Mapping, Tuple, Union
 
 from aiohttp import ClientResponse
 from requests import Response
@@ -39,6 +39,12 @@ def _iter_json_messages(json: Any) -> Generator[str, None, None]:
         message = chunk.get('message', chunk.get('error_code', NOT_FOUND))
         if message:
             yield message
+
+
+def _get_json_decode_error_message(response: Union[Response, ClientResponse]) -> str:
+    status = getattr(response, 'status', getattr(response, 'status_code'))
+    return f'Unable to decode JSON response, got {"passed" if response.ok else "failed"} ' \
+           f'response with code "{status}" please check your endpoint configuration or API key'
 
 
 class RPResponse:
@@ -83,8 +89,7 @@ class RPResponse:
             try:
                 self.__json = self._resp.json()
             except (JSONDecodeError, TypeError) as exc:
-                logger.warning('Unable to decode JSON response, please check your endpoint configuration or API '
-                               'key', exc_info=exc)
+                logger.warning(_get_json_decode_error_message(self._resp), exc_info=exc)
                 self.__json = None
         return self.__json
 
@@ -152,8 +157,7 @@ class AsyncRPResponse:
             try:
                 self.__json = await self._resp.json()
             except (JSONDecodeError, TypeError) as exc:
-                logger.warning('Unable to decode JSON response, please check your endpoint configuration or API '
-                               'key', exc_info=exc)
+                logger.warning(_get_json_decode_error_message(self._resp), exc_info=exc)
                 self.__json = None
         return self.__json
 
