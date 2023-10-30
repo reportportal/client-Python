@@ -89,7 +89,7 @@ class RPResponse:
             try:
                 self.__json = self._resp.json()
             except (JSONDecodeError, TypeError) as exc:
-                logger.warning(_get_json_decode_error_message(self._resp), exc_info=exc)
+                logger.error(_get_json_decode_error_message(self._resp), exc_info=exc)
                 self.__json = None
         return self.__json
 
@@ -157,7 +157,7 @@ class AsyncRPResponse:
             try:
                 self.__json = await self._resp.json()
             except (JSONDecodeError, TypeError) as exc:
-                logger.warning(_get_json_decode_error_message(self._resp), exc_info=exc)
+                logger.error(_get_json_decode_error_message(self._resp), exc_info=exc)
                 self.__json = None
         return self.__json
 
