@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- JSON decoding error logging, by @HardNorth
 
 ## [5.5.3]
 ### Fixed

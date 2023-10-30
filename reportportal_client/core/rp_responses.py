@@ -82,7 +82,9 @@ class RPResponse:
         if self.__json is NOT_SET:
             try:
                 self.__json = self._resp.json()
-            except (JSONDecodeError, TypeError):
+            except (JSONDecodeError, TypeError) as exc:
+                logger.warning('Unable to decode JSON response, please check your endpoint configuration or API '
+                               'key', exc_info=exc)
                 self.__json = None
         return self.__json
 
@@ -149,7 +151,9 @@ class AsyncRPResponse:
         if self.__json is NOT_SET:
             try:
                 self.__json = await self._resp.json()
-            except (JSONDecodeError, TypeError):
+            except (JSONDecodeError, TypeError) as exc:
+                logger.warning('Unable to decode JSON response, please check your endpoint configuration or API '
+                               'key', exc_info=exc)
                 self.__json = None
         return self.__json
 
