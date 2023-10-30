@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 ### Added
-- JSON decoding error logging, by @HardNorth
+- Issue [#225](https://github.com/reportportal/client-Python/issues/225): JSON decoding error logging, by @HardNorth
 
 ## [5.5.3]
 ### Fixed
