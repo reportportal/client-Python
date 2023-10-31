@@ -23,7 +23,6 @@ from reportportal_client.aio.tasks import Task, BlockingOperationError
 
 _T = TypeVar('_T')
 
-
 DEFAULT_TASK_TRIGGER_NUM: int = 10
 DEFAULT_TASK_TRIGGER_INTERVAL: float = 1.0
 

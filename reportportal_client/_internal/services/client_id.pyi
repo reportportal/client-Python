@@ -13,11 +13,11 @@
 
 from typing import Optional, Text
 
-def _read_client_id() -> Optional[Text]:
-    pass
 
-def _store_client_id(client_id: Text) -> None:
-    pass
+def _read_client_id() -> Optional[Text]: ...
 
-def get_client_id() -> Text:
-    pass
+
+def _store_client_id(client_id: Text) -> None: ...
+
+
+def get_client_id() -> Text: ...

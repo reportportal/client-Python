@@ -14,8 +14,8 @@
 """This module provides RP client static objects and variables."""
 
 import aenum as enum
-from reportportal_client.helpers import ATTRIBUTE_LENGTH_LIMIT as ATTRIBUTE_LIMIT
 
+from reportportal_client.helpers import ATTRIBUTE_LENGTH_LIMIT as ATTRIBUTE_LIMIT
 
 RP_LOG_LEVELS = {
     60000: 'UNKNOWN',
