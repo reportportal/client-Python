@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.5.4]
 ### Added
 - Issue [#225](https://github.com/reportportal/client-Python/issues/225): JSON decoding error logging, by @HardNorth
 ### Fixed
