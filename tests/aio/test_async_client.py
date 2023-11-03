@@ -19,6 +19,7 @@ from unittest import mock
 import pytest
 
 from reportportal_client.aio import AsyncRPClient
+from reportportal_client.core.rp_requests import AsyncRPRequestLog
 from reportportal_client.helpers import timestamp
 
 
@@ -171,3 +172,20 @@ async def test_start_item_tracking(async_client: AsyncRPClient):
 
     await async_client.finish_test_item(actual_item_id, timestamp())
     assert async_client.current_item() is None
+
+
+@pytest.mark.skipif(sys.version_info < (3, 8),
+                    reason='the test requires AsyncMock which was introduced in Python 3.8')
+@pytest.mark.asyncio
+async def test_logs_flush_on_close(async_client: AsyncRPClient):
+    # noinspection PyTypeChecker
+    client: mock.Mock = async_client.client
+    batcher: mock.Mock = mock.Mock()
+    batcher.flush.return_value = [AsyncRPRequestLog('test_launch_uuid', timestamp(), message='test_message')]
+    async_client._log_batcher = batcher
+
+    await async_client.close()
+
+    batcher.flush.assert_called_once()
+    client.log_batch.assert_called_once()
+    client.close.assert_called_once()
