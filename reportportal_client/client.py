@@ -886,6 +886,7 @@ class RPClient(RP):
 
     def close(self) -> None:
         """Close current client connections."""
+        self._log(self._log_batcher.flush())
         self.session.close()
 
     def __getstate__(self) -> Dict[str, Any]:

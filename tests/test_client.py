@@ -21,6 +21,7 @@ from requests import Response
 from requests.exceptions import ReadTimeout
 
 from reportportal_client import RPClient
+from reportportal_client.core.rp_requests import RPRequestLog
 from reportportal_client.helpers import timestamp
 
 
@@ -293,3 +294,17 @@ def test_http_timeout_bypass(method, call_method, arguments):
     kwargs = getattr(session, call_method).call_args_list[0][1]
     assert 'timeout' in kwargs
     assert kwargs['timeout'] == http_timeout
+
+
+def test_logs_flush_on_close(rp_client: RPClient):
+    # noinspection PyTypeChecker
+    session: mock.Mock = rp_client.session
+    batcher: mock.Mock = mock.Mock()
+    batcher.flush.return_value = [RPRequestLog('test_launch_uuid', timestamp(), message='test_message')]
+    rp_client._log_batcher = batcher
+
+    rp_client.close()
+
+    batcher.flush.assert_called_once()
+    session.post.assert_called_once()
+    session.close.assert_called_once()

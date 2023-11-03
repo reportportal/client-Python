@@ -924,6 +924,7 @@ class AsyncRPClient(RP):
 
     async def close(self) -> None:
         """Close current client connections."""
+        await self.__client.log_batch(self._log_batcher.flush())
         await self.__client.close()
 
 
@@ -1307,6 +1308,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
 
     def close(self) -> None:
         """Close current client connections."""
+        self.finish_tasks()
         if self.own_client:
             self.create_task(self.__client.close()).blocking_result()
 

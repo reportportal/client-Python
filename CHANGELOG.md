@@ -1,6 +1,12 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- Issue [#225](https://github.com/reportportal/client-Python/issues/225): JSON decoding error logging, by @HardNorth
+### Fixed
+- Issue [#226](https://github.com/reportportal/client-Python/issues/226): Logging batch flush on client close, by @HardNorth
+
+## [5.5.3]
 ### Fixed
 - Python 3.7 support, by @HardNorth
 - Launch UUID attribute for AIO clients, by @HardNorth

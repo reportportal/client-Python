@@ -10,6 +10,7 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License
+
 import pickle
 import sys
 from unittest import mock
@@ -17,6 +18,7 @@ from unittest import mock
 import pytest
 
 from reportportal_client.aio import ThreadedRPClient
+from reportportal_client.core.rp_requests import AsyncRPRequestLog
 from reportportal_client.helpers import timestamp
 
 
@@ -133,3 +135,20 @@ def test_launch_uuid_usage(launch_uuid, method, params):
         assert args[0].blocking_result() == actual_launch_uuid
         for i, param in enumerate(params):
             assert args[i + 1] == param
+
+
+@pytest.mark.skipif(sys.version_info < (3, 8),
+                    reason='the test requires AsyncMock which was introduced in Python 3.8')
+def test_logs_flush_on_close(batched_client: ThreadedRPClient):
+    batched_client.own_client = True
+    # noinspection PyTypeChecker
+    client: mock.Mock = batched_client.client
+    batcher: mock.Mock = mock.Mock()
+    batcher.flush.return_value = [AsyncRPRequestLog('test_launch_uuid', timestamp(), message='test_message')]
+    batched_client._log_batcher = batcher
+
+    batched_client.close()
+
+    batcher.flush.assert_called_once()
+    client.log_batch.assert_called_once()
+    client.close.assert_called_once()

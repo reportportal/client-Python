@@ -18,8 +18,8 @@ from unittest import mock
 # noinspection PyPackageRequirements
 from pytest import fixture
 
+from reportportal_client.aio.client import Client, AsyncRPClient, BatchedRPClient, ThreadedRPClient
 from reportportal_client.client import RPClient
-from reportportal_client.aio.client import Client, AsyncRPClient
 
 
 @fixture
@@ -64,4 +64,20 @@ def async_client():
     """Prepare instance of the AsyncRPClient for testing."""
     client = AsyncRPClient('http://endpoint', 'project', api_key='api_key',
                            client=mock.AsyncMock())
+    return client
+
+
+@fixture
+def batched_client():
+    """Prepare instance of the AsyncRPClient for testing."""
+    client = BatchedRPClient('http://endpoint', 'project', api_key='api_key',
+                             client=mock.AsyncMock())
+    return client
+
+
+@fixture
+def threaded_client():
+    """Prepare instance of the AsyncRPClient for testing."""
+    client = ThreadedRPClient('http://endpoint', 'project', api_key='api_key',
+                              client=mock.AsyncMock())
     return client
