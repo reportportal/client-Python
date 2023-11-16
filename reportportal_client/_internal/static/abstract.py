@@ -40,16 +40,14 @@ class AbstractBaseClass(_ABCMeta):
     def __call__(cls, *args, **kwargs):
         """Disable instantiation for the interface classes."""
         if cls.__name__ in AbstractBaseClass._abc_registry:
-            raise TypeError("No instantiation allowed for Interface-Class"
-                            " '{}'. Please inherit.".format(cls.__name__))
+            raise TypeError("No instantiation allowed for Interface-Class '{}'. Please inherit.".format(cls.__name__))
 
         result = super(AbstractBaseClass, cls).__call__(*args, **kwargs)
         return result
 
     def __new__(mcs, name, bases, namespace):
         """Register instance of the implementation class."""
-        class_ = super(AbstractBaseClass, mcs).__new__(mcs, name,
-                                                       bases, namespace)
+        class_ = super(AbstractBaseClass, mcs).__new__(mcs, name, bases, namespace)
         if namespace.get("__metaclass__") is AbstractBaseClass:
             mcs._abc_registry.append(name)
         return class_
