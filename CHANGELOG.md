@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- `is_binary` method in `helpers` module, by @HardNorth
 
 ## [5.5.4]
 ### Added

@@ -391,3 +391,19 @@ async def await_if_necessary(obj: Optional[Any]) -> Optional[Any]:
         elif asyncio.iscoroutinefunction(obj):
             return await obj()
     return obj
+
+
+def is_binary(iterable: Union[bytes, bytearray, str]) -> bool:
+    """Check if given iterable is binary.
+
+    :param iterable: iterable to check
+    :return: True if iterable contains binary bytes, False otherwise
+    """
+    if isinstance(iterable, str):
+        byte_iterable = iterable.encode('utf-8')
+    else:
+        byte_iterable = iterable
+
+    if 0x00 in byte_iterable:
+        return True
+    return False
