@@ -407,3 +407,59 @@ def is_binary(iterable: Union[bytes, bytearray, str]) -> bool:
     if 0x00 in byte_iterable:
         return True
     return False
+
+
+def guess_content_type_from_bytes(data: Union[bytes, bytearray, List[int]]) -> str:
+    """Guess content type from bytes.
+
+    :param data: bytes or bytearray
+    :return: content type
+    """
+    my_data = data
+    if isinstance(data, list):
+        my_data = bytes(my_data)
+
+    if not is_binary(my_data):
+        return 'text/plain'
+
+    # images
+    if my_data.startswith(b'\xff\xd8\xff'):
+        return 'image/jpeg'
+    if my_data.startswith(b'\x89PNG\r\n\x1a\n'):
+        return 'image/png'
+    if my_data.startswith(b'GIF8'):
+        return 'image/gif'
+    if my_data.startswith(b'BM'):
+        return 'image/bmp'
+    if my_data.startswith(b'\x00\x00\x01\x00'):
+        return 'image/vnd.microsoft.icon'
+    if my_data.startswith(b'RIFF') and b'WEBP' in my_data:
+        return 'image/webp'
+
+    # audio
+    if my_data.startswith(b'ID3'):
+        return 'audio/mpeg'
+    if my_data.startswith(b'RIFF') and b'WAVE' in my_data:
+        return 'audio/wav'
+
+    # video
+    if my_data.startswith(b'\x00\x00\x01\xba'):
+        return 'video/mpeg'
+    if my_data.startswith(b'RIFF') and b'AVI LIST' in my_data:
+        return 'video/avi'
+    if my_data.startswith(b'\x1aE\xdf\xa3'):
+        return 'video/webm'
+
+    # archives
+    if my_data.startswith(b'PK\x03\x04'):
+        if my_data.startswith(b'PK\x03\x04\x14\x00\x08'):
+            return 'application/java-archive'
+        return 'application/zip'
+    if my_data.startswith(b'PK\x05\x06'):
+        return 'application/zip'
+
+    # office
+    if my_data.startswith(b'%PDF'):
+        return 'application/pdf'
+
+    return 'application/octet-stream'

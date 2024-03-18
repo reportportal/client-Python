@@ -3,6 +3,7 @@
 ## [Unreleased]
 ### Added
 - `is_binary` method in `helpers` module, by @HardNorth
+- `guess_content_type_from_bytes` method in `helpers` module, by @HardNorth
 
 ## [5.5.4]
 ### Added

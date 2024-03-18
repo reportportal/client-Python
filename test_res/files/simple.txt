@@ -1,0 +1,9 @@
+HTTP/1.1 407 Proxy Authentication Required
+Cache-Control: no-cache, no-store, max-age=0, must-revalidate
+Expires: 0
+Pragma: no-cache
+X-Content-Type-Options: nosniff
+X-Frame-Options: DENY
+X-Xss-Protection: 1; mode=block
+Content-Length: 0
+
