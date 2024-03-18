@@ -21,7 +21,7 @@ import pytest
 from reportportal_client.helpers import (
     gen_attributes,
     get_launch_sys_attrs,
-    verify_value_length, ATTRIBUTE_LENGTH_LIMIT, TRUNCATE_REPLACEMENT
+    verify_value_length, ATTRIBUTE_LENGTH_LIMIT, TRUNCATE_REPLACEMENT, guess_content_type_from_bytes, is_binary
 )
 
 
@@ -94,3 +94,43 @@ def test_verify_value_length(attributes, expected_attributes):
         assert element.get('key') == expected.get('key')
         assert element.get('value') == expected.get('value')
         assert element.get('system') == expected.get('system')
+
+
+@pytest.mark.parametrize(
+    'file, expected_is_binary',
+    [
+        ('test_res/pug/lucky.jpg', True),
+        ('test_res/pug/unlucky.jpg', True),
+        ('test_res/files/image.png', True),
+        ('test_res/files/demo.zip', True),
+        ('test_res/files/test.jar', True),
+        ('test_res/files/test.pdf', True),
+        ('test_res/files/test.bin', True),
+        ('test_res/files/simple.txt', False),
+    ]
+)
+def test_binary_content_detection(file, expected_is_binary):
+    """Test for validate binary content detection."""
+    with open(file, 'rb') as f:
+        content = f.read()
+    assert is_binary(content) == expected_is_binary
+
+
+@pytest.mark.parametrize(
+    'file, expected_type',
+    [
+        ('test_res/pug/lucky.jpg', 'image/jpeg'),
+        ('test_res/pug/unlucky.jpg', 'image/jpeg'),
+        ('test_res/files/image.png', 'image/png'),
+        ('test_res/files/demo.zip', 'application/zip'),
+        ('test_res/files/test.jar', 'application/java-archive'),
+        ('test_res/files/test.pdf', 'application/pdf'),
+        ('test_res/files/test.bin', 'application/octet-stream'),
+        ('test_res/files/simple.txt', 'text/plain'),
+    ]
+)
+def test_binary_content_type_detection(file, expected_type):
+    """Test for validate binary content type detection."""
+    with open(file, 'rb') as f:
+        content = f.read()
+    assert guess_content_type_from_bytes(content) == expected_type

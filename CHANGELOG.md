@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 ### Added
+- `is_binary` method in `helpers` module, by @HardNorth
+- `guess_content_type_from_bytes` method in `helpers` module, by @HardNorth
+
+## [5.5.4]
+### Added
 - Issue [#225](https://github.com/reportportal/client-Python/issues/225): JSON decoding error logging, by @HardNorth
 ### Fixed
 - Issue [#226](https://github.com/reportportal/client-Python/issues/226): Logging batch flush on client close, by @HardNorth
