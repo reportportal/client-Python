@@ -419,6 +419,9 @@ def guess_content_type_from_bytes(data: Union[bytes, bytearray, List[int]]) -> s
     if isinstance(data, list):
         my_data = bytes(my_data)
 
+    if len(my_data) >= 128:
+        my_data = my_data[:128]
+
     if not is_binary(my_data):
         return 'text/plain'
 
