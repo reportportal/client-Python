@@ -22,6 +22,7 @@ import threading
 import time
 import uuid
 from platform import machine, processor, system
+from types import MappingProxyType
 from typing import Optional, Any, List, Dict, Callable, Tuple, Union, TypeVar, Generic
 
 from reportportal_client.core.rp_file import RPFile
@@ -31,6 +32,25 @@ _T = TypeVar('_T')
 ATTRIBUTE_LENGTH_LIMIT: int = 128
 TRUNCATE_REPLACEMENT: str = '...'
 BYTES_TO_READ_FOR_DETECTION = 128
+
+CONTENT_TYPE_TO_EXTENSIONS = MappingProxyType({
+    'application/pdf': 'pdf',
+    'application/zip': 'zip',
+    'application/java-archive': 'jar',
+    'image/jpeg': 'jpg',
+    'image/png': 'png',
+    'image/gif': 'gif',
+    'image/bmp': 'bmp',
+    'image/vnd.microsoft.icon': 'ico',
+    'image/webp': 'webp',
+    'audio/mpeg': 'mp3',
+    'audio/wav': 'wav',
+    'video/mpeg': 'mpeg',
+    'video/avi': 'avi',
+    'video/webm': 'webm',
+    'text/plain': 'txt',
+    'application/octet-stream': 'bin'
+})
 
 
 class LifoQueue(Generic[_T]):
@@ -310,31 +330,22 @@ def get_function_params(func: Callable, args: tuple, kwargs: Dict[str, Any]) -> 
 
 
 TYPICAL_MULTIPART_BOUNDARY: str = '--972dbca3abacfd01fb4aea0571532b52'
-
 TYPICAL_JSON_PART_HEADER: str = TYPICAL_MULTIPART_BOUNDARY + '''\r
 Content-Disposition: form-data; name="json_request_part"\r
 Content-Type: application/json\r
 \r
 '''
-
 TYPICAL_FILE_PART_HEADER: str = TYPICAL_MULTIPART_BOUNDARY + '''\r
 Content-Disposition: form-data; name="file"; filename="{0}"\r
 Content-Type: {1}\r
 \r
 '''
-
 TYPICAL_JSON_PART_HEADER_LENGTH: int = len(TYPICAL_JSON_PART_HEADER)
-
 TYPICAL_MULTIPART_FOOTER: str = '\r\n' + TYPICAL_MULTIPART_BOUNDARY + '--'
-
 TYPICAL_MULTIPART_FOOTER_LENGTH: int = len(TYPICAL_MULTIPART_FOOTER)
-
 TYPICAL_JSON_ARRAY: str = '[]'
-
 TYPICAL_JSON_ARRAY_LENGTH: int = len(TYPICAL_JSON_ARRAY)
-
 TYPICAL_JSON_ARRAY_ELEMENT: str = ','
-
 TYPICAL_JSON_ARRAY_ELEMENT_LENGTH: int = len(TYPICAL_JSON_ARRAY_ELEMENT)
 
 
