@@ -23,7 +23,7 @@ import time
 import uuid
 from platform import machine, processor, system
 from types import MappingProxyType
-from typing import Optional, Any, List, Dict, Callable, Tuple, Union, TypeVar, Generic
+from typing import Optional, Any, List, Dict, Callable, Tuple, Union, TypeVar, Generic, Iterable
 
 from reportportal_client.core.rp_file import RPFile
 
@@ -144,7 +144,7 @@ def dict_to_payload(dictionary: Optional[dict]) -> Optional[List[dict]]:
     return result
 
 
-def gen_attributes(rp_attributes: List[str]) -> List[Dict[str, str]]:
+def gen_attributes(rp_attributes: Iterable[str]) -> List[Dict[str, str]]:
     """Generate list of attributes for the API request.
 
     Example of input list:
@@ -152,7 +152,7 @@ def gen_attributes(rp_attributes: List[str]) -> List[Dict[str, str]]:
     Output of the function for the given input list:
     [{'key': 'tag_name', 'value': 'tag_value1'}, {'value': 'tag_value2'}]
 
-    :param rp_attributes: List of attributes(tags)
+    :param rp_attributes: Iterable of attributes(tags)
     :return:              Correctly created list of dictionaries
                           to be passed to RP
     """
@@ -168,8 +168,7 @@ def gen_attributes(rp_attributes: List[str]) -> List[Dict[str, str]]:
         if all(attr_dict.values()):
             attrs.append(attr_dict)
             continue
-        logger.debug('Failed to process "{0}" attribute, attribute value'
-                     ' should not be empty.'.format(rp_attr))
+        logger.debug(f'Failed to process "{rp_attr}" attribute, attribute value should not be empty.')
     return attrs
 
 

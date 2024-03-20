@@ -3,6 +3,8 @@
 ## [Unreleased]
 ### Added
 - `CONTENT_TYPE_TO_EXTENSIONS` constant in `helpers` module, by @HardNorth
+### Changed
+- `helpers.gen_attributes` now accepts `Iterable[str]` argument instead of `List[str]`, by @HardNorth
 
 ## [5.5.5]
 ### Added
