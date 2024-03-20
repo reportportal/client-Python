@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.5.6]
 ### Added
 - `CONTENT_TYPE_TO_EXTENSIONS` constant in `helpers` module, by @HardNorth
 ### Fixed
