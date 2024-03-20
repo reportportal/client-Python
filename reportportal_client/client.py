@@ -736,7 +736,8 @@ class RPClient(RP):
             url = uri_join(self.base_url_v2, 'log')
             response = HttpRequest(self.session.post, url, files=RPLogBatch(batch).payload,
                                    verify_ssl=self.verify_ssl, http_timeout=self.http_timeout).make()
-            return response.messages
+            if response:
+                return response.messages
 
     def log(self,
             time: str,

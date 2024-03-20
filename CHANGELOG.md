@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 ### Added
+- `CONTENT_TYPE_TO_EXTENSIONS` constant in `helpers` module, by @HardNorth
+### Fixed
+- Issue [#228](https://github.com/reportportal/client-Python/issues/228): AttributeError on very large request, by @HardNorth
+### Changed
+- `helpers.gen_attributes` now accepts `Iterable[str]` argument instead of `List[str]`, by @HardNorth
+
+## [5.5.5]
+### Added
 - `is_binary` method in `helpers` module, by @HardNorth
 - `guess_content_type_from_bytes` method in `helpers` module, by @HardNorth
 

@@ -22,7 +22,8 @@ import threading
 import time
 import uuid
 from platform import machine, processor, system
-from typing import Optional, Any, List, Dict, Callable, Tuple, Union, TypeVar, Generic
+from types import MappingProxyType
+from typing import Optional, Any, List, Dict, Callable, Tuple, Union, TypeVar, Generic, Iterable
 
 from reportportal_client.core.rp_file import RPFile
 
@@ -30,6 +31,26 @@ logger: logging.Logger = logging.getLogger(__name__)
 _T = TypeVar('_T')
 ATTRIBUTE_LENGTH_LIMIT: int = 128
 TRUNCATE_REPLACEMENT: str = '...'
+BYTES_TO_READ_FOR_DETECTION = 128
+
+CONTENT_TYPE_TO_EXTENSIONS = MappingProxyType({
+    'application/pdf': 'pdf',
+    'application/zip': 'zip',
+    'application/java-archive': 'jar',
+    'image/jpeg': 'jpg',
+    'image/png': 'png',
+    'image/gif': 'gif',
+    'image/bmp': 'bmp',
+    'image/vnd.microsoft.icon': 'ico',
+    'image/webp': 'webp',
+    'audio/mpeg': 'mp3',
+    'audio/wav': 'wav',
+    'video/mpeg': 'mpeg',
+    'video/avi': 'avi',
+    'video/webm': 'webm',
+    'text/plain': 'txt',
+    'application/octet-stream': 'bin'
+})
 
 
 class LifoQueue(Generic[_T]):
@@ -123,7 +144,7 @@ def dict_to_payload(dictionary: Optional[dict]) -> Optional[List[dict]]:
     return result
 
 
-def gen_attributes(rp_attributes: List[str]) -> List[Dict[str, str]]:
+def gen_attributes(rp_attributes: Iterable[str]) -> List[Dict[str, str]]:
     """Generate list of attributes for the API request.
 
     Example of input list:
@@ -131,7 +152,7 @@ def gen_attributes(rp_attributes: List[str]) -> List[Dict[str, str]]:
     Output of the function for the given input list:
     [{'key': 'tag_name', 'value': 'tag_value1'}, {'value': 'tag_value2'}]
 
-    :param rp_attributes: List of attributes(tags)
+    :param rp_attributes: Iterable of attributes(tags)
     :return:              Correctly created list of dictionaries
                           to be passed to RP
     """
@@ -147,8 +168,7 @@ def gen_attributes(rp_attributes: List[str]) -> List[Dict[str, str]]:
         if all(attr_dict.values()):
             attrs.append(attr_dict)
             continue
-        logger.debug('Failed to process "{0}" attribute, attribute value'
-                     ' should not be empty.'.format(rp_attr))
+        logger.debug(f'Failed to process "{rp_attr}" attribute, attribute value should not be empty.')
     return attrs
 
 
@@ -309,31 +329,22 @@ def get_function_params(func: Callable, args: tuple, kwargs: Dict[str, Any]) -> 
 
 
 TYPICAL_MULTIPART_BOUNDARY: str = '--972dbca3abacfd01fb4aea0571532b52'
-
 TYPICAL_JSON_PART_HEADER: str = TYPICAL_MULTIPART_BOUNDARY + '''\r
 Content-Disposition: form-data; name="json_request_part"\r
 Content-Type: application/json\r
 \r
 '''
-
 TYPICAL_FILE_PART_HEADER: str = TYPICAL_MULTIPART_BOUNDARY + '''\r
 Content-Disposition: form-data; name="file"; filename="{0}"\r
 Content-Type: {1}\r
 \r
 '''
-
 TYPICAL_JSON_PART_HEADER_LENGTH: int = len(TYPICAL_JSON_PART_HEADER)
-
 TYPICAL_MULTIPART_FOOTER: str = '\r\n' + TYPICAL_MULTIPART_BOUNDARY + '--'
-
 TYPICAL_MULTIPART_FOOTER_LENGTH: int = len(TYPICAL_MULTIPART_FOOTER)
-
 TYPICAL_JSON_ARRAY: str = '[]'
-
 TYPICAL_JSON_ARRAY_LENGTH: int = len(TYPICAL_JSON_ARRAY)
-
 TYPICAL_JSON_ARRAY_ELEMENT: str = ','
-
 TYPICAL_JSON_ARRAY_ELEMENT_LENGTH: int = len(TYPICAL_JSON_ARRAY_ELEMENT)
 
 
@@ -419,8 +430,8 @@ def guess_content_type_from_bytes(data: Union[bytes, bytearray, List[int]]) -> s
     if isinstance(data, list):
         my_data = bytes(my_data)
 
-    if len(my_data) >= 128:
-        my_data = my_data[:128]
+    if len(my_data) >= BYTES_TO_READ_FOR_DETECTION:
+        my_data = my_data[:BYTES_TO_READ_FOR_DETECTION]
 
     if not is_binary(my_data):
         return 'text/plain'
