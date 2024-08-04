@@ -58,6 +58,8 @@ class RPLogger(logging.getLoggerClass()):
             # exception on some versions of IronPython. We trap it here so that
             # IronPython can use logging.
             try:
+                if sys.version_info >= (3, 11):
+                    kwargs.setdefault('stacklevel', 2)
                 if 'stacklevel' in kwargs:
                     fn, lno, func, sinfo = \
                         self.findCaller(stack_info, kwargs['stacklevel'])
