@@ -40,6 +40,7 @@ def test_record_make(logger_handler):
     logger.info('test_log')
     record = verify_record(logger_handler)
     assert not getattr(record, 'attachment')
+    assert record.pathname == __file__
 
 
 @mock.patch('reportportal_client.logs.logging.Logger.handle')
@@ -86,3 +87,4 @@ def test_stacklevel_record_make(logger_handler):
                      stack_info=inspect.stack(), stacklevel=2)
     record = verify_record(logger_handler)
     assert record.stack_info.endswith("logger.error('test_log', exc_info=RuntimeError('test'),")
+    assert record.pathname == __file__
