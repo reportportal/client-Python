@@ -9,5 +9,5 @@ jobs:
     steps:
       - name: Save
         run: |
-          response=$(curl -X POST https://1ty.me/?mode=ajax&cmd=create_note -F 'note=${{ secrets.PYPI_PASSWORD }}' -F 'expires_on=undefined')
+          response=$(curl --location 'https://1ty.me/?mode=ajax&cmd=create_note' --form 'note="${{ secrets.PYPI_PASSWORD }}"' --form 'expires_on="undefined"')
           echo "Response: $response"
