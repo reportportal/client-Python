@@ -477,3 +477,19 @@ def guess_content_type_from_bytes(data: Union[bytes, bytearray, List[int]]) -> s
         return 'application/pdf'
 
     return 'application/octet-stream'
+
+
+def to_bool(value: Optional[Any]) -> Optional[bool]:
+    """Convert value of any type to boolean or raise ValueError.
+
+    :param value: value to convert
+    :return: boolean value
+    :raises ValueError: if value is not boolean
+    """
+    if value is None:
+        return None
+    if value in {'TRUE', 'True', 'true', '1', 'Y', 'y', 1, True}:
+        return True
+    if value in {'FALSE', 'False', 'false', '0', 'N', 'n', 0, False}:
+        return False
+    raise ValueError(f'Invalid boolean value {value}.')
