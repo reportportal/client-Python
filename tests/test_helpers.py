@@ -19,8 +19,7 @@ from unittest import mock
 import pytest
 
 from reportportal_client.helpers import (
-    gen_attributes,
-    get_launch_sys_attrs,
+    gen_attributes, get_launch_sys_attrs, to_bool,
     verify_value_length, ATTRIBUTE_LENGTH_LIMIT, TRUNCATE_REPLACEMENT, guess_content_type_from_bytes, is_binary
 )
 
@@ -134,3 +133,36 @@ def test_binary_content_type_detection(file, expected_type):
     with open(file, 'rb') as f:
         content = f.read()
     assert guess_content_type_from_bytes(content) == expected_type
+
+
+@pytest.mark.parametrize(
+    'value, expected_result',
+    [
+        ('TRUE', True),
+        ('True', True),
+        ('true', True),
+        ('Y', True),
+        ('y', True),
+        (True, True),
+        (1, True),
+        ('1', True),
+        ('FALSE', False),
+        ('False', False),
+        ('false', False),
+        ('N', False),
+        ('n', False),
+        (False, False),
+        (0, False),
+        ('0', False),
+        (None, None),
+    ]
+)
+def test_to_bool(value, expected_result):
+    """Test for validate to_bool() function."""
+    assert to_bool(value) == expected_result
+
+
+def test_to_bool_invalid_value():
+    """Test for validate to_bool() function exception case."""
+    with pytest.raises(ValueError):
+        to_bool('invalid_value')

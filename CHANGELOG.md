@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 ### Added
+- `helpers.to_bool` function, by @HardNorth
+- Official `Python 3.12` support, by @HardNorth
+### Fixed
+- SSL context when certificate is provided, by @JLBIZ
+- Log Record pathnames are incorrect on python3.11, by @dagansandler
+
+## [5.5.6]
+### Added
 - `CONTENT_TYPE_TO_EXTENSIONS` constant in `helpers` module, by @HardNorth
 ### Fixed
 - Issue [#228](https://github.com/reportportal/client-Python/issues/228): AttributeError on very large request, by @HardNorth

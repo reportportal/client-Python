@@ -161,9 +161,9 @@ class Client:
             ssl_config = False
         else:
             if type(self.verify_ssl) is str:
-                ssl_config = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH, cafile=self.verify_ssl)
+                ssl_config = ssl.create_default_context(ssl.Purpose.SERVER_AUTH, cafile=self.verify_ssl)
             else:
-                ssl_config = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH, cafile=certifi.where())
+                ssl_config = ssl.create_default_context(ssl.Purpose.SERVER_AUTH, cafile=certifi.where())
 
         connection_params = {
             'ssl': ssl_config,
