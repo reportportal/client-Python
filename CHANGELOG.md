@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.5.7]
 ### Added
 - `helpers.to_bool` function, by @HardNorth
 - Official `Python 3.12` support, by @HardNorth
