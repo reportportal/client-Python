@@ -151,10 +151,11 @@ class RP(metaclass=AbstractBaseClass):
                         attributes: Optional[Union[List[dict], dict]] = None,
                         parameters: Optional[dict] = None,
                         parent_item_id: Optional[str] = None,
-                        has_stats: bool = True,
+                        has_stats: Optional[bool] = True,
                         code_ref: Optional[str] = None,
-                        retry: bool = False,
+                        retry: Optional[bool] = False,
                         test_case_id: Optional[str] = None,
+                        retry_of: Optional[str] = None,
                         **kwargs: Any) -> Optional[str]:
         """Start Test Case/Suite/Step/Nested Step Item.
 
@@ -172,6 +173,8 @@ class RP(metaclass=AbstractBaseClass):
         :param code_ref:       Physical location of the Test Item.
         :param retry:          Used to report retry of the test. Allowed values: "True" or "False".
         :param test_case_id:   A unique ID of the current Step.
+        :param retry_of:       For retry mode specifies which test item will be marked as retried. Should be used
+                               with the 'retry' parameter.
         :return:               Test Item UUID if successfully started or None.
         """
         raise NotImplementedError('"start_test_item" method is not implemented!')
@@ -180,31 +183,36 @@ class RP(metaclass=AbstractBaseClass):
     def finish_test_item(self,
                          item_id: str,
                          end_time: str,
-                         status: str = None,
+                         status: Optional[str] = None,
                          issue: Optional[Issue] = None,
                          attributes: Optional[Union[list, dict]] = None,
-                         description: str = None,
-                         retry: bool = False,
+                         description: Optional[str] = None,
+                         retry: Optional[bool] = False,
+                         test_case_id: Optional[str] = None,
+                         retry_of: Optional[str] = None,
                          **kwargs: Any) -> Optional[str]:
         """Finish Test Suite/Case/Step/Nested Step Item.
 
-        :param item_id:     ID of the Test Item.
-        :param end_time:    The Item end time.
-        :param status:      Test status. Allowed values:
-                            PASSED, FAILED, STOPPED, SKIPPED, INTERRUPTED, CANCELLED, INFO, WARN or None.
-        :param issue:       Issue which will be attached to the current Item.
-        :param attributes:  Test Item attributes(tags). Pairs of key and value. These attributes override
-                            attributes on start Test Item call.
-        :param description: Test Item description. Overrides description from start request.
-        :param retry:       Used to report retry of the test. Allowed values: "True" or "False".
-        :return:            Response message.
+        :param item_id:      ID of the Test Item.
+        :param end_time:     The Item end time.
+        :param status:       Test status. Allowed values:
+                             PASSED, FAILED, STOPPED, SKIPPED, INTERRUPTED, CANCELLED, INFO, WARN or None.
+        :param issue:        Issue which will be attached to the current Item.
+        :param attributes:   Test Item attributes(tags). Pairs of key and value. These attributes override
+                             attributes on start Test Item call.
+        :param description:  Test Item description. Overrides description from start request.
+        :param retry:        Used to report retry of the test. Allowed values: "True" or "False".
+        :param test_case_id: A unique ID of the current Step.
+        :param retry_of:     For retry mode specifies which test item will be marked as retried. Should be used
+                             with the 'retry' parameter.
+        :return:             Response message.
         """
         raise NotImplementedError('"finish_test_item" method is not implemented!')
 
     @abstractmethod
     def finish_launch(self,
                       end_time: str,
-                      status: str = None,
+                      status: Optional[str] = None,
                       attributes: Optional[Union[list, dict]] = None,
                       **kwargs: Any) -> Optional[str]:
         """Finish a Launch.
@@ -574,6 +582,7 @@ class RPClient(RP):
                         code_ref: Optional[str] = None,
                         retry: bool = False,
                         test_case_id: Optional[str] = None,
+                        retry_of: Optional[str] = None,
                         **_: Any) -> Optional[str]:
         """Start Test Case/Suite/Step/Nested Step Item.
 
@@ -591,6 +600,8 @@ class RPClient(RP):
         :param code_ref:       Physical location of the Test Item.
         :param retry:          Used to report retry of the test. Allowed values: "True" or "False".
         :param test_case_id:   A unique ID of the current Step.
+        :param retry_of:       For retry mode specifies which test item will be marked as retried. Should be used
+                               with the 'retry' parameter.
         :return:               Test Item UUID if successfully started or None.
         """
         if parent_item_id is NOT_FOUND:
@@ -611,7 +622,8 @@ class RPClient(RP):
             has_stats=has_stats,
             parameters=parameters,
             retry=retry,
-            test_case_id=test_case_id
+            test_case_id=test_case_id,
+            retry_of=retry_of
         ).payload
 
         response = HttpRequest(self.session.post, url=url, json=request_payload, verify_ssl=self.verify_ssl,
@@ -630,24 +642,29 @@ class RPClient(RP):
     def finish_test_item(self,
                          item_id: str,
                          end_time: str,
-                         status: str = None,
+                         status: Optional[str] = None,
                          issue: Optional[Issue] = None,
                          attributes: Optional[Union[list, dict]] = None,
-                         description: str = None,
-                         retry: bool = False,
+                         description: Optional[str] = None,
+                         retry: Optional[bool] = False,
+                         test_case_id: Optional[str] = None,
+                         retry_of: Optional[str] = None,
                          **kwargs: Any) -> Optional[str]:
         """Finish Test Suite/Case/Step/Nested Step Item.
 
-        :param item_id:     ID of the Test Item.
-        :param end_time:    The Item end time.
-        :param status:      Test status. Allowed values:
-                            PASSED, FAILED, STOPPED, SKIPPED, INTERRUPTED, CANCELLED, INFO, WARN or None.
-        :param issue:       Issue which will be attached to the current Item.
-        :param attributes:  Test Item attributes(tags). Pairs of key and value. These attributes override
-                            attributes on start Test Item call.
-        :param description: Test Item description. Overrides description from start request.
-        :param retry:       Used to report retry of the test. Allowed values: "True" or "False".
-        :return:            Response message.
+        :param item_id:      ID of the Test Item.
+        :param end_time:     The Item end time.
+        :param status:       Test status. Allowed values:
+                             PASSED, FAILED, STOPPED, SKIPPED, INTERRUPTED, CANCELLED, INFO, WARN or None.
+        :param issue:        Issue which will be attached to the current Item.
+        :param attributes:   Test Item attributes(tags). Pairs of key and value. These attributes override
+                             attributes on start Test Item call.
+        :param description:  Test Item description. Overrides description from start request.
+        :param retry:        Used to report retry of the test. Allowed values: "True" or "False".
+        :param test_case_id: A unique ID of the current Step.
+        :param retry_of:     For retry mode specifies which test item will be marked as retried. Should be used
+                             with the 'retry' parameter.
+        :return:             Response message.
         """
         if item_id is NOT_FOUND or not item_id:
             logger.warning('Attempt to finish non-existent item')
@@ -661,7 +678,9 @@ class RPClient(RP):
             description=description,
             is_skipped_an_issue=self.is_skipped_an_issue,
             issue=issue,
-            retry=retry
+            retry=retry,
+            test_case_id=test_case_id,
+            retry_of=retry_of
         ).payload
         response = HttpRequest(self.session.put, url=url, json=request_payload, verify_ssl=self.verify_ssl,
                                http_timeout=self.http_timeout).make()
@@ -674,14 +693,14 @@ class RPClient(RP):
 
     def finish_launch(self,
                       end_time: str,
-                      status: str = None,
+                      status: Optional[str] = None,
                       attributes: Optional[Union[list, dict]] = None,
                       **kwargs: Any) -> Optional[str]:
         """Finish launch.
 
         :param end_time:    Launch end time
         :param status:      Launch status. Can be one of the followings:
-                            PASSED, FAILED, STOPPED, SKIPPED, RESETED,
+                            PASSED, FAILED, STOPPED, SKIPPED, RESET,
                             CANCELLED
         :param attributes:  Launch attributes
         """
