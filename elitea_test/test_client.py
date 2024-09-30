@@ -163,3 +163,33 @@ def test_close(rp_client):
     with patch.object(rp_client, 'close') as mock_close:
         rp_client.close()
         mock_close.assert_called_once()
+
+def test_is_skipped_an_issue(rp_client):
+    assert rp_client.is_skipped_an_issue is True
+
+def test_verify_ssl(rp_client):
+    assert rp_client.verify_ssl is True
+
+def test_retries(rp_client):
+    assert rp_client.retries == 3
+
+def test_max_pool_size(rp_client):
+    assert rp_client.max_pool_size == 50
+
+def test_http_timeout(rp_client):
+    assert rp_client.http_timeout == (10, 10)
+
+def test_log_batch_payload_size(rp_client):
+    assert rp_client.log_batch_payload_size == 1024
+
+def test_mode(rp_client):
+    assert rp_client.mode == "DEFAULT"
+
+def test_launch_uuid_print(rp_client):
+    assert rp_client.launch_uuid_print is False
+
+def test_print_output(rp_client):
+    assert rp_client.print_output == OutputType.STDOUT
+
+def test_log_batch_size(rp_client):
+    assert rp_client.log_batch_size == 20
