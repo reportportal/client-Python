@@ -700,8 +700,7 @@ class RPClient(RP):
 
         :param end_time:    Launch end time
         :param status:      Launch status. Can be one of the followings:
-                            PASSED, FAILED, STOPPED, SKIPPED, RESET,
-                            CANCELLED
+                            PASSED, FAILED, STOPPED, SKIPPED, CANCELLED
         :param attributes:  Launch attributes
         """
         if self.use_own_launch:
