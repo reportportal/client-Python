@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.5.8]
 ### Removed
 - Retries of requests ended with `504` HTTP status code, since it's not clear if the request was delivered or not, by @HardNorth
 ### Changed
