@@ -270,9 +270,10 @@ class ItemStartRequest(RPRequestBase):
     attributes: Optional[Union[list, dict]]
     code_ref: Optional[str]
     description: Optional[str]
-    has_stats: bool
+    has_stats: Optional[bool]
     parameters: Optional[Union[list, dict]]
-    retry: bool
+    retry: Optional[bool]
+    retry_of: Optional[str]
     test_case_id: Optional[str]
 
     @staticmethod
@@ -283,6 +284,7 @@ class ItemStartRequest(RPRequestBase):
             'hasStats': kwargs.get('has_stats'),
             'name': kwargs['name'],
             'retry': kwargs.get('retry'),
+            'retryOf': kwargs.get('retry_of'),
             'startTime': kwargs['start_time'],
             'testCaseId': kwargs.get('test_case_id'),
             'type': kwargs['type'],
@@ -340,12 +342,14 @@ class ItemFinishRequest(RPRequestBase):
 
     end_time: str
     launch_uuid: Any
-    status: str
+    status: Optional[str]
     attributes: Optional[Union[list, dict]]
-    description: str
-    is_skipped_an_issue: bool
-    issue: Issue
-    retry: bool
+    description: Optional[str]
+    is_skipped_an_issue: Optional[bool]
+    issue: Optional[Issue]
+    retry: Optional[bool]
+    retry_of: Optional[str]
+    test_case_id: Optional[str]
 
     @staticmethod
     def _create_request(**kwargs) -> dict:
@@ -354,21 +358,22 @@ class ItemFinishRequest(RPRequestBase):
             'endTime': kwargs['end_time'],
             'launchUuid': kwargs['launch_uuid'],
             'status': kwargs.get('status'),
-            'retry': kwargs.get('retry')
+            'retry': kwargs.get('retry'),
+            'retryOf': kwargs.get('retry_of'),
+            'testCaseId': kwargs.get('test_case_id'),
         }
         attributes = kwargs.get('attributes')
         if attributes and isinstance(attributes, dict):
             attributes = dict_to_payload(kwargs['attributes'])
         request['attributes'] = attributes
 
+        issue_payload = None
         if kwargs.get('issue') is None and (
                 kwargs.get('status') is not None and kwargs.get('status').lower() == 'skipped'
         ) and not kwargs.get('is_skipped_an_issue'):
             issue_payload = {'issue_type': 'NOT_ISSUE'}
         elif kwargs.get('issue') is not None:
             issue_payload = kwargs.get('issue').payload
-        else:
-            issue_payload = None
         request['issue'] = issue_payload
         return request
 

@@ -1,6 +1,14 @@
 # Changelog
 
 ## [Unreleased]
+### Removed
+- Retries of requests ended with `504` HTTP status code, since it's not clear if the request was delivered or not, by @HardNorth
+### Changed
+- `client.RP.start_test_item` method and all its children now accept `retry_of` argument, by @HardNorth
+- `client.RP.finish_test_item` method and all its children now accept `retry_of` argument, by @HardNorth
+- `client.RP.finish_test_item` method and all its children now accept `test_case_id` argument, by @HardNorth
+
+## [5.5.7]
 ### Added
 - `helpers.to_bool` function, by @HardNorth
 - Official `Python 3.12` support, by @HardNorth
