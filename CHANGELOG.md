@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.5.9]
 ### Fixed
 - Empty parameter Dict conversion, by @HardNorth
 
