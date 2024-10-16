@@ -295,7 +295,7 @@ class ItemStartRequest(RPRequestBase):
             attributes = dict_to_payload(kwargs['attributes'])
         request['attributes'] = attributes
         parameters = kwargs.get('parameters')
-        if parameters and isinstance(parameters, dict):
+        if parameters is not None and isinstance(parameters, dict):
             parameters = dict_to_payload(kwargs['parameters'])
         request['parameters'] = parameters
         return request

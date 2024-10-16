@@ -130,7 +130,7 @@ def dict_to_payload(dictionary: Optional[dict]) -> Optional[List[dict]]:
     :param dictionary:  Dictionary containing tags/attributes
     :return list:       List of tags/attributes in the required format
     """
-    if not dictionary:
+    if dictionary is None:
         return dictionary
     my_dictionary = dict(dictionary)
 
