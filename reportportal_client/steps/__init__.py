@@ -66,11 +66,7 @@ class StepReporter:
         """
         self.client = rp_client
 
-    def start_nested_step(self,
-                          name,
-                          start_time,
-                          parameters=None,
-                          **kwargs):
+    def start_nested_step(self, name, start_time, parameters=None, **_):
         """Start Nested Step on ReportPortal.
 
         :param name:       Nested Step name
@@ -80,16 +76,10 @@ class StepReporter:
         parent_id = self.client.current_item()
         if not parent_id:
             return
-        return self.client.start_test_item(name, start_time, 'step',
-                                           has_stats=False,
-                                           parameters=parameters,
-                                           parent_item_id=parent_id)
+        return self.client.start_test_item(
+            name, start_time, 'step', has_stats=False, parameters=parameters, parent_item_id=parent_id)
 
-    def finish_nested_step(self,
-                           item_id,
-                           end_time,
-                           status=None,
-                           **kwargs):
+    def finish_nested_step(self, item_id, end_time, status=None, **_):
         """Finish a Nested Step on ReportPortal.
 
         :param item_id:  Nested Step item ID
@@ -125,16 +115,14 @@ class Step:
         rp_client = self.client or current()
         if not rp_client:
             return
-        self.__item_id = rp_client.step_reporter \
-            .start_nested_step(self.name, timestamp(), parameters=self.params)
+        self.__item_id = rp_client.step_reporter.start_nested_step(self.name, timestamp(), parameters=self.params)
         if self.params:
             param_list = [
                 str(key) + ": " + str(value)
                 for key, value in sorted(self.params.items())
             ]
             param_str = 'Parameters: ' + '; '.join(param_list)
-            rp_client.log(timestamp(), param_str, level='INFO',
-                          item_id=self.__item_id)
+            rp_client.log(timestamp(), param_str, level='INFO', item_id=self.__item_id)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Exit the runtime context related to this object."""
@@ -148,8 +136,7 @@ class Step:
         step_status = self.status
         if any((exc_type, exc_val, exc_tb)):
             step_status = 'FAILED'
-        rp_client.step_reporter \
-            .finish_nested_step(self.__item_id, timestamp(), step_status)
+        rp_client.step_reporter.finish_nested_step(self.__item_id, timestamp(), step_status)
 
     def __call__(self, func):
         """Wrap and call a function reference.
