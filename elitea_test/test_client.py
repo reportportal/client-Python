@@ -193,3 +193,220 @@ def test_print_output(rp_client):
 
 def test_log_batch_size(rp_client):
     assert rp_client.log_batch_size == 20
+
+
+# Error Handling Tests
+
+def test_start_launch_network_error(rp_client):
+    with patch.object(rp_client.session, 'post', side_effect=requests.exceptions.ConnectionError):
+        result = rp_client.start_launch(
+            name="Test Launch",
+            start_time="2023-01-01T00:00:00.000Z",
+            description="Test Description",
+            attributes=[{"key": "value"}],
+            rerun=False,
+            rerun_of=None
+        )
+        assert result is None
+
+
+def test_start_test_item_network_error(rp_client):
+    with patch.object(rp_client.session, 'post', side_effect=requests.exceptions.ConnectionError):
+        result = rp_client.start_test_item(
+            name="Test Item",
+            start_time="2023-01-01T00:00:00.000Z",
+            item_type="test",
+            description="Test Description",
+            attributes=[{"key": "value"}],
+            parameters={"param": "value"},
+            parent_item_id=None,
+            has_stats=True,
+            code_ref=None,
+            retry=False,
+            test_case_id=None
+        )
+        assert result is None
+
+
+def test_finish_test_item_network_error(rp_client):
+    with patch.object(rp_client.session, 'put', side_effect=requests.exceptions.ConnectionError):
+        result = rp_client.finish_test_item(
+            item_id="item_uuid",
+            end_time="2023-01-01T00:00:00.000Z",
+            status="PASSED",
+            issue=None,
+            attributes=[{"key": "value"}],
+            description="Test Description",
+            retry=False
+        )
+        assert result is None
+
+
+def test_finish_launch_network_error(rp_client):
+    with patch.object(rp_client.session, 'put', side_effect=requests.exceptions.ConnectionError):
+        result = rp_client.finish_launch(
+            end_time="2023-01-01T00:00:00.000Z",
+            status="PASSED",
+            attributes=[{"key": "value"}]
+        )
+        assert result is None
+
+
+def test_update_test_item_network_error(rp_client):
+    with patch.object(rp_client.session, 'put', side_effect=requests.exceptions.ConnectionError):
+        result = rp_client.update_test_item(
+            item_uuid="item_uuid",
+            attributes=[{"key": "value"}],
+            description="Updated Description"
+        )
+        assert result is None
+
+
+def test_get_launch_info_network_error(rp_client):
+    with patch.object(rp_client.session, 'get', side_effect=requests.exceptions.ConnectionError):
+        result = rp_client.get_launch_info()
+        assert result is None
+
+
+def test_get_item_id_by_uuid_network_error(rp_client):
+    with patch.object(rp_client.session, 'get', side_effect=requests.exceptions.ConnectionError):
+        result = rp_client.get_item_id_by_uuid("item_uuid")
+        assert result is None
+
+
+def test_get_launch_ui_id_network_error(rp_client):
+    with patch.object(rp_client.session, 'get', side_effect=requests.exceptions.ConnectionError):
+        result = rp_client.get_launch_ui_id()
+        assert result is None
+
+
+def test_get_launch_ui_url_network_error(rp_client):
+    with patch.object(rp_client.session, 'get', side_effect=requests.exceptions.ConnectionError):
+        result = rp_client.get_launch_ui_url()
+        assert result is None
+
+
+def test_get_project_settings_network_error(rp_client):
+    with patch.object(rp_client.session, 'get', side_effect=requests.exceptions.ConnectionError):
+        result = rp_client.get_project_settings()
+        assert result is None
+
+
+def test_log_network_error(rp_client):
+    with patch.object(rp_client.session, 'post', side_effect=requests.exceptions.ConnectionError):
+        result = rp_client.log(
+            time="2023-01-01T00:00:00.000Z",
+            message="Test log message",
+            level="INFO",
+            attachment=None,
+            item_id="item_uuid"
+        )
+        assert result is None
+
+
+# Parameterized Tests
+@pytest.mark.parametrize("name, start_time, description, attributes, rerun, rerun_of", [
+    ("Launch 1", "2023-01-01T00:00:00.000Z", "Description 1", [{"key": "value1"}], False, None),
+    ("Launch 2", "2023-01-02T00:00:00.000Z", "Description 2", [{"key": "value2"}], True, "rerun_uuid")
+])
+def test_start_launch_param(rp_client, name, start_time, description, attributes, rerun, rerun_of):
+    with patch.object(rp_client, 'start_launch', return_value="launch_uuid") as mock_start_launch:
+        result = rp_client.start_launch(
+            name=name,
+            start_time=start_time,
+            description=description,
+            attributes=attributes,
+            rerun=rerun,
+            rerun_of=rerun_of
+        )
+        assert result == "launch_uuid"
+        mock_start_launch.assert_called_once()
+
+
+@pytest.mark.parametrize("name, start_time, item_type, description, attributes, parameters, parent_item_id, has_stats, code_ref, retry, test_case_id", [
+    ("Item 1", "2023-01-01T00:00:00.000Z", "test", "Description 1", [{"key": "value1"}], {"param1": "value1"}, None, True, None, False, None),
+    ("Item 2", "2023-01-02T00:00:00.000Z", "test", "Description 2", [{"key": "value2"}], {"param2": "value2"}, "parent_uuid", False, "code_ref", True, "test_case_id")
+])
+def test_start_test_item_param(rp_client, name, start_time, item_type, description, attributes, parameters, parent_item_id, has_stats, code_ref, retry, test_case_id):
+    with patch.object(rp_client, 'start_test_item', return_value="item_uuid") as mock_start_test_item:
+        result = rp_client.start_test_item(
+            name=name,
+            start_time=start_time,
+            item_type=item_type,
+            description=description,
+            attributes=attributes,
+            parameters=parameters,
+            parent_item_id=parent_item_id,
+            has_stats=has_stats,
+            code_ref=code_ref,
+            retry=retry,
+            test_case_id=test_case_id
+        )
+        assert result == "item_uuid"
+        mock_start_test_item.assert_called_once()
+
+
+@pytest.mark.parametrize("item_id, end_time, status, issue, attributes, description, retry", [
+    ("item_uuid_1", "2023-01-01T00:00:00.000Z", "PASSED", None, [{"key": "value1"}], "Description 1", False),
+    ("item_uuid_2", "2023-01-02T00:00:00.000Z", "FAILED", Issue(), [{"key": "value2"}], "Description 2", True)
+])
+def test_finish_test_item_param(rp_client, item_id, end_time, status, issue, attributes, description, retry):
+    with patch.object(rp_client, 'finish_test_item', return_value="response") as mock_finish_test_item:
+        result = rp_client.finish_test_item(
+            item_id=item_id,
+            end_time=end_time,
+            status=status,
+            issue=issue,
+            attributes=attributes,
+            description=description,
+            retry=retry
+        )
+        assert result == "response"
+        mock_finish_test_item.assert_called_once()
+
+
+@pytest.mark.parametrize("end_time, status, attributes", [
+    ("2023-01-01T00:00:00.000Z", "PASSED", [{"key": "value1"}]),
+    ("2023-01-02T00:00:00.000Z", "FAILED", [{"key": "value2"}])
+])
+def test_finish_launch_param(rp_client, end_time, status, attributes):
+    with patch.object(rp_client, 'finish_launch', return_value="response") as mock_finish_launch:
+        result = rp_client.finish_launch(
+            end_time=end_time,
+            status=status,
+            attributes=attributes
+        )
+        assert result == "response"
+        mock_finish_launch.assert_called_once()
+
+
+@pytest.mark.parametrize("item_uuid, attributes, description", [
+    ("item_uuid_1", [{"key": "value1"}], "Updated Description 1"),
+    ("item_uuid_2", [{"key": "value2"}], "Updated Description 2")
+])
+def test_update_test_item_param(rp_client, item_uuid, attributes, description):
+    with patch.object(rp_client, 'update_test_item', return_value="response") as mock_update_test_item:
+        result = rp_client.update_test_item(
+            item_uuid=item_uuid,
+            attributes=attributes,
+            description=description
+        )
+        assert result == "response"
+        mock_update_test_item.assert_called_once()
+
+
+@pytest.mark.parametrize("time, message, level, attachment, item_id", [
+    ("2023-01-01T00:00:00.000Z", "Test log message 1", "INFO", None, "item_uuid_1"),
+    ("2023-01-02T00:00:00.000Z", "Test log message 2", "ERROR", {"name": "attachment.txt", "data": b"data"}, "item_uuid_2")
+])
+def test_log_param(rp_client, time, message, level, attachment, item_id):
+    with patch.object(rp_client, 'log', return_value=("response",)) as mock_log:
+        result = rp_client.log(
+            time=time,
+            message=message,
+            level=level,
+            attachment=attachment,
+            item_id=item_id
+        )
+        assert result == ("response",)
+        mock_log.assert_called_once()
