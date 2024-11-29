@@ -20,37 +20,59 @@ from unittest import mock
 from reportportal_client.core.rp_responses import RPResponse, AsyncRPResponse
 
 
+class JSONDecodeError(ValueError):
+    pass
+
+
 def json_error():
     raise json.JSONDecodeError('Expecting value: line 1 column 1 (char 0)', '<html />', 0)
 
 
+def custom_error():
+    raise JSONDecodeError('Expecting value: line 1 column 1 (char 0)')
+
+
 @mock.patch('reportportal_client.core.rp_responses.logging.Logger.error')
-def test_json_decode_error(error_log):
+@pytest.mark.parametrize('ok, response_code, error_function, expected_message', [
+    (False, 404, json_error, 'Unable to decode JSON response, got failed response with code "404" please check your '
+                             'endpoint configuration or API key'),
+    (True, 200, json_error, 'Unable to decode JSON response, got passed response with code "200" please check your '
+                            'endpoint configuration or API key'),
+    (True, 200, custom_error, 'Unable to decode JSON response, got passed response with code "200" please check your '
+                              'endpoint configuration or API key'),
+])
+def test_custom_decode_error(error_log, ok, response_code, error_function, expected_message):
     response = mock.Mock()
-    response.ok = False
+    response.ok = ok
     del response.status
-    response.status_code = 404
-    response.json.side_effect = json_error
+    response.status_code = response_code
+    response.json.side_effect = error_function
 
     rp_response = RPResponse(response)
     assert rp_response.json is None
     error_log.assert_called_once()
-    assert error_log.call_args_list[0][0][0] == ('Unable to decode JSON response, got failed response with code "404" '
-                                                 'please check your endpoint configuration or API key')
+    assert error_log.call_args_list[0][0][0] == expected_message
 
 
 @pytest.mark.skipif(sys.version_info < (3, 8),
                     reason='the test requires AsyncMock which was introduced in Python 3.8')
 @mock.patch('reportportal_client.core.rp_responses.logging.Logger.error')
 @pytest.mark.asyncio
-async def test_json_decode_error_async(error_log):
+@pytest.mark.parametrize('ok, response_code, error_function, expected_message', [
+    (False, 404, json_error, 'Unable to decode JSON response, got failed response with code "404" please check your '
+                             'endpoint configuration or API key'),
+    (True, 200, json_error, 'Unable to decode JSON response, got passed response with code "200" please check your '
+                            'endpoint configuration or API key'),
+    (True, 200, custom_error, 'Unable to decode JSON response, got passed response with code "200" please check your '
+                              'endpoint configuration or API key'),
+])
+async def test_json_decode_error_async(error_log, ok, response_code, error_function, expected_message):
     response = mock.AsyncMock()
-    response.ok = False
-    response.status = 403
-    response.json.side_effect = json_error
+    response.ok = ok
+    response.status = response_code
+    response.json.side_effect = error_function
 
     rp_response = AsyncRPResponse(response)
     assert await rp_response.json is None
     error_log.assert_called_once()
-    assert error_log.call_args_list[0][0][0] == ('Unable to decode JSON response, got failed response with code "403" '
-                                                 'please check your endpoint configuration or API key')
+    assert error_log.call_args_list[0][0][0] == expected_message
