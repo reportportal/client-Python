@@ -12,7 +12,6 @@
 #  limitations under the License
 
 import pickle
-import sys
 from unittest import mock
 
 # noinspection PyPackageRequirements

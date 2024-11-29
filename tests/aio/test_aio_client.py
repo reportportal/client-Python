@@ -12,7 +12,6 @@
 #  limitations under the License
 import os
 import pickle
-import sys
 from io import StringIO
 from json import JSONDecodeError
 from ssl import SSLContext
