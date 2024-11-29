@@ -146,7 +146,7 @@ async def test_launch_url_get(aio_client, launch_mode: str, project_name: str, e
     response.is_success = True
     response.json.side_effect = lambda: {'mode': launch_mode, 'id': LAUNCH_ID}
 
-    async def get_call(*args, **kwargs):
+    async def get_call(*_, **__):
         return response
 
     (await aio_client.session()).get.side_effect = get_call
@@ -365,15 +365,15 @@ async def test_launch_uuid_print_default_print(mock_stdout):
     assert 'ReportPortal Launch UUID: ' not in mock_stdout.getvalue()
 
 
-def connection_error(*args, **kwargs):
+def connection_error(*_, **__):
     raise ServerConnectionError()
 
 
-def json_error(*args, **kwargs):
+def json_error(*_, **__):
     raise JSONDecodeError('invalid Json', '502 Gateway Timeout', 0)
 
 
-def response_error(*args, **kwargs):
+def response_error(*_, **__):
     result = mock.AsyncMock()
     result.ok = False
     result.json.side_effect = json_error
@@ -381,7 +381,7 @@ def response_error(*args, **kwargs):
     return result
 
 
-def invalid_response(*args, **kwargs):
+def invalid_response(*_, **__):
     result = mock.AsyncMock()
     result.ok = True
     result.json.side_effect = json_error
@@ -389,7 +389,7 @@ def invalid_response(*args, **kwargs):
     return result
 
 
-def request_error(*args, **kwargs):
+def request_error(*_, **__):
     raise ValueError()
 
 
@@ -417,7 +417,7 @@ async def test_connection_errors(aio_client, requests_method, client_method,
         await getattr(aio_client, client_method)(*client_params)
     except Exception as e:
         # On this level we pass all errors through by design
-        assert type(e) == ServerConnectionError
+        assert type(e) is ServerConnectionError
 
     getattr(await aio_client.session(), requests_method).side_effect = response_error
     result = await getattr(aio_client, client_method)(*client_params)
