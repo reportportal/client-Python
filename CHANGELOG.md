@@ -1,6 +1,12 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- Official `Python 3.13` support, by @HardNorth
+### Fixed
+- Issue [#244](https://github.com/reportportal/client-Python/issues/244): Client crash on different error responses, by @HardNorth
+
+## [5.5.9]
 ### Fixed
 - Empty parameter Dict conversion, by @HardNorth
 
