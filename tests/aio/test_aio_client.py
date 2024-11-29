@@ -71,9 +71,6 @@ async def test_retries_param(retry_num, expected_class, expected_param):
         assert getattr(session, '_RetryingClientSession__retry_number') == expected_param
 
 
-@pytest.mark.skipif(sys.version_info < (3, 8),
-                    reason="For some reasons this does not work on Python 3.7 on Ubuntu, "
-                           "but works on my Mac. Unfortunately GHA use Python 3.7 on Ubuntu.")
 @pytest.mark.parametrize(
     'timeout_param, expected_connect_param, expected_sock_read_param',
     [
@@ -134,8 +131,6 @@ EXPECTED_DEFAULT_URL = f'http://endpoint/ui/#project/launches/all/{LAUNCH_ID}'
 EXPECTED_DEBUG_URL = f'http://endpoint/ui/#project/userdebug/all/{LAUNCH_ID}'
 
 
-@pytest.mark.skipif(sys.version_info < (3, 8),
-                    reason="the test requires AsyncMock which was introduced in Python 3.8")
 @pytest.mark.parametrize(
     'launch_mode, project_name, expected_url',
     [
@@ -160,9 +155,6 @@ async def test_launch_url_get(aio_client, launch_mode: str, project_name: str, e
     assert await (aio_client.get_launch_ui_url('test_launch_uuid')) == expected_url
 
 
-@pytest.mark.skipif(sys.version_info < (3, 8),
-                    reason="For some reasons this does not work on Python 3.7 on Ubuntu, "
-                           "but works on my Mac. Unfortunately GHA use Python 3.7 on Ubuntu.")
 @pytest.mark.parametrize('default', [True, False])
 @mock.patch('reportportal_client.aio.client.aiohttp.TCPConnector')
 @pytest.mark.asyncio
@@ -179,9 +171,6 @@ async def test_verify_ssl_default(connector_mock: mock.Mock, default: bool):
     assert len(ssl_context.get_ca_certs()) > 0
 
 
-@pytest.mark.skipif(sys.version_info < (3, 8),
-                    reason="For some reasons this does not work on Python 3.7 on Ubuntu, "
-                           "but works on my Mac. Unfortunately GHA use Python 3.7 on Ubuntu.")
 @pytest.mark.parametrize('param_value', [False, None])
 @mock.patch('reportportal_client.aio.client.aiohttp.TCPConnector')
 @pytest.mark.asyncio
@@ -194,9 +183,6 @@ async def test_verify_ssl_off(connector_mock: mock.Mock, param_value):
     assert ssl_context is not None and isinstance(ssl_context, bool) and not ssl_context
 
 
-@pytest.mark.skipif(sys.version_info < (3, 8),
-                    reason="For some reasons this does not work on Python 3.7 on Ubuntu, "
-                           "but works on my Mac. Unfortunately GHA use Python 3.7 on Ubuntu.")
 @mock.patch('reportportal_client.aio.client.aiohttp.TCPConnector')
 @pytest.mark.asyncio
 async def test_verify_ssl_str(connector_mock: mock.Mock):
@@ -213,9 +199,6 @@ async def test_verify_ssl_str(connector_mock: mock.Mock):
     assert certificate['notAfter'] == 'Jun  4 11:04:38 2035 GMT'
 
 
-@pytest.mark.skipif(sys.version_info < (3, 8),
-                    reason="For some reasons this does not work on Python 3.7 on Ubuntu, "
-                           "but works on my Mac. Unfortunately GHA use Python 3.7 on Ubuntu.")
 @mock.patch('reportportal_client.aio.client.aiohttp.TCPConnector')
 @pytest.mark.asyncio
 async def test_keepalive_timeout(connector_mock: mock.Mock):
@@ -229,8 +212,6 @@ async def test_keepalive_timeout(connector_mock: mock.Mock):
     assert timeout is not None and timeout == keepalive_timeout
 
 
-@pytest.mark.skipif(sys.version_info < (3, 8),
-                    reason="the test requires AsyncMock which was introduced in Python 3.8")
 @pytest.mark.asyncio
 async def test_close(aio_client: Client):
     # noinspection PyTypeChecker
@@ -260,8 +241,6 @@ def verify_attributes(expected_attributes: Optional[dict], actual_attributes: Op
         assert attribute.get('system') == hidden
 
 
-@pytest.mark.skipif(sys.version_info < (3, 8),
-                    reason='the test requires AsyncMock which was introduced in Python 3.8')
 @pytest.mark.asyncio
 async def test_start_launch(aio_client: Client):
     # noinspection PyTypeChecker
@@ -292,8 +271,6 @@ async def test_start_launch(aio_client: Client):
     verify_attributes(attributes, actual_attributes)
 
 
-@pytest.mark.skipif(sys.version_info < (3, 8),
-                    reason='the test requires AsyncMock which was introduced in Python 3.8')
 @mock.patch('reportportal_client.aio.client.async_send_event')
 @pytest.mark.asyncio
 async def test_start_launch_statistics_send(async_send_event):
@@ -321,8 +298,6 @@ async def test_start_launch_statistics_send(async_send_event):
     assert len(kwargs.items()) == 0
 
 
-@pytest.mark.skipif(sys.version_info < (3, 8),
-                    reason='the test requires AsyncMock which was introduced in Python 3.8')
 @mock.patch('reportportal_client.aio.client.getenv')
 @mock.patch('reportportal_client.aio.client.async_send_event')
 @pytest.mark.asyncio
@@ -343,8 +318,6 @@ async def test_start_launch_no_statistics_send(async_send_event, getenv):
     async_send_event.assert_not_called()
 
 
-@pytest.mark.skipif(sys.version_info < (3, 8),
-                    reason="the test requires AsyncMock which was introduced in Python 3.8")
 @pytest.mark.asyncio
 async def test_launch_uuid_print():
     str_io = StringIO()
@@ -358,8 +331,6 @@ async def test_launch_uuid_print():
     assert 'ReportPortal Launch UUID: ' in str_io.getvalue()
 
 
-@pytest.mark.skipif(sys.version_info < (3, 8),
-                    reason="the test requires AsyncMock which was introduced in Python 3.8")
 @pytest.mark.asyncio
 async def test_no_launch_uuid_print():
     str_io = StringIO()
@@ -373,8 +344,6 @@ async def test_no_launch_uuid_print():
     assert 'ReportPortal Launch UUID: ' not in str_io.getvalue()
 
 
-@pytest.mark.skipif(sys.version_info < (3, 8),
-                    reason="the test requires AsyncMock which was introduced in Python 3.8")
 @pytest.mark.asyncio
 @mock.patch('reportportal_client.client.sys.stdout', new_callable=StringIO)
 async def test_launch_uuid_print_default_io(mock_stdout):
@@ -386,8 +355,6 @@ async def test_launch_uuid_print_default_io(mock_stdout):
     assert 'ReportPortal Launch UUID: ' in mock_stdout.getvalue()
 
 
-@pytest.mark.skipif(sys.version_info < (3, 8),
-                    reason="the test requires AsyncMock which was introduced in Python 3.8")
 @pytest.mark.asyncio
 @mock.patch('reportportal_client.client.sys.stdout', new_callable=StringIO)
 async def test_launch_uuid_print_default_print(mock_stdout):
@@ -427,8 +394,6 @@ def request_error(*args, **kwargs):
     raise ValueError()
 
 
-@pytest.mark.skipif(sys.version_info < (3, 8),
-                    reason="the test requires AsyncMock which was introduced in Python 3.8")
 @pytest.mark.parametrize(
     'requests_method, client_method, client_params',
     [
@@ -479,8 +444,6 @@ def verify_parameters(expected_parameters: dict, actual_parameters: List[dict]):
         assert expected_parameters.get(attribute.get('key')) == attribute.get('value')
 
 
-@pytest.mark.skipif(sys.version_info < (3, 8),
-                    reason='the test requires AsyncMock which was introduced in Python 3.8')
 @pytest.mark.parametrize(
     'parent_id, expected_uri',
     [
@@ -533,8 +496,6 @@ async def test_start_test_item(aio_client: Client, parent_id, expected_uri):
     verify_parameters(parameters, actual_parameters)
 
 
-@pytest.mark.skipif(sys.version_info < (3, 8),
-                    reason='the test requires AsyncMock which was introduced in Python 3.8')
 @pytest.mark.asyncio
 async def test_start_test_item_default_values(aio_client: Client):
     # noinspection PyTypeChecker
@@ -576,8 +537,6 @@ def mock_basic_put_response(session):
     session.put.return_value = return_object
 
 
-@pytest.mark.skipif(sys.version_info < (3, 8),
-                    reason='the test requires AsyncMock which was introduced in Python 3.8')
 @pytest.mark.asyncio
 async def test_finish_test_item(aio_client: Client):
     # noinspection PyTypeChecker
@@ -618,8 +577,6 @@ async def test_finish_test_item(aio_client: Client):
         assert entry[1] == expected_issue[entry[0]]
 
 
-@pytest.mark.skipif(sys.version_info < (3, 8),
-                    reason='the test requires AsyncMock which was introduced in Python 3.8')
 @pytest.mark.asyncio
 async def test_finish_test_item_default_values(aio_client: Client):
     # noinspection PyTypeChecker
@@ -649,8 +606,6 @@ async def test_finish_test_item_default_values(aio_client: Client):
     assert actual_json.get('issue') is None
 
 
-@pytest.mark.skipif(sys.version_info < (3, 8),
-                    reason='the test requires AsyncMock which was introduced in Python 3.8')
 @pytest.mark.asyncio
 async def test_finish_launch(aio_client: Client):
     # noinspection PyTypeChecker
@@ -678,8 +633,6 @@ async def test_finish_launch(aio_client: Client):
     verify_attributes(attributes, actual_attributes)
 
 
-@pytest.mark.skipif(sys.version_info < (3, 8),
-                    reason='the test requires AsyncMock which was introduced in Python 3.8')
 @pytest.mark.asyncio
 async def test_finish_launch_default_values(aio_client: Client):
     # noinspection PyTypeChecker
@@ -711,8 +664,6 @@ def mock_basic_get_response(session):
     session.get.return_value = return_object
 
 
-@pytest.mark.skipif(sys.version_info < (3, 8),
-                    reason='the test requires AsyncMock which was introduced in Python 3.8')
 @pytest.mark.asyncio
 async def test_update_item(aio_client: Client):
     # noinspection PyTypeChecker
@@ -738,8 +689,6 @@ async def test_update_item(aio_client: Client):
     verify_attributes(attributes, actual_attributes)
 
 
-@pytest.mark.skipif(sys.version_info < (3, 8),
-                    reason='the test requires AsyncMock which was introduced in Python 3.8')
 @pytest.mark.asyncio
 async def test_get_item_id_by_uuid(aio_client: Client):
     # noinspection PyTypeChecker
@@ -756,8 +705,6 @@ async def test_get_item_id_by_uuid(aio_client: Client):
     assert expected_uri == call_args[0][0]
 
 
-@pytest.mark.skipif(sys.version_info < (3, 8),
-                    reason='the test requires AsyncMock which was introduced in Python 3.8')
 @pytest.mark.asyncio
 async def test_get_launch_ui_url(aio_client: Client):
     # noinspection PyTypeChecker
@@ -774,8 +721,6 @@ async def test_get_launch_ui_url(aio_client: Client):
     assert expected_uri == call_args[0][0]
 
 
-@pytest.mark.skipif(sys.version_info < (3, 8),
-                    reason='the test requires AsyncMock which was introduced in Python 3.8')
 @pytest.mark.parametrize(
     'method, mock_method, call_method, arguments',
     [

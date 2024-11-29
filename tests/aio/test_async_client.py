@@ -64,8 +64,6 @@ def test_clone():
            and async_client.current_item() == cloned.current_item()
 
 
-@pytest.mark.skipif(sys.version_info < (3, 8),
-                    reason='the test requires AsyncMock which was introduced in Python 3.8')
 @pytest.mark.asyncio
 async def test_start_launch():
     aio_client = mock.AsyncMock()
@@ -92,8 +90,6 @@ async def test_start_launch():
     assert kwargs.get('rerun_of') == rerun_of
 
 
-@pytest.mark.skipif(sys.version_info < (3, 8),
-                    reason='the test requires AsyncMock which was introduced in Python 3.8')
 @pytest.mark.parametrize(
     'launch_uuid, method, params',
     [
@@ -154,8 +150,6 @@ async def test_launch_uuid_usage(launch_uuid, method, params):
             assert args[i + 1] == param
 
 
-@pytest.mark.skipif(sys.version_info < (3, 8),
-                    reason='the test requires AsyncMock which was introduced in Python 3.8')
 @pytest.mark.asyncio
 async def test_start_item_tracking(async_client: AsyncRPClient):
     aio_client = async_client.client
@@ -174,8 +168,6 @@ async def test_start_item_tracking(async_client: AsyncRPClient):
     assert async_client.current_item() is None
 
 
-@pytest.mark.skipif(sys.version_info < (3, 8),
-                    reason='the test requires AsyncMock which was introduced in Python 3.8')
 @pytest.mark.asyncio
 async def test_logs_flush_on_close(async_client: AsyncRPClient):
     # noinspection PyTypeChecker

@@ -14,7 +14,6 @@
 """This module contains customized asynchronous Tasks and Task Factories for the ReportPortal client."""
 
 import asyncio
-import sys
 from abc import abstractmethod
 from asyncio import Future
 from typing import TypeVar, Generic, Union, Generator, Awaitable, Optional
@@ -54,10 +53,7 @@ class Task(Generic[_T], asyncio.Task, metaclass=AbstractBaseClass):
         :param name: the name of the task
         """
         self.name = name
-        if sys.version_info < (3, 8):
-            super().__init__(coro, loop=loop)
-        else:
-            super().__init__(coro, loop=loop, name=name)
+        super().__init__(coro, loop=loop, name=name)
 
     @abstractmethod
     def blocking_result(self) -> _T:

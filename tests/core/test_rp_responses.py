@@ -12,7 +12,6 @@
 #  limitations under the License
 
 import json
-import sys
 import pytest
 
 from unittest import mock
@@ -54,8 +53,6 @@ def test_custom_decode_error(error_log, ok, response_code, error_function, expec
     assert error_log.call_args_list[0][0][0] == expected_message
 
 
-@pytest.mark.skipif(sys.version_info < (3, 8),
-                    reason='the test requires AsyncMock which was introduced in Python 3.8')
 @mock.patch('reportportal_client.core.rp_responses.logging.Logger.error')
 @pytest.mark.asyncio
 @pytest.mark.parametrize('ok, response_code, error_function, expected_message', [

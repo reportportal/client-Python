@@ -12,7 +12,6 @@
 #  limitations under the License
 
 import pickle
-import sys
 from unittest import mock
 
 import pytest
@@ -76,8 +75,6 @@ def test_clone():
            and async_client.current_item() == cloned.current_item()
 
 
-@pytest.mark.skipif(sys.version_info < (3, 8),
-                    reason='the test requires AsyncMock which was introduced in Python 3.8')
 @pytest.mark.parametrize(
     'launch_uuid, method, params',
     [
@@ -137,8 +134,6 @@ def test_launch_uuid_usage(launch_uuid, method, params):
             assert args[i + 1] == param
 
 
-@pytest.mark.skipif(sys.version_info < (3, 8),
-                    reason='the test requires AsyncMock which was introduced in Python 3.8')
 def test_logs_flush_on_close(batched_client: ThreadedRPClient):
     batched_client.own_client = True
     # noinspection PyTypeChecker

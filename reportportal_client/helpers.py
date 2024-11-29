@@ -16,7 +16,6 @@
 import asyncio
 import inspect
 import logging
-import sys
 import threading
 import time
 import uuid
@@ -203,25 +202,13 @@ def get_package_parameters(package_name: str, parameters: List[str] = None) -> L
     if not parameters:
         return result
 
-    if sys.version_info < (3, 8):
-        from pkg_resources import get_distribution, DistributionNotFound
-        try:
-            package_info = get_distribution(package_name)
-        except DistributionNotFound:
-            return [None] * len(parameters)
-        for param in parameters:
-            if param.lower() == 'name':
-                param = 'project_name'
-            result.append(getattr(package_info, param, None))
-    else:
-        # noinspection PyCompatibility
-        from importlib.metadata import distribution, PackageNotFoundError
-        try:
-            package_info = distribution(package_name)
-        except PackageNotFoundError:
-            return [None] * len(parameters)
-        for param in parameters:
-            result.append(package_info.metadata[param.lower()[:1].upper() + param.lower()[1:]])
+    from importlib.metadata import distribution, PackageNotFoundError
+    try:
+        package_info = distribution(package_name)
+    except PackageNotFoundError:
+        return [None] * len(parameters)
+    for param in parameters:
+        result.append(package_info.metadata[param.lower()[:1].upper() + param.lower()[1:]])
     return result
 
 

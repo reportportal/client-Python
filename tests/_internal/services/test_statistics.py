@@ -22,7 +22,6 @@
 #  limitations under the License
 
 import re
-import sys
 from unittest import mock
 
 # noinspection PyPackageRequirements
@@ -107,13 +106,9 @@ def test_same_client_id(mocked_requests):
     assert result1 == result2
 
 
-MOCKED_AIOHTTP = None
-if not sys.version_info < (3, 8):
-    MOCKED_AIOHTTP = mock.AsyncMock()
+MOCKED_AIOHTTP = mock.AsyncMock()
 
 
-@pytest.mark.skipif(sys.version_info < (3, 8),
-                    reason="the test requires AsyncMock which was introduced in Python 3.8")
 @mock.patch('reportportal_client._internal.services.statistics.get_client_id',
             mock.Mock(return_value='555'))
 @mock.patch('reportportal_client._internal.services.statistics.aiohttp.ClientSession.post', MOCKED_AIOHTTP)
