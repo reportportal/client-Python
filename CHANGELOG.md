@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.5.10]
 ### Added
 - Official `Python 3.13` support, by @HardNorth
 ### Fixed
