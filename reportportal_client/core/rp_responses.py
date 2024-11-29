@@ -19,7 +19,6 @@ https://github.com/reportportal/documentation/blob/master/src/md/src/DevGuides/r
 """
 
 import logging
-from json import JSONDecodeError
 from typing import Any, Optional, Generator, Mapping, Tuple, Union
 
 from aiohttp import ClientResponse
@@ -88,7 +87,7 @@ class RPResponse:
         if self.__json is NOT_SET:
             try:
                 self.__json = self._resp.json()
-            except (JSONDecodeError, TypeError) as exc:
+            except (ValueError, TypeError) as exc:
                 logger.error(_get_json_decode_error_message(self._resp), exc_info=exc)
                 self.__json = None
         return self.__json
@@ -156,7 +155,7 @@ class AsyncRPResponse:
         if self.__json is NOT_SET:
             try:
                 self.__json = await self._resp.json()
-            except (JSONDecodeError, TypeError) as exc:
+            except (ValueError, TypeError) as exc:
                 logger.error(_get_json_decode_error_message(self._resp), exc_info=exc)
                 self.__json = None
         return self.__json
