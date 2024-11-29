@@ -15,7 +15,6 @@
 
 import asyncio
 import inspect
-import json
 import logging
 import sys
 import threading
@@ -26,6 +25,12 @@ from types import MappingProxyType
 from typing import Optional, Any, List, Dict, Callable, Tuple, Union, TypeVar, Generic, Iterable
 
 from reportportal_client.core.rp_file import RPFile
+
+try:
+    # noinspection PyPackageRequirements
+    import simplejson as json
+except ImportError:
+    import json
 
 logger: logging.Logger = logging.getLogger(__name__)
 _T = TypeVar('_T')

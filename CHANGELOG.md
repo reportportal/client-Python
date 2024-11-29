@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Fixed
+- Issue [#244](https://github.com/reportportal/client-Python/issues/244): Client crash on different error responses, by @HardNorth
 
 ## [5.5.9]
 ### Fixed

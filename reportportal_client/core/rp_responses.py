@@ -21,7 +21,7 @@ https://github.com/reportportal/documentation/blob/master/src/md/src/DevGuides/r
 import logging
 from typing import Any, Optional, Generator, Mapping, Tuple, Union
 
-from aiohttp import ClientResponse
+from aiohttp import ClientResponse, ClientError
 from requests import Response
 
 # noinspection PyProtectedMember
@@ -41,8 +41,9 @@ def _iter_json_messages(json: Any) -> Generator[str, None, None]:
 
 
 def _get_json_decode_error_message(response: Union[Response, ClientResponse]) -> str:
-    status = getattr(response, 'status', getattr(response, 'status_code'))
-    return f'Unable to decode JSON response, got {"passed" if response.ok else "failed"} ' \
+    status = getattr(response, 'status', getattr(response, 'status_code', None))
+    ok = getattr(response, 'ok', None)
+    return f'Unable to decode JSON response, got {"passed" if ok else "failed"} ' \
            f'response with code "{status}" please check your endpoint configuration or API key'
 
 
@@ -155,7 +156,7 @@ class AsyncRPResponse:
         if self.__json is NOT_SET:
             try:
                 self.__json = await self._resp.json()
-            except (ValueError, TypeError) as exc:
+            except (ValueError, TypeError, ClientError) as exc:
                 logger.error(_get_json_decode_error_message(self._resp), exc_info=exc)
                 self.__json = None
         return self.__json

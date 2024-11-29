@@ -19,7 +19,6 @@ https://github.com/reportportal/documentation/blob/master/src/md/src/DevGuides/r
 """
 
 import asyncio
-import json as json_converter
 import logging
 from dataclasses import dataclass
 from typing import Callable, Optional, Union, List, Tuple, Any, TypeVar
@@ -42,6 +41,12 @@ from reportportal_client.core.rp_file import RPFile
 from reportportal_client.core.rp_issues import Issue
 from reportportal_client.core.rp_responses import RPResponse, AsyncRPResponse
 from reportportal_client.helpers import dict_to_payload, await_if_necessary
+
+try:
+    # noinspection PyPackageRequirements
+    import simplejson as json_converter
+except ImportError:
+    import json as json_converter
 
 logger = logging.getLogger(__name__)
 T = TypeVar("T")
