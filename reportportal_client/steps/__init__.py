@@ -63,9 +63,9 @@ _Return = TypeVar('_Return')
 class StepReporter:
     """Nested Steps context handling class."""
 
-    client: rp.RP
+    client: 'rp.RP'
 
-    def __init__(self, rp_client: rp.RP):
+    def __init__(self, rp_client: 'rp.RP'):
         """Initialize required attributes.
 
         :param rp_client: ReportPortal client which will be used to report
@@ -104,10 +104,10 @@ class Step(Callable[[_Param], _Return]):
     name: str
     params: Dict
     status: str
-    client: Optional[rp.RP]
+    client: Optional['rp.RP']
     __item_id: Union[Optional[str], Task[Optional[str]]]
 
-    def __init__(self, name: str, params: Dict, status: str, rp_client: Optional[rp.RP]) -> None:
+    def __init__(self, name: str, params: Dict, status: str, rp_client: Optional['rp.RP']) -> None:
         """Initialize required attributes.
 
         :param name:      Nested Step name
@@ -173,7 +173,7 @@ class Step(Callable[[_Param], _Return]):
 
 
 def step(name_source: Union[Callable[[_Param], _Return], str], params: Optional[Dict] = None, status: str = 'PASSED',
-         rp_client: Optional[rp.RP] = None) -> Callable[[_Param], _Return]:
+         rp_client: Optional['rp.RP'] = None) -> Callable[[_Param], _Return]:
     """Nested step report function.
 
     Create a Nested Step inside a test method on ReportPortal.
