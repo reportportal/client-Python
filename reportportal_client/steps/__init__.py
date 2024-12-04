@@ -43,22 +43,29 @@ Usage with 'with' keyword:
 
 """
 from functools import wraps
+from typing import Callable, ParamSpec, TypeVar, Optional, Dict, Union, Type
 
+from reportportal_client import RP
+# noinspection PyProtectedMember
+from reportportal_client._internal.aio.tasks import Task
 # noinspection PyProtectedMember
 from reportportal_client._internal.local import current
 from reportportal_client.helpers import get_function_params, timestamp
 
-NESTED_STEP_ITEMS = ('step', 'scenario', 'before_class', 'before_groups',
-                     'before_method', 'before_suite', 'before_test',
-                     'after_test', 'after_suite', 'after_class',
-                     'after_groups', 'after_method')
+NESTED_STEP_ITEMS = ('step', 'scenario', 'before_class', 'before_groups', 'before_method', 'before_suite',
+                     'before_test', 'after_test', 'after_suite', 'after_class', 'after_groups', 'after_method')
+
+_Param = ParamSpec("_Param")
+_Return = TypeVar("_Return")
 
 
 # noinspection PyUnresolvedReferences
 class StepReporter:
     """Nested Steps context handling class."""
 
-    def __init__(self, rp_client):
+    client: RP
+
+    def __init__(self, rp_client: RP):
         """Initialize required attributes.
 
         :param rp_client: ReportPortal client which will be used to report
@@ -66,7 +73,8 @@ class StepReporter:
         """
         self.client = rp_client
 
-    def start_nested_step(self, name, start_time, parameters=None, **_):
+    def start_nested_step(self, name: str, start_time: str, parameters: Optional[Dict[str, Any]] = None,
+                          **_: Dict[str, Any]) -> Union[Optional[str], Task[Optional[str]]]:
         """Start Nested Step on ReportPortal.
 
         :param name:       Nested Step name
@@ -79,7 +87,8 @@ class StepReporter:
         return self.client.start_test_item(
             name, start_time, 'step', has_stats=False, parameters=parameters, parent_item_id=parent_id)
 
-    def finish_nested_step(self, item_id, end_time, status=None, **_):
+    def finish_nested_step(self, item_id: str, end_time: str, status: str = None,
+                           **_: Dict[str, Any]) -> Union[Optional[str], Task[Optional[str]]]:
         """Finish a Nested Step on ReportPortal.
 
         :param item_id:  Nested Step item ID
@@ -89,10 +98,16 @@ class StepReporter:
         return self.client.finish_test_item(item_id, end_time, status=status)
 
 
-class Step:
+class Step(Callable[[_Param], _Return]):
     """Step context handling class."""
 
-    def __init__(self, name, params, status, rp_client):
+    name: str
+    params: Dict
+    status: str
+    client: Optional[RP]
+    __item_id: Union[Optional[str], Task[Optional[str]]]
+
+    def __init__(self, name: str, params: Dict, status: str, rp_client: Optional[RP]):
         """Initialize required attributes.
 
         :param name:      Nested Step name
@@ -108,7 +123,7 @@ class Step:
         self.client = rp_client
         self.__item_id = None
 
-    def __enter__(self):
+    def __enter__(self) -> None:
         """Enter the runtime context related to this object."""
         # Cannot call _local.current() early since it will be initialized
         # before client put something in there
@@ -124,7 +139,7 @@ class Step:
             param_str = 'Parameters: ' + '; '.join(param_list)
             rp_client.log(timestamp(), param_str, level='INFO', item_id=self.__item_id)
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type: Type[BaseException], exc_val, exc_tb) -> None:
         """Exit the runtime context related to this object."""
         # Cannot call local.current() early since it will be initialized before client put something in there
         rp_client = self.client or current()
@@ -138,25 +153,27 @@ class Step:
             step_status = 'FAILED'
         rp_client.step_reporter.finish_nested_step(self.__item_id, timestamp(), step_status)
 
-    def __call__(self, func):
+    def __call__(self, *args, **kwargs):
         """Wrap and call a function reference.
 
         :param func: function reference
         """
+        func = args[0]
 
         @wraps(func)
-        def wrapper(*args, **kwargs):
+        def wrapper(*my_args, **my_kwargs):
             __tracebackhide__ = True
             params = self.params
             if params is None:
-                params = get_function_params(func, args, kwargs)
+                params = get_function_params(func, my_args, my_kwargs)
             with Step(self.name, params, self.status, self.client):
-                return func(*args, **kwargs)
+                return func(*my_args, **my_kwargs)
 
         return wrapper
 
 
-def step(name_source, params=None, status='PASSED', rp_client=None):
+def step(name_source: Union[Callable[[_Param], _Return], str], params: Optional[Dict] = None, status: str = 'PASSED',
+         rp_client: Optional[RP] = None) -> Callable[[_Param], _Return]:
     """Nested step report function.
 
     Create a Nested Step inside a test method on ReportPortal.

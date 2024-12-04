@@ -208,16 +208,16 @@ class Client:
             await self._session.close()
             self._session = None
 
-    async def __get_item_url(self, item_id_future: Union[str, Task[str]]) -> Optional[str]:
+    async def __get_item_url(self, item_id_future: Union[Optional[str], Task[Optional[str]]]) -> Optional[str]:
         item_id = await await_if_necessary(item_id_future)
-        if item_id is NOT_FOUND:
+        if item_id is NOT_FOUND or item_id is None:
             logger.warning('Attempt to make request for non-existent id.')
             return
         return root_uri_join(self.base_url_v2, 'item', item_id)
 
-    async def __get_launch_url(self, launch_uuid_future: Union[str, Task[str]]) -> Optional[str]:
+    async def __get_launch_url(self, launch_uuid_future: Union[Optional[str], Task[Optional[str]]]) -> Optional[str]:
         launch_uuid = await await_if_necessary(launch_uuid_future)
-        if launch_uuid is NOT_FOUND:
+        if launch_uuid is NOT_FOUND or launch_uuid is None:
             logger.warning('Attempt to make request for non-existent launch.')
             return
         return root_uri_join(self.base_url_v2, 'launch', launch_uuid, 'finish')
@@ -442,7 +442,7 @@ class Client:
 
     async def __get_launch_uuid_url(self, launch_uuid_future: Union[str, Task[str]]) -> Optional[str]:
         launch_uuid = await await_if_necessary(launch_uuid_future)
-        if launch_uuid is NOT_FOUND:
+        if launch_uuid is NOT_FOUND or launch_uuid is None:
             logger.warning('Attempt to make request for non-existent Launch UUID.')
             return
         logger.debug('get_launch_info - ID: %s', launch_uuid)
@@ -466,9 +466,9 @@ class Client:
             logger.warning('get_launch_info - Launch info: Failed to fetch launch ID from the API.')
         return launch_info
 
-    async def __get_item_uuid_url(self, item_uuid_future: Union[str, Task[str]]) -> Optional[str]:
+    async def __get_item_uuid_url(self, item_uuid_future: Union[Optional[str], Task[Optional[str]]]) -> Optional[str]:
         item_uuid = await await_if_necessary(item_uuid_future)
-        if item_uuid is NOT_FOUND:
+        if item_uuid is NOT_FOUND or item_uuid is None:
             logger.warning('Attempt to make request for non-existent UUID.')
             return
         return root_uri_join(self.base_url_v1, 'item', 'uuid', item_uuid)
@@ -972,7 +972,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
         return self.__client
 
     @property
-    def launch_uuid(self) -> Optional[Task[str]]:
+    def launch_uuid(self) -> Task[Optional[str]]:
         """Return current Launch UUID.
 
         :return: UUID string.
@@ -1102,13 +1102,13 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
         """
         return self._item_stack.last()
 
-    async def __empty_str(self):
+    async def __empty_str(self) -> str:
         return ""
 
-    async def __empty_dict(self):
+    async def __empty_dict(self) -> dict:
         return {}
 
-    async def __int_value(self):
+    async def __int_value(self) -> int:
         return -1
 
     def start_launch(self,
@@ -1118,7 +1118,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
                      attributes: Optional[Union[list, dict]] = None,
                      rerun: bool = False,
                      rerun_of: Optional[str] = None,
-                     **kwargs) -> Task[str]:
+                     **kwargs) -> Task[Optional[str]]:
         """Start a new Launch with the given arguments.
 
         :param name:        Launch name.
@@ -1151,7 +1151,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
                         retry: bool = False,
                         test_case_id: Optional[str] = None,
                         retry_of: Optional[str] = None,
-                        **kwargs: Any) -> Task[str]:
+                        **kwargs: Any) -> Task[Optional[str]]:
         """Start Test Case/Suite/Step/Nested Step Item.
 
         :param name:           Name of the Test Item.
@@ -1191,7 +1191,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
                          retry: bool = False,
                          test_case_id: Optional[str] = None,
                          retry_of: Optional[str] = None,
-                         **kwargs: Any) -> Task[str]:
+                         **kwargs: Any) -> Task[Optional[str]]:
         """Finish Test Suite/Case/Step/Nested Step Item.
 
         :param item_id:      ID of the Test Item.
@@ -1219,7 +1219,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
                       end_time: str,
                       status: Optional[str] = None,
                       attributes: Optional[Union[list, dict]] = None,
-                      **kwargs: Any) -> Task[str]:
+                      **kwargs: Any) -> Task[Optional[str]]:
         """Finish a Launch.
 
         :param end_time:   Launch end time.
@@ -1242,7 +1242,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
     def update_test_item(self,
                          item_uuid: Task[str],
                          attributes: Optional[Union[list, dict]] = None,
-                         description: Optional[str] = None) -> Task:
+                         description: Optional[str] = None) -> Task[Optional[str]]:
         """Update existing Test Item at the ReportPortal.
 
         :param item_uuid:   Test Item UUID returned on the item start.
@@ -1255,7 +1255,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
         result_task = self.create_task(result_coro)
         return result_task
 
-    def get_launch_info(self) -> Task[dict]:
+    def get_launch_info(self) -> Task[Optional[dict]]:
         """Get current Launch information.
 
         :return: Launch information in dictionary.
@@ -1266,7 +1266,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
         result_task = self.create_task(result_coro)
         return result_task
 
-    def get_item_id_by_uuid(self, item_uuid_future: Task[str]) -> Task[str]:
+    def get_item_id_by_uuid(self, item_uuid_future: Task[Optional[str]]) -> Task[Optional[str]]:
         """Get Test Item ID by the given Item UUID.
 
         :param item_uuid_future: Str or Task UUID returned on the Item start.
@@ -1276,7 +1276,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
         result_task = self.create_task(result_coro)
         return result_task
 
-    def get_launch_ui_id(self) -> Task[int]:
+    def get_launch_ui_id(self) -> Task[Optional[int]]:
         """Get Launch ID of the current Launch.
 
         :return: Launch ID of the Launch. None if not found.
@@ -1287,7 +1287,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
         result_task = self.create_task(result_coro)
         return result_task
 
-    def get_launch_ui_url(self) -> Task[str]:
+    def get_launch_ui_url(self) -> Task[Optional[str]]:
         """Get full quality URL of the current Launch.
 
         :return: Launch URL string.
@@ -1298,7 +1298,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
         result_task = self.create_task(result_coro)
         return result_task
 
-    def get_project_settings(self) -> Task[dict]:
+    def get_project_settings(self) -> Task[Optional[str]]:
         """Get settings of the current Project.
 
         :return: Settings response in Dictionary.
@@ -1314,7 +1314,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
         return await self._log_batch(await self._log_batcher.append_async(log_rq))
 
     def log(self, time: str, message: str, level: Optional[Union[int, str]] = None,
-            attachment: Optional[dict] = None, item_id: Optional[Task[str]] = None) -> Task[Tuple[str, ...]]:
+            attachment: Optional[dict] = None, item_id: Optional[Task[str]] = None) -> Task[Optional[Tuple[str, ...]]]:
         """Send Log message to the ReportPortal and attach it to a Test Item or Launch.
 
         This method stores Log messages in internal batch and sent it when batch is full, so not every method
@@ -1336,6 +1336,11 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
         self.finish_tasks()
         if self.own_client:
             self.create_task(self.__client.close()).blocking_result()
+
+
+def heartbeat(self):
+    """Heartbeat function to keep the loop running."""
+    self._loop.call_at(self._loop.time() + 0.1, heartbeat, self)
 
 
 class ThreadedRPClient(_RPClient):
@@ -1369,7 +1374,7 @@ class ThreadedRPClient(_RPClient):
     def __heartbeat(self):
         #  We operate on our own loop with daemon thread, so we will exit in any way when main thread exit,
         #  so we can iterate forever
-        self._loop.call_at(self._loop.time() + 0.1, self.__heartbeat)
+        heartbeat(self)
 
     def __init_loop(self, loop: Optional[asyncio.AbstractEventLoop] = None):
         self._thread = None
@@ -1471,6 +1476,8 @@ class ThreadedRPClient(_RPClient):
                     break
         logs = self._log_batcher.flush()
         if logs:
+            # We use own Task Factory in which we add the following method to the Task class
+            # noinspection PyUnresolvedReferences
             self._loop.create_task(self._log_batch(logs)).blocking_result()
 
     def clone(self) -> 'ThreadedRPClient':
