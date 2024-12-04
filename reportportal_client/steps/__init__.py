@@ -43,7 +43,7 @@ Usage with 'with' keyword:
 
 """
 from functools import wraps
-from typing import Callable, ParamSpec, TypeVar, Optional, Dict, Union, Type
+from typing import Callable, TypeVar, Optional, Dict, Union, Type
 
 import reportportal_client as rp
 # noinspection PyProtectedMember
@@ -55,8 +55,8 @@ from reportportal_client.helpers import get_function_params, timestamp
 NESTED_STEP_ITEMS = ('step', 'scenario', 'before_class', 'before_groups', 'before_method', 'before_suite',
                      'before_test', 'after_test', 'after_suite', 'after_class', 'after_groups', 'after_method')
 
-_Param = ParamSpec("_Param")
-_Return = TypeVar("_Return")
+_Param = TypeVar('_Param')
+_Return = TypeVar('_Return')
 
 
 # noinspection PyUnresolvedReferences
