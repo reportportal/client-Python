@@ -21,7 +21,7 @@ import pytest
 from reportportal_client.helpers import (
     gen_attributes, get_launch_sys_attrs, to_bool,
     verify_value_length, ATTRIBUTE_LENGTH_LIMIT, TRUNCATE_REPLACEMENT, guess_content_type_from_bytes, is_binary,
-    match_with_asterisks
+    match_with_glob_pattern
 )
 
 
@@ -213,6 +213,11 @@ def test_to_bool_invalid_value():
     ('l*e*1', 'l1ne11', True),
     ('l*e*1', 'l1ne1', True),
     ('l*e*2', 'l1ne1', False),
+    ('line?', 'line', False),
+    ('line?', 'line1', True),
+    ('line?', 'line11', False),
+    ('?line', 'line', False),
+    ('?line', '1line', True),
 ])
-def test_match_with_asterisks(pattern: Optional[str], line: Optional[str], expected: bool):
-    assert match_with_asterisks(pattern, line) == expected
+def test_match_with_glob_pattern(pattern: Optional[str], line: Optional[str], expected: bool):
+    assert match_with_glob_pattern(pattern, line) == expected

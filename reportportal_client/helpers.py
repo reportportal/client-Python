@@ -13,9 +13,11 @@
 
 """This module contains common functions-helpers of the client and agents."""
 
+import fnmatch
 import asyncio
 import inspect
 import logging
+import re
 import threading
 import time
 import uuid
@@ -487,10 +489,10 @@ def to_bool(value: Optional[Any]) -> Optional[bool]:
     raise ValueError(f'Invalid boolean value {value}.')
 
 
-def match_with_asterisks(pattern: Optional[str], line: Optional[str]) -> bool:
-    """Check if the line matches the pattern with asterisks.
+def match_with_glob_pattern(pattern: Optional[str], line: Optional[str]) -> bool:
+    """Check if the line matches given glob pattern.
 
-    :param pattern: pattern with asterisks
+    :param pattern: glob pattern
     :param line: line to check
     :return: True if the line matches the pattern with asterisks, False otherwise
     """
@@ -501,20 +503,5 @@ def match_with_asterisks(pattern: Optional[str], line: Optional[str]) -> bool:
     if line is None:
         return False
 
-    if '*' not in pattern:
-        return pattern == line
-
-    pattern_parts = pattern.split('*')
-    if pattern_parts[0] and not line.startswith(pattern_parts[0]):
-        return False
-
-    pos = len(pattern_parts[0])
-    for part in pattern_parts[1:-1]:
-        if not part:
-            continue
-        pos = line.find(part, pos)
-        if pos < 0:
-            return False
-        pos += len(part)
-
-    return line.endswith(pattern_parts[-1], pos)
+    regex_pattern = fnmatch.translate(pattern)
+    return re.fullmatch(regex_pattern, line) is not None
