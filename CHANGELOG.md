@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- `helpers.match_with_asterisks` function, by @HardNorth
 ### Removed
 - `Python 3.7` support, by @HardNorth
 

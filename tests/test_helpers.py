@@ -12,7 +12,7 @@
 #  limitations under the License
 
 """This script contains unit tests for the helpers script."""
-
+from typing import Optional
 from unittest import mock
 
 # noinspection PyPackageRequirements
@@ -20,7 +20,8 @@ import pytest
 
 from reportportal_client.helpers import (
     gen_attributes, get_launch_sys_attrs, to_bool,
-    verify_value_length, ATTRIBUTE_LENGTH_LIMIT, TRUNCATE_REPLACEMENT, guess_content_type_from_bytes, is_binary
+    verify_value_length, ATTRIBUTE_LENGTH_LIMIT, TRUNCATE_REPLACEMENT, guess_content_type_from_bytes, is_binary,
+    match_with_asterisks
 )
 
 
@@ -166,3 +167,49 @@ def test_to_bool_invalid_value():
     """Test for validate to_bool() function exception case."""
     with pytest.raises(ValueError):
         to_bool('invalid_value')
+
+
+@pytest.mark.parametrize(['pattern', 'line', 'expected'], [
+    (None, None, True),
+    ('', None, False),
+    (None, '', True),
+    (None, 'line', True),
+    ('', '', True),
+    ('', 'line', False),
+    ('line', 'line', True),
+    ('line', 'line1', False),
+    ('line*', 'line1', True),
+    ('line*', 'line', True),
+    ('line*', 'line2', True),
+    ('*line', 'line1', False),
+    ('*line', 'line', True),
+    ('*line', '1line', True),
+    ('*line*', '1line', True),
+    ('*line*', 'line', True),
+    ('*line*', 'line1', True),
+    ('*line*', '1line1', True),
+    ('l*ne', 'line', True),
+    ('l*ne', 'lane', True),
+    ('l*ne', 'line1', False),
+    ('l*ne', 'lane1', False),
+    ('l*ne', 'lin1', False),
+    ('l*ne', 'lan1', False),
+    ('l*ne', 'lin', False),
+    ('l*ne', 'lan', False),
+    ('l*ne', 'lne', True),
+    ('l*e', 'line', True),
+    ('l*e', 'lane', True),
+    ('l*e', 'line1', False),
+    ('l*e', 'lane1', False),
+    ('l*e', 'lin1', False),
+    ('l*e', 'lan1', False),
+    ('l*e', 'lin', False),
+    ('l*e', 'lan', False),
+    ('l*e', 'lne', True),
+    ('l*e', 'le', True),
+    ('l*e', 'l1e', True),
+    ('l*e', 'l1ne', True),
+    ('l*e', 'l1ne1', False),
+])
+def test_match_with_asterisks(pattern: Optional[str], line: Optional[str], expected: bool):
+    assert match_with_asterisks(pattern, line) == expected

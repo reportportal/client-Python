@@ -485,3 +485,36 @@ def to_bool(value: Optional[Any]) -> Optional[bool]:
     if value in {'FALSE', 'False', 'false', '0', 'N', 'n', 0, False}:
         return False
     raise ValueError(f'Invalid boolean value {value}.')
+
+
+def match_with_asterisks(pattern: Optional[str], line: Optional[str]) -> bool:
+    """Check if the line matches the pattern with asterisks.
+
+    :param pattern: pattern with asterisks
+    :param line: line to check
+    :return: True if the line matches the pattern with asterisks, False otherwise
+    """
+    if pattern is None and line is None:
+        return True
+    if pattern is None:
+        return True
+    if line is None:
+        return False
+
+    if '*' not in pattern:
+        return pattern == line
+
+    pattern_parts = pattern.split('*')
+    if pattern_parts[0] and not line.startswith(pattern_parts[0]):
+        return False
+
+    pos = len(pattern_parts[0])
+    for part in pattern_parts[1:-1]:
+        if not part:
+            continue
+        pos = line.find(part, pos)
+        if pos < 0:
+            return False
+        pos += len(part)
+
+    return line.endswith(pattern_parts[-1], pos)
