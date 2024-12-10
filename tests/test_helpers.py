@@ -210,6 +210,9 @@ def test_to_bool_invalid_value():
     ('l*e', 'l1e', True),
     ('l*e', 'l1ne', True),
     ('l*e', 'l1ne1', False),
+    ('l*e*1', 'l1ne11', True),
+    ('l*e*1', 'l1ne1', True),
+    ('l*e*2', 'l1ne1', False),
 ])
 def test_match_with_asterisks(pattern: Optional[str], line: Optional[str], expected: bool):
     assert match_with_asterisks(pattern, line) == expected
