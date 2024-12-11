@@ -505,11 +505,11 @@ def translate_glob_to_regex(pattern: Optional[str]) -> Optional[re.Pattern]:
 
 
 def match_pattern(pattern: Optional[re.Pattern], line: Optional[str]) -> bool:
-    """Check if the line matches given glob pattern.
+    """Check if the line matches given pattern. Handles None values.
 
-    :param pattern: glob pattern
+    :param pattern: regex pattern
     :param line: line to check
-    :return: True if the line matches the pattern with asterisks, False otherwise
+    :return: True if the line matches the pattern, False otherwise
     """
     if pattern is None:
         return True
