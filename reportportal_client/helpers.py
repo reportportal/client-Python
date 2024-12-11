@@ -13,8 +13,8 @@
 
 """This module contains common functions-helpers of the client and agents."""
 
-import fnmatch
 import asyncio
+import fnmatch
 import inspect
 import logging
 import re
@@ -57,6 +57,8 @@ CONTENT_TYPE_TO_EXTENSIONS = MappingProxyType({
     'text/plain': 'txt',
     'application/octet-stream': 'bin'
 })
+
+PATTERN_MATCHES_EMPTY_STRING: re.Pattern = re.compile('^$')
 
 
 class LifoQueue(Generic[_T]):
@@ -489,7 +491,20 @@ def to_bool(value: Optional[Any]) -> Optional[bool]:
     raise ValueError(f'Invalid boolean value {value}.')
 
 
-def match_with_glob_pattern(pattern: Optional[str], line: Optional[str]) -> bool:
+def translate_glob_to_regex(pattern: Optional[str]) -> Optional[re.Pattern[str]]:
+    """Translate glob string pattern to regex Pattern.
+
+    :param pattern: glob pattern
+    :return: regex pattern
+    """
+    if pattern is None:
+        return None
+    if pattern == '':
+        return PATTERN_MATCHES_EMPTY_STRING
+    return re.compile(fnmatch.translate(pattern))
+
+
+def match_pattern(pattern: Optional[re.Pattern[str]], line: Optional[str]) -> bool:
     """Check if the line matches given glob pattern.
 
     :param pattern: glob pattern
@@ -503,5 +518,4 @@ def match_with_glob_pattern(pattern: Optional[str], line: Optional[str]) -> bool
     if line is None:
         return False
 
-    regex_pattern = fnmatch.translate(pattern)
-    return re.fullmatch(regex_pattern, line) is not None
+    return pattern.fullmatch(line) is not None

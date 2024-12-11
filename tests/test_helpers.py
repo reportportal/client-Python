@@ -21,7 +21,7 @@ import pytest
 from reportportal_client.helpers import (
     gen_attributes, get_launch_sys_attrs, to_bool,
     verify_value_length, ATTRIBUTE_LENGTH_LIMIT, TRUNCATE_REPLACEMENT, guess_content_type_from_bytes, is_binary,
-    match_with_glob_pattern
+    match_pattern, translate_glob_to_regex
 )
 
 
@@ -220,4 +220,4 @@ def test_to_bool_invalid_value():
     ('?line', '1line', True),
 ])
 def test_match_with_glob_pattern(pattern: Optional[str], line: Optional[str], expected: bool):
-    assert match_with_glob_pattern(pattern, line) == expected
+    assert match_pattern(translate_glob_to_regex(pattern), line) == expected

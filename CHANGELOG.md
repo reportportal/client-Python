@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 ### Added
-- `helpers.match_with_glob_pattern` function, by @HardNorth
+- `helpers.match_pattern` and `helpers.translate_glob_to_regex` functions, by @HardNorth
 ### Removed
 - `Python 3.7` support, by @HardNorth
 
