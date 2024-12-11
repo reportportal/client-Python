@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 ### Added
-- `helpers.match_pattern` and `helpers.translate_glob_to_regex` functions, by @HardNorth
+- `match_pattern` and `translate_glob_to_regex`, `normalize_caseless`, `caseless_equal` functions in `helpers` module, by @HardNorth
 ### Removed
 - `Python 3.7` support, by @HardNorth
 

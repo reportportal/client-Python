@@ -20,6 +20,7 @@ import logging
 import re
 import threading
 import time
+import unicodedata
 import uuid
 from platform import machine, processor, system
 from types import MappingProxyType
@@ -517,3 +518,22 @@ def match_pattern(pattern: Optional[re.Pattern], line: Optional[str]) -> bool:
         return False
 
     return pattern.fullmatch(line) is not None
+
+
+def normalize_caseless(text: str) -> str:
+    """Normalize and casefold the text.
+
+    :param text: text to normalize
+    :return: normalized text
+    """
+    return unicodedata.normalize("NFKD", text.casefold())
+
+
+def caseless_equal(left: str, right: str) -> bool:
+    """Check if two strings are equal ignoring case.
+
+    :param left: left string
+    :param right: right string
+    :return: True if strings are equal ignoring case, False otherwise
+    """
+    return normalize_caseless(left) == normalize_caseless(right)
