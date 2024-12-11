@@ -511,8 +511,6 @@ def match_pattern(pattern: Optional[re.Pattern], line: Optional[str]) -> bool:
     :param line: line to check
     :return: True if the line matches the pattern with asterisks, False otherwise
     """
-    if pattern is None and line is None:
-        return True
     if pattern is None:
         return True
     if line is None:
