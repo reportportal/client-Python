@@ -491,7 +491,7 @@ def to_bool(value: Optional[Any]) -> Optional[bool]:
     raise ValueError(f'Invalid boolean value {value}.')
 
 
-def translate_glob_to_regex(pattern: Optional[str]) -> Optional[re.Pattern[str]]:
+def translate_glob_to_regex(pattern: Optional[str]) -> Optional[re.Pattern]:
     """Translate glob string pattern to regex Pattern.
 
     :param pattern: glob pattern
@@ -504,7 +504,7 @@ def translate_glob_to_regex(pattern: Optional[str]) -> Optional[re.Pattern[str]]
     return re.compile(fnmatch.translate(pattern))
 
 
-def match_pattern(pattern: Optional[re.Pattern[str]], line: Optional[str]) -> bool:
+def match_pattern(pattern: Optional[re.Pattern], line: Optional[str]) -> bool:
     """Check if the line matches given glob pattern.
 
     :param pattern: glob pattern
