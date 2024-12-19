@@ -285,7 +285,6 @@ async def test_start_launch_statistics_send(async_send_event):
     # noinspection PyTypeChecker
     session = mock.AsyncMock()
     client = Client("http://endpoint", "project", api_key="api_key")
-    client._skip_analytics = "1"
     client._session = session
     mock_basic_post_response(session)
 
