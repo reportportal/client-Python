@@ -13,7 +13,6 @@
 
 from typing import Dict, List, Optional, Text
 
-
 class Issue:
     _external_issues: List = ...
     auto_analyzed: bool = ...

@@ -21,14 +21,9 @@ from threading import Lock
 from reportportal_client import helpers
 # noinspection PyProtectedMember
 from reportportal_client._internal.static.defines import NOT_FOUND
-from reportportal_client.core.rp_requests import (
-    HttpRequest,
-    RPFile,
-    RPLogBatch,
-    RPRequestLog
-)
+from reportportal_client.core.rp_requests import HttpRequest, RPFile, RPLogBatch, RPRequestLog
 from reportportal_client.core.worker import APIWorker
-from reportportal_client.logs import MAX_LOG_BATCH_SIZE, MAX_LOG_BATCH_PAYLOAD_SIZE
+from reportportal_client.logs import MAX_LOG_BATCH_PAYLOAD_SIZE, MAX_LOG_BATCH_SIZE
 
 logger = logging.getLogger(__name__)
 

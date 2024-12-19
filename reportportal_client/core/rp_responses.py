@@ -19,9 +19,9 @@ https://github.com/reportportal/documentation/blob/master/src/md/src/DevGuides/r
 """
 
 import logging
-from typing import Any, Optional, Generator, Mapping, Tuple, Union
+from typing import Any, Generator, Mapping, Optional, Tuple, Union
 
-from aiohttp import ClientResponse, ClientError
+from aiohttp import ClientError, ClientResponse
 from requests import Response
 
 # noinspection PyProtectedMember

@@ -24,7 +24,7 @@ import unicodedata
 import uuid
 from platform import machine, processor, system
 from types import MappingProxyType
-from typing import Optional, Any, List, Dict, Callable, Tuple, Union, TypeVar, Generic, Iterable
+from typing import Any, Callable, Dict, Generic, Iterable, List, Optional, Tuple, TypeVar, Union
 
 from reportportal_client.core.rp_file import RPFile
 
@@ -207,7 +207,7 @@ def get_package_parameters(package_name: str, parameters: List[str] = None) -> L
     if not parameters:
         return result
 
-    from importlib.metadata import distribution, PackageNotFoundError
+    from importlib.metadata import PackageNotFoundError, distribution
     try:
         package_info = distribution(package_name)
     except PackageNotFoundError:

@@ -16,7 +16,7 @@
 import asyncio
 from abc import abstractmethod
 from asyncio import Future
-from typing import TypeVar, Generic, Union, Generator, Awaitable, Optional
+from typing import Awaitable, Generator, Generic, Optional, TypeVar, Union
 
 # noinspection PyProtectedMember
 from reportportal_client._internal.static.abstract import AbstractBaseClass

@@ -21,26 +21,19 @@ https://github.com/reportportal/documentation/blob/master/src/md/src/DevGuides/r
 import asyncio
 import logging
 from dataclasses import dataclass
-from typing import Callable, Optional, Union, List, Tuple, Any, TypeVar
+from typing import Any, Callable, List, Optional, Tuple, TypeVar, Union
 
 import aiohttp
 
 from reportportal_client import helpers
 # noinspection PyProtectedMember
-from reportportal_client._internal.static.abstract import (
-    AbstractBaseClass,
-    abstractmethod
-)
+from reportportal_client._internal.static.abstract import AbstractBaseClass, abstractmethod
 # noinspection PyProtectedMember
-from reportportal_client._internal.static.defines import (
-    DEFAULT_PRIORITY,
-    LOW_PRIORITY,
-    RP_LOG_LEVELS, Priority
-)
+from reportportal_client._internal.static.defines import DEFAULT_PRIORITY, LOW_PRIORITY, RP_LOG_LEVELS, Priority
 from reportportal_client.core.rp_file import RPFile
 from reportportal_client.core.rp_issues import Issue
-from reportportal_client.core.rp_responses import RPResponse, AsyncRPResponse
-from reportportal_client.helpers import dict_to_payload, await_if_necessary
+from reportportal_client.core.rp_responses import AsyncRPResponse, RPResponse
+from reportportal_client.helpers import await_if_necessary, dict_to_payload
 
 try:
     # noinspection PyPackageRequirements

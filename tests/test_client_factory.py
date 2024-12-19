@@ -14,8 +14,7 @@
 # noinspection PyPackageRequirements
 import pytest
 
-from reportportal_client import (create_client, ClientType, RPClient, AsyncRPClient, ThreadedRPClient,
-                                 BatchedRPClient)
+from reportportal_client import AsyncRPClient, BatchedRPClient, ClientType, RPClient, ThreadedRPClient, create_client
 
 
 @pytest.mark.parametrize(

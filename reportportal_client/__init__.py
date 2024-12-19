@@ -20,7 +20,7 @@ import aenum
 # noinspection PyProtectedMember
 from reportportal_client._internal.local import current, set_current
 from reportportal_client.aio.client import AsyncRPClient, BatchedRPClient, ThreadedRPClient
-from reportportal_client.client import RP, RPClient, OutputType
+from reportportal_client.client import RP, OutputType, RPClient
 from reportportal_client.logs import RPLogger, RPLogHandler
 from reportportal_client.steps import step
 

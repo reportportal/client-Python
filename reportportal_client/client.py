@@ -19,11 +19,11 @@ import sys
 import warnings
 from abc import abstractmethod
 from os import getenv
-from typing import Union, Tuple, Any, Optional, TextIO, List, Dict
+from typing import Any, Dict, List, Optional, TextIO, Tuple, Union
 
 import aenum
 import requests
-from requests.adapters import HTTPAdapter, Retry, DEFAULT_RETRIES
+from requests.adapters import DEFAULT_RETRIES, HTTPAdapter, Retry
 
 # noinspection PyProtectedMember
 from reportportal_client._internal.local import set_current
@@ -36,10 +36,10 @@ from reportportal_client._internal.static.abstract import AbstractBaseClass
 # noinspection PyProtectedMember
 from reportportal_client._internal.static.defines import NOT_FOUND
 from reportportal_client.core.rp_issues import Issue
-from reportportal_client.core.rp_requests import (HttpRequest, ItemStartRequest, ItemFinishRequest, RPFile,
-                                                  LaunchStartRequest, LaunchFinishRequest, RPRequestLog,
-                                                  RPLogBatch)
-from reportportal_client.helpers import uri_join, verify_value_length, agent_name_version, LifoQueue
+from reportportal_client.core.rp_requests import (HttpRequest, ItemFinishRequest, ItemStartRequest,
+                                                  LaunchFinishRequest, LaunchStartRequest, RPFile, RPLogBatch,
+                                                  RPRequestLog)
+from reportportal_client.helpers import LifoQueue, agent_name_version, uri_join, verify_value_length
 from reportportal_client.logs import MAX_LOG_BATCH_PAYLOAD_SIZE
 from reportportal_client.steps import StepReporter
 

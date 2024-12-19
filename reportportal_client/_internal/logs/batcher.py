@@ -15,10 +15,10 @@
 
 import logging
 import threading
-from typing import List, Optional, TypeVar, Generic, Dict, Any
+from typing import Any, Dict, Generic, List, Optional, TypeVar
 
-from reportportal_client.core.rp_requests import RPRequestLog, AsyncRPRequestLog
-from reportportal_client.logs import MAX_LOG_BATCH_SIZE, MAX_LOG_BATCH_PAYLOAD_SIZE
+from reportportal_client.core.rp_requests import AsyncRPRequestLog, RPRequestLog
+from reportportal_client.logs import MAX_LOG_BATCH_PAYLOAD_SIZE, MAX_LOG_BATCH_SIZE
 
 logger = logging.getLogger(__name__)
 

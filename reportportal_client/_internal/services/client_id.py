@@ -19,8 +19,7 @@ import logging
 import os
 from uuid import uuid4
 
-from .constants import CLIENT_ID_PROPERTY, RP_FOLDER_PATH, \
-    RP_PROPERTIES_FILE_PATH
+from .constants import CLIENT_ID_PROPERTY, RP_FOLDER_PATH, RP_PROPERTIES_FILE_PATH
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())

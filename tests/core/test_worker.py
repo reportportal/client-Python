@@ -17,11 +17,7 @@ import queue
 import time
 from unittest import mock
 
-from reportportal_client.core.rp_requests import (
-    HttpRequest,
-    RPLogBatch,
-    RPRequestLog
-)
+from reportportal_client.core.rp_requests import HttpRequest, RPLogBatch, RPRequestLog
 from reportportal_client.core.worker import APIWorker
 from reportportal_client.helpers import timestamp
 

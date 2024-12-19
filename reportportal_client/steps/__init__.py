@@ -43,7 +43,7 @@ Usage with 'with' keyword:
 
 """
 from functools import wraps
-from typing import Callable, TypeVar, Optional, Dict, Union, Type, Any
+from typing import Any, Callable, Dict, Optional, Type, TypeVar, Union
 
 import reportportal_client as rp
 # noinspection PyProtectedMember

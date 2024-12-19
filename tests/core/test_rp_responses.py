@@ -12,11 +12,11 @@
 #  limitations under the License
 
 import json
-import pytest
-
 from unittest import mock
 
-from reportportal_client.core.rp_responses import RPResponse, AsyncRPResponse
+import pytest
+
+from reportportal_client.core.rp_responses import AsyncRPResponse, RPResponse
 
 
 class JSONDecodeError(ValueError):

@@ -17,9 +17,9 @@ import asyncio
 import sys
 import time
 from asyncio import Future
-from typing import Optional, List, TypeVar, Generic, Union, Generator, Awaitable, Coroutine, Any
+from typing import Any, Awaitable, Coroutine, Generator, Generic, List, Optional, TypeVar, Union
 
-from reportportal_client.aio.tasks import Task, BlockingOperationError
+from reportportal_client.aio.tasks import BlockingOperationError, Task
 
 _T = TypeVar('_T')
 

@@ -17,9 +17,9 @@ import logging
 import queue
 import threading
 import warnings
-from threading import current_thread, Thread
+from threading import Thread, current_thread
 
-from aenum import auto, Enum, unique
+from aenum import Enum, auto, unique
 
 # noinspection PyProtectedMember
 from reportportal_client._internal.static.defines import Priority

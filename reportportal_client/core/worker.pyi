@@ -21,7 +21,8 @@ from aenum import Enum
 
 # noinspection PyProtectedMember
 from reportportal_client._internal.static.defines import Priority
-from reportportal_client.core.rp_requests import RPRequestBase as RPRequest, HttpRequest
+from reportportal_client.core.rp_requests import HttpRequest
+from reportportal_client.core.rp_requests import RPRequestBase as RPRequest
 
 logger: Logger
 THREAD_TIMEOUT: int

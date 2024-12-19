@@ -19,7 +19,7 @@ import pytest
 
 # noinspection PyProtectedMember
 from reportportal_client._internal.local import set_current
-from reportportal_client.logs import RPLogHandler, RPLogger
+from reportportal_client.logs import RPLogger, RPLogHandler
 
 
 @pytest.mark.parametrize(

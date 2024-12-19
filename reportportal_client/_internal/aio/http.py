@@ -24,11 +24,10 @@
 import asyncio
 import sys
 from types import TracebackType
-from typing import Coroutine, Any, Optional, Type, Callable
+from typing import Any, Callable, Coroutine, Optional, Type
 
 from aenum import Enum
-from aiohttp import ClientSession, ClientResponse, ServerConnectionError, \
-    ClientResponseError
+from aiohttp import ClientResponse, ClientResponseError, ClientSession, ServerConnectionError
 
 DEFAULT_RETRY_NUMBER: int = 5
 DEFAULT_RETRY_DELAY: float = 0.005

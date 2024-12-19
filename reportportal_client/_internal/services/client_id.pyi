@@ -13,7 +13,6 @@
 
 from typing import Optional, Text
 
-
 def _read_client_id() -> Optional[Text]: ...
 
 

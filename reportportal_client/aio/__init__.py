@@ -13,10 +13,10 @@
 
 """Common package for Asynchronous I/O clients and utilities."""
 
-from reportportal_client.aio.client import (ThreadedRPClient, BatchedRPClient, AsyncRPClient,
-                                            DEFAULT_TASK_TIMEOUT, DEFAULT_SHUTDOWN_TIMEOUT,
-                                            DEFAULT_TASK_TRIGGER_NUM, DEFAULT_TASK_TRIGGER_INTERVAL)
-from reportportal_client.aio.tasks import Task, BlockingOperationError
+from reportportal_client.aio.client import (DEFAULT_SHUTDOWN_TIMEOUT, DEFAULT_TASK_TIMEOUT,
+                                            DEFAULT_TASK_TRIGGER_INTERVAL, DEFAULT_TASK_TRIGGER_NUM, AsyncRPClient,
+                                            BatchedRPClient, ThreadedRPClient)
+from reportportal_client.aio.tasks import BlockingOperationError, Task
 
 __all__ = [
     'Task',

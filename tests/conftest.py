@@ -18,7 +18,7 @@ from unittest import mock
 # noinspection PyPackageRequirements
 from pytest import fixture
 
-from reportportal_client.aio.client import Client, AsyncRPClient, BatchedRPClient, ThreadedRPClient
+from reportportal_client.aio.client import AsyncRPClient, BatchedRPClient, Client, ThreadedRPClient
 from reportportal_client.client import RPClient
 
 

@@ -13,7 +13,6 @@
 
 from typing import Any, Dict, Optional, Text
 
-
 class RPFile:
     content: Any = ...
     content_type: Text = ...

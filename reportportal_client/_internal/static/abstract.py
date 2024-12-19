@@ -13,7 +13,8 @@
 
 """This module provides base abstract class for RP request objects."""
 
-from abc import ABCMeta as _ABCMeta, abstractmethod
+from abc import ABCMeta as _ABCMeta
+from abc import abstractmethod
 
 __all__ = ['AbstractBaseClass', 'abstractmethod']
 

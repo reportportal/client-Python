@@ -13,7 +13,6 @@
 
 from typing import Text
 
-
 def _decode_string(text: Text) -> Text: ...
 
 

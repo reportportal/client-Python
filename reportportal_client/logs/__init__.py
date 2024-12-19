@@ -20,7 +20,7 @@ from urllib.parse import urlparse
 
 # noinspection PyProtectedMember
 from reportportal_client._internal.local import current, set_current
-from reportportal_client.helpers import timestamp, TYPICAL_MULTIPART_FOOTER_LENGTH
+from reportportal_client.helpers import TYPICAL_MULTIPART_FOOTER_LENGTH, timestamp
 
 MAX_LOG_BATCH_SIZE: int = 20
 MAX_LOG_BATCH_PAYLOAD_SIZE: int = int((64 * 1024 * 1024) * 0.98) - TYPICAL_MULTIPART_FOOTER_LENGTH
