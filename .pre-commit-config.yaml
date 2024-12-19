@@ -20,6 +20,16 @@ repos:
     rev: v1.0.1
     hooks:
     -   id: rst-linter
+-   repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        args: ['reportportal_client', 'tests']
+-   repo: https://github.com/psf/black
+    rev: 24.10.0
+    hooks:
+    -   id: black
+        args: ['reportportal_client', 'tests']
 -   repo: https://github.com/pycqa/flake8
     rev: 5.0.4
     hooks:
