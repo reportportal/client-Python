@@ -85,9 +85,11 @@ def test_stacklevel_record_make(logger_handler):
 
     if sys.version_info < (3, 11):
         assert record.stack_info.endswith(
-            'logger.error("test_log", exc_info=RuntimeError("test"), stack_info=inspect.stack(), stacklevel=1)')
+            'logger.error("test_log", exc_info=RuntimeError("test"), stack_info=inspect.stack(), stacklevel=1)'
+        )
     else:
         assert record.stack_info.endswith(
-            'logger.error("test_log", exc_info=RuntimeError("test"), stack_info=inspect.stack(), stacklevel=2)')
+            'logger.error("test_log", exc_info=RuntimeError("test"), stack_info=inspect.stack(), stacklevel=2)'
+        )
 
     assert record.pathname == __file__
