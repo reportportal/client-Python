@@ -14,6 +14,7 @@
 import pickle
 from unittest import mock
 
+# noinspection PyPackageRequirements
 import pytest
 
 from reportportal_client.aio import ThreadedRPClient
