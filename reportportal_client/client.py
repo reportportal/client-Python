@@ -170,6 +170,7 @@ class RP(metaclass=AbstractBaseClass):
         retry: Optional[bool] = False,
         test_case_id: Optional[str] = None,
         retry_of: Optional[str] = None,
+        uuid: Optional[str] = None,
         **kwargs: Any,
     ) -> Optional[str]:
         """Start Test Case/Suite/Step/Nested Step Item.
@@ -190,6 +191,7 @@ class RP(metaclass=AbstractBaseClass):
         :param test_case_id:   A unique ID of the current Step.
         :param retry_of:       For retry mode specifies which test item will be marked as retried. Should be used
                                with the 'retry' parameter.
+        :param uuid:           Test Item UUID to use on start (overrides server one, should be globally unique).
         :return:               Test Item UUID if successfully started or None.
         """
         raise NotImplementedError('"start_test_item" method is not implemented!')
@@ -610,6 +612,7 @@ class RPClient(RP):
         retry: bool = False,
         test_case_id: Optional[str] = None,
         retry_of: Optional[str] = None,
+        uuid: Optional[str] = None,
         **_: Any,
     ) -> Optional[str]:
         """Start Test Case/Suite/Step/Nested Step Item.
@@ -630,6 +633,7 @@ class RPClient(RP):
         :param test_case_id:   A unique ID of the current Step.
         :param retry_of:       For retry mode specifies which test item will be marked as retried. Should be used
                                with the 'retry' parameter.
+        :param uuid:           Test Item UUID to use on start (overrides server one, should be globally unique).
         :return:               Test Item UUID if successfully started or None.
         """
         if parent_item_id is NOT_FOUND:
@@ -652,6 +656,7 @@ class RPClient(RP):
             retry=retry,
             test_case_id=test_case_id,
             retry_of=retry_of,
+            uuid=uuid,
         ).payload
 
         response = HttpRequest(

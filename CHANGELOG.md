@@ -3,6 +3,7 @@
 ## [Unreleased]
 ### Added
 - `match_pattern` and `translate_glob_to_regex`, `normalize_caseless`, `caseless_equal` functions in `helpers` module, by @HardNorth
+- `client.RP.start_test_item` method and all its children now accept `uuid` argument, by @HardNorth
 ### Removed
 - `Python 3.7` support, by @HardNorth
 

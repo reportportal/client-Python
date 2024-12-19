@@ -287,6 +287,7 @@ class ItemStartRequest(RPRequestBase):
     retry: Optional[bool]
     retry_of: Optional[str]
     test_case_id: Optional[str]
+    uuid: Optional[str]
 
     @staticmethod
     def _create_request(**kwargs) -> dict:
@@ -310,6 +311,9 @@ class ItemStartRequest(RPRequestBase):
         if parameters is not None and isinstance(parameters, dict):
             parameters = dict_to_payload(kwargs["parameters"])
         request["parameters"] = parameters
+        uuid = kwargs.get("uuid", None)
+        if uuid:
+            request["uuid"] = uuid
         return request
 
     @property
@@ -527,7 +531,7 @@ class RPLogBatch(RPRequestBase):
 
     def __get_file(self, rp_file) -> Tuple[str, tuple]:
         """Form a tuple for the single file."""
-        return ("file", (rp_file.name, rp_file.content, rp_file.content_type or self.default_content))
+        return "file", (rp_file.name, rp_file.content, rp_file.content_type or self.default_content)
 
     def _get_files(self) -> List[Tuple[str, tuple]]:
         """Get list of files for the JSON body."""

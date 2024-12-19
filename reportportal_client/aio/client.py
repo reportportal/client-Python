@@ -300,6 +300,7 @@ class Client:
         has_stats: Optional[bool] = True,
         retry: Optional[bool] = False,
         retry_of: Optional[str] = None,
+        uuid: Optional[str] = None,
         **_: Any,
     ) -> Optional[str]:
         """Start Test Case/Suite/Step/Nested Step Item.
@@ -321,6 +322,7 @@ class Client:
         :param retry:          Used to report retry of the test. Allowed values: "True" or "False".
         :param retry_of:       For retry mode specifies which test item will be marked as retried. Should be used
                                with the 'retry' parameter.
+        :param uuid:           Test Item UUID to use on start (overrides server one, should be globally unique).
         :return:               Test Item UUID if successfully started or None.
         """
         if parent_item_id:
@@ -340,6 +342,7 @@ class Client:
             retry=retry,
             test_case_id=test_case_id,
             retry_of=retry_of,
+            uuid=uuid,
         ).payload
 
         response = await AsyncHttpRequest((await self.session()).post, url=url, json=request_payload).make()
@@ -763,6 +766,7 @@ class AsyncRPClient(RP):
         retry: bool = False,
         test_case_id: Optional[str] = None,
         retry_of: Optional[str] = None,
+        uuid: Optional[str] = None,
         **kwargs: Any,
     ) -> Optional[str]:
         """Start Test Case/Suite/Step/Nested Step Item.
@@ -783,6 +787,7 @@ class AsyncRPClient(RP):
         :param test_case_id:   A unique ID of the current Step.
         :param retry_of:       For retry mode specifies which test item will be marked as retried. Should be used
                                with the 'retry' parameter.
+        :param uuid:           Test Item UUID to use on start (overrides server one, should be globally unique).
         :return:               Test Item UUID if successfully started or None.
         """
         item_id = await self.__client.start_test_item(
@@ -799,6 +804,7 @@ class AsyncRPClient(RP):
             retry=retry,
             test_case_id=test_case_id,
             retry_of=retry_of,
+            uuid=uuid,
             **kwargs,
         )
         if item_id and item_id is not NOT_FOUND:
@@ -1207,6 +1213,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
         retry: bool = False,
         test_case_id: Optional[str] = None,
         retry_of: Optional[str] = None,
+        uuid: Optional[str] = None,
         **kwargs: Any,
     ) -> Task[Optional[str]]:
         """Start Test Case/Suite/Step/Nested Step Item.
@@ -1227,6 +1234,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
         :param test_case_id:   A unique ID of the current Step.
         :param retry_of:       For retry mode specifies which test item will be marked as retried. Should be used
                                with the 'retry' parameter.
+        :param uuid:           Test Item UUID to use on start (overrides server one, should be globally unique).
         :return:               Test Item UUID if successfully started or None.
         """
         item_id_coro = self.__client.start_test_item(
@@ -1243,6 +1251,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
             retry=retry,
             test_case_id=test_case_id,
             retry_of=retry_of,
+            uuid=uuid,
             **kwargs,
         )
         item_id_task = self.create_task(item_id_coro)
