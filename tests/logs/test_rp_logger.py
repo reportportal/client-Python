@@ -80,5 +80,6 @@ def test_stacklevel_record_make(logger_handler):
     else:
         logger.error("test_log", exc_info=RuntimeError("test"), stack_info=inspect.stack(), stacklevel=2)
     record = verify_record(logger_handler)
-    assert record.stack_info.endswith("logger.error('test_log', exc_info=RuntimeError('test'),")
+    assert record.stack_info.endswith(
+        'logger.error("test_log", exc_info=RuntimeError("test"), stack_info=inspect.stack(), stacklevel=1)')
     assert record.pathname == __file__
