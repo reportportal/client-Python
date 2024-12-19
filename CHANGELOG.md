@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.6.0]
 ### Added
 - `match_pattern` and `translate_glob_to_regex`, `normalize_caseless`, `caseless_equal` functions in `helpers` module, by @HardNorth
 - `client.RP.start_test_item` method and all its children now accept `uuid` argument, by @HardNorth
