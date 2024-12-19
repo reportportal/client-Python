@@ -23,14 +23,13 @@ def _decode_string(text):
     :param text: Encoded string
     :return:     Decoded value
     """
-    base64_bytes = text.encode('ascii')
+    base64_bytes = text.encode("ascii")
     message_bytes = base64.b64decode(base64_bytes)
-    return message_bytes.decode('ascii')
+    return message_bytes.decode("ascii")
 
 
-CLIENT_INFO = \
-    _decode_string('Ry1XUDU3UlNHOFhMOm5Ib3dqRjJQUVotNDFJbzBPcDRoZlE=')
-ENDPOINT = 'https://www.google-analytics.com/mp/collect'
-CLIENT_ID_PROPERTY = 'client.id'
-RP_FOLDER_PATH = os.path.join(os.path.expanduser('~'), '.rp')
-RP_PROPERTIES_FILE_PATH = os.path.join(RP_FOLDER_PATH, 'rp.properties')
+CLIENT_INFO = _decode_string("Ry1XUDU3UlNHOFhMOm5Ib3dqRjJQUVotNDFJbzBPcDRoZlE=")
+ENDPOINT = "https://www.google-analytics.com/mp/collect"
+CLIENT_ID_PROPERTY = "client.id"
+RP_FOLDER_PATH = os.path.join(os.path.expanduser("~"), ".rp")
+RP_PROPERTIES_FILE_PATH = os.path.join(RP_FOLDER_PATH, "rp.properties")

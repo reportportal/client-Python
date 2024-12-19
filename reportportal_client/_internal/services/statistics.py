@@ -28,7 +28,7 @@ from reportportal_client.helpers import get_package_parameters
 
 logger = logging.getLogger(__name__)
 
-ID, KEY = CLIENT_INFO.split(':')
+ID, KEY = CLIENT_INFO.split(":")
 
 
 def _get_client_info() -> Tuple[str, str]:
@@ -36,7 +36,7 @@ def _get_client_info() -> Tuple[str, str]:
 
     :return: ('reportportal-client', '5.0.4')
     """
-    name, version = get_package_parameters('reportportal-client', ['name', 'version'])
+    name, version = get_package_parameters("reportportal-client", ["name", "version"])
     return name, version
 
 
@@ -45,7 +45,7 @@ def _get_platform_info() -> str:
 
     :return: str represents the current platform, e.g.: 'Python 3.6.1'
     """
-    return 'Python ' + python_version()
+    return "Python " + python_version()
 
 
 def _get_payload(event_name: str, agent_name: Optional[str], agent_version: Optional[str]) -> dict:
@@ -58,25 +58,19 @@ def _get_payload(event_name: str, agent_name: Optional[str], agent_version: Opti
     """
     client_name, client_version = _get_client_info()
     request_params = {
-        'client_name': client_name,
-        'client_version': client_version,
-        'interpreter': _get_platform_info(),
-        'agent_name': agent_name,
-        'agent_version': agent_version,
+        "client_name": client_name,
+        "client_version": client_version,
+        "interpreter": _get_platform_info(),
+        "agent_name": agent_name,
+        "agent_version": agent_version,
     }
 
     if agent_name:
-        request_params['agent_name'] = agent_name
+        request_params["agent_name"] = agent_name
     if agent_version:
-        request_params['agent_version'] = agent_version
+        request_params["agent_version"] = agent_version
 
-    return {
-        'client_id': get_client_id(),
-        'events': [{
-            'name': event_name,
-            'params': request_params
-        }]
-    }
+    return {"client_id": get_client_id(), "events": [{"name": event_name, "params": request_params}]}
 
 
 def send_event(event_name: str, agent_name: Optional[str], agent_version: Optional[str]) -> requests.Response:
@@ -88,20 +82,22 @@ def send_event(event_name: str, agent_name: Optional[str], agent_version: Option
     :param agent_name: Name of the agent that uses the client
     :param agent_version: Version of the agent
     """
-    headers = {'User-Agent': 'python-requests'}
-    query_params = {
-        'measurement_id': ID,
-        'api_secret': KEY
-    }
+    headers = {"User-Agent": "python-requests"}
+    query_params = {"measurement_id": ID, "api_secret": KEY}
     try:
-        return requests.post(url=ENDPOINT, json=_get_payload(event_name, agent_name, agent_version),
-                             headers=headers, params=query_params)
+        return requests.post(
+            url=ENDPOINT,
+            json=_get_payload(event_name, agent_name, agent_version),
+            headers=headers,
+            params=query_params,
+        )
     except requests.exceptions.RequestException as err:
-        logger.debug('Failed to send data to Statistics service: %s', str(err))
+        logger.debug("Failed to send data to Statistics service: %s", str(err))
 
 
-async def async_send_event(event_name: str, agent_name: Optional[str],
-                           agent_version: Optional[str]) -> Optional[aiohttp.ClientResponse]:
+async def async_send_event(
+    event_name: str, agent_name: Optional[str], agent_version: Optional[str]
+) -> Optional[aiohttp.ClientResponse]:
     """Send an event to statistics service.
 
      Use client and agent versions with their names.
@@ -110,20 +106,21 @@ async def async_send_event(event_name: str, agent_name: Optional[str],
     :param agent_name: Name of the agent that uses the client
     :param agent_version: Version of the agent
     """
-    headers = {'User-Agent': 'python-aiohttp'}
-    query_params = {
-        'measurement_id': ID,
-        'api_secret': KEY
-    }
+    headers = {"User-Agent": "python-aiohttp"}
+    query_params = {"measurement_id": ID, "api_secret": KEY}
     ssl_context = ssl.create_default_context(cafile=certifi.where())
     async with aiohttp.ClientSession() as session:
         try:
-            result = await session.post(url=ENDPOINT,
-                                        json=_get_payload(event_name, agent_name, agent_version),
-                                        headers=headers, params=query_params, ssl=ssl_context)
+            result = await session.post(
+                url=ENDPOINT,
+                json=_get_payload(event_name, agent_name, agent_version),
+                headers=headers,
+                params=query_params,
+                ssl=ssl_context,
+            )
         except aiohttp.ClientError as exc:
-            logger.debug('Failed to send data to Statistics service: connection error', exc)
+            logger.debug("Failed to send data to Statistics service: connection error", exc)
             return
         if not result.ok:
-            logger.debug(f'Failed to send data to Statistics service: {result.reason}')
+            logger.debug(f"Failed to send data to Statistics service: {result.reason}")
         return result

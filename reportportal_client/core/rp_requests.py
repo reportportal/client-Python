@@ -21,26 +21,21 @@ https://github.com/reportportal/documentation/blob/master/src/md/src/DevGuides/r
 import asyncio
 import logging
 from dataclasses import dataclass
-from typing import Callable, Optional, Union, List, Tuple, Any, TypeVar
+from typing import Any, Callable, List, Optional, Tuple, TypeVar, Union
 
 import aiohttp
 
 from reportportal_client import helpers
+
 # noinspection PyProtectedMember
-from reportportal_client._internal.static.abstract import (
-    AbstractBaseClass,
-    abstractmethod
-)
+from reportportal_client._internal.static.abstract import AbstractBaseClass, abstractmethod
+
 # noinspection PyProtectedMember
-from reportportal_client._internal.static.defines import (
-    DEFAULT_PRIORITY,
-    LOW_PRIORITY,
-    RP_LOG_LEVELS, Priority
-)
+from reportportal_client._internal.static.defines import DEFAULT_PRIORITY, LOW_PRIORITY, RP_LOG_LEVELS, Priority
 from reportportal_client.core.rp_file import RPFile
 from reportportal_client.core.rp_issues import Issue
-from reportportal_client.core.rp_responses import RPResponse, AsyncRPResponse
-from reportportal_client.helpers import dict_to_payload, await_if_necessary
+from reportportal_client.core.rp_responses import AsyncRPResponse, RPResponse
+from reportportal_client.helpers import await_if_necessary, dict_to_payload
 
 try:
     # noinspection PyPackageRequirements
@@ -65,15 +60,17 @@ class HttpRequest:
     name: Optional[str]
     _priority: Priority
 
-    def __init__(self,
-                 session_method: Callable,
-                 url: Any,
-                 data: Optional[Any] = None,
-                 json: Optional[Any] = None,
-                 files: Optional[Any] = None,
-                 verify_ssl: Optional[Union[bool, str]] = None,
-                 http_timeout: Union[float, Tuple[float, float]] = (10, 10),
-                 name: Optional[str] = None) -> None:
+    def __init__(
+        self,
+        session_method: Callable,
+        url: Any,
+        data: Optional[Any] = None,
+        json: Optional[Any] = None,
+        files: Optional[Any] = None,
+        verify_ssl: Optional[Union[bool, str]] = None,
+        http_timeout: Union[float, Tuple[float, float]] = (10, 10),
+        name: Optional[str] = None,
+    ) -> None:
         """Initialize an instance of the request with attributes.
 
         :param session_method: Method of the requests.Session instance
@@ -97,7 +94,7 @@ class HttpRequest:
         self.name = name
         self._priority = DEFAULT_PRIORITY
 
-    def __lt__(self, other: 'HttpRequest') -> bool:
+    def __lt__(self, other: "HttpRequest") -> bool:
         """Priority protocol for the PriorityQueue.
 
         :param other: another object to compare
@@ -130,8 +127,16 @@ class HttpRequest:
         :return: wrapped HTTP response or None in case of failure
         """
         try:
-            return RPResponse(self.session_method(self.url, data=self.data, json=self.json, files=self.files,
-                                                  verify=self.verify_ssl, timeout=self.http_timeout))
+            return RPResponse(
+                self.session_method(
+                    self.url,
+                    data=self.data,
+                    json=self.json,
+                    files=self.files,
+                    verify=self.verify_ssl,
+                    timeout=self.http_timeout,
+                )
+            )
         except (KeyError, IOError, ValueError, TypeError) as exc:
             logger.warning("ReportPortal %s request failed", self.name, exc_info=exc)
 
@@ -139,12 +144,14 @@ class HttpRequest:
 class AsyncHttpRequest(HttpRequest):
     """This model stores attributes related to asynchronous ReportPortal HTTP requests."""
 
-    def __init__(self,
-                 session_method: Callable,
-                 url: Any,
-                 data: Optional[Any] = None,
-                 json: Optional[Any] = None,
-                 name: Optional[str] = None) -> None:
+    def __init__(
+        self,
+        session_method: Callable,
+        url: Any,
+        data: Optional[Any] = None,
+        json: Optional[Any] = None,
+        name: Optional[str] = None,
+    ) -> None:
         """Initialize an instance of the request with attributes.
 
         :param session_method: Method of the requests.Session instance
@@ -190,7 +197,7 @@ class RPRequestBase(metaclass=AbstractBaseClass):
 
         :return: JSON representation in the form of a Dictionary
         """
-        raise NotImplementedError('Payload interface is not implemented!')
+        raise NotImplementedError("Payload interface is not implemented!")
 
 
 @dataclass(frozen=True)
@@ -204,7 +211,7 @@ class LaunchStartRequest(RPRequestBase):
     start_time: str
     attributes: Optional[Union[list, dict]] = None
     description: Optional[str] = None
-    mode: str = 'default'
+    mode: str = "default"
     rerun: bool = False
     rerun_of: str = None
     uuid: str = None
@@ -219,16 +226,16 @@ class LaunchStartRequest(RPRequestBase):
         if my_attributes and isinstance(self.attributes, dict):
             my_attributes = dict_to_payload(self.attributes)
         result = {
-            'attributes': my_attributes,
-            'description': self.description,
-            'mode': self.mode,
-            'name': self.name,
-            'rerun': self.rerun,
-            'rerunOf': self.rerun_of,
-            'startTime': self.start_time
+            "attributes": my_attributes,
+            "description": self.description,
+            "mode": self.mode,
+            "name": self.name,
+            "rerun": self.rerun,
+            "rerunOf": self.rerun_of,
+            "startTime": self.start_time,
         }
         if self.uuid:
-            result['uuid'] = self.uuid
+            result["uuid"] = self.uuid
         return result
 
 
@@ -254,10 +261,10 @@ class LaunchFinishRequest(RPRequestBase):
         if my_attributes and isinstance(self.attributes, dict):
             my_attributes = dict_to_payload(self.attributes)
         return {
-            'attributes': my_attributes,
-            'description': self.description,
-            'endTime': self.end_time,
-            'status': self.status
+            "attributes": my_attributes,
+            "description": self.description,
+            "endTime": self.end_time,
+            "status": self.status,
         }
 
 
@@ -280,29 +287,33 @@ class ItemStartRequest(RPRequestBase):
     retry: Optional[bool]
     retry_of: Optional[str]
     test_case_id: Optional[str]
+    uuid: Optional[str]
 
     @staticmethod
     def _create_request(**kwargs) -> dict:
         request = {
-            'codeRef': kwargs.get('code_ref'),
-            'description': kwargs.get('description'),
-            'hasStats': kwargs.get('has_stats'),
-            'name': kwargs['name'],
-            'retry': kwargs.get('retry'),
-            'retryOf': kwargs.get('retry_of'),
-            'startTime': kwargs['start_time'],
-            'testCaseId': kwargs.get('test_case_id'),
-            'type': kwargs['type'],
-            'launchUuid': kwargs['launch_uuid']
+            "codeRef": kwargs.get("code_ref"),
+            "description": kwargs.get("description"),
+            "hasStats": kwargs.get("has_stats"),
+            "name": kwargs["name"],
+            "retry": kwargs.get("retry"),
+            "retryOf": kwargs.get("retry_of"),
+            "startTime": kwargs["start_time"],
+            "testCaseId": kwargs.get("test_case_id"),
+            "type": kwargs["type"],
+            "launchUuid": kwargs["launch_uuid"],
         }
-        attributes = kwargs.get('attributes')
+        attributes = kwargs.get("attributes")
         if attributes and isinstance(attributes, dict):
-            attributes = dict_to_payload(kwargs['attributes'])
-        request['attributes'] = attributes
-        parameters = kwargs.get('parameters')
+            attributes = dict_to_payload(kwargs["attributes"])
+        request["attributes"] = attributes
+        parameters = kwargs.get("parameters")
         if parameters is not None and isinstance(parameters, dict):
-            parameters = dict_to_payload(kwargs['parameters'])
-        request['parameters'] = parameters
+            parameters = dict_to_payload(kwargs["parameters"])
+        request["parameters"] = parameters
+        uuid = kwargs.get("uuid", None)
+        if uuid:
+            request["uuid"] = uuid
         return request
 
     @property
@@ -312,7 +323,7 @@ class ItemStartRequest(RPRequestBase):
         :return: JSON representation in the form of a Dictionary
         """
         data = self.__dict__.copy()
-        data['type'] = data.pop('type_')
+        data["type"] = data.pop("type_")
         return ItemStartRequest._create_request(**data)
 
 
@@ -333,8 +344,8 @@ class AsyncItemStartRequest(ItemStartRequest):
         :return: JSON representation in the form of a Dictionary
         """
         data = self.__dict__.copy()
-        data['type'] = data.pop('type_')
-        data['launch_uuid'] = await await_if_necessary(data.pop('launch_uuid'))
+        data["type"] = data.pop("type_")
+        data["launch_uuid"] = await await_if_necessary(data.pop("launch_uuid"))
         return ItemStartRequest._create_request(**data)
 
 
@@ -359,27 +370,29 @@ class ItemFinishRequest(RPRequestBase):
     @staticmethod
     def _create_request(**kwargs) -> dict:
         request = {
-            'description': kwargs.get('description'),
-            'endTime': kwargs['end_time'],
-            'launchUuid': kwargs['launch_uuid'],
-            'status': kwargs.get('status'),
-            'retry': kwargs.get('retry'),
-            'retryOf': kwargs.get('retry_of'),
-            'testCaseId': kwargs.get('test_case_id'),
+            "description": kwargs.get("description"),
+            "endTime": kwargs["end_time"],
+            "launchUuid": kwargs["launch_uuid"],
+            "status": kwargs.get("status"),
+            "retry": kwargs.get("retry"),
+            "retryOf": kwargs.get("retry_of"),
+            "testCaseId": kwargs.get("test_case_id"),
         }
-        attributes = kwargs.get('attributes')
+        attributes = kwargs.get("attributes")
         if attributes and isinstance(attributes, dict):
-            attributes = dict_to_payload(kwargs['attributes'])
-        request['attributes'] = attributes
+            attributes = dict_to_payload(kwargs["attributes"])
+        request["attributes"] = attributes
 
         issue_payload = None
-        if kwargs.get('issue') is None and (
-                kwargs.get('status') is not None and kwargs.get('status').lower() == 'skipped'
-        ) and not kwargs.get('is_skipped_an_issue'):
-            issue_payload = {'issue_type': 'NOT_ISSUE'}
-        elif kwargs.get('issue') is not None:
-            issue_payload = kwargs.get('issue').payload
-        request['issue'] = issue_payload
+        if (
+            kwargs.get("issue") is None
+            and (kwargs.get("status") is not None and kwargs.get("status").lower() == "skipped")
+            and not kwargs.get("is_skipped_an_issue")
+        ):
+            issue_payload = {"issue_type": "NOT_ISSUE"}
+        elif kwargs.get("issue") is not None:
+            issue_payload = kwargs.get("issue").payload
+        request["issue"] = issue_payload
         return request
 
     @property
@@ -408,7 +421,7 @@ class AsyncItemFinishRequest(ItemFinishRequest):
         :return: JSON representation in the form of a Dictionary
         """
         data = self.__dict__.copy()
-        data['launch_uuid'] = await await_if_necessary(data.pop('launch_uuid'))
+        data["launch_uuid"] = await await_if_necessary(data.pop("launch_uuid"))
         return ItemFinishRequest._create_request(**data)
 
 
@@ -429,15 +442,15 @@ class RPRequestLog(RPRequestBase):
     @staticmethod
     def _create_request(**kwargs) -> dict:
         request = {
-            'launchUuid': kwargs['launch_uuid'],
-            'level': kwargs['level'],
-            'message': kwargs.get('message'),
-            'time': kwargs['time'],
-            'itemUuid': kwargs.get('item_uuid'),
-            'file': kwargs.get('file')
+            "launchUuid": kwargs["launch_uuid"],
+            "level": kwargs["level"],
+            "message": kwargs.get("message"),
+            "time": kwargs["time"],
+            "itemUuid": kwargs.get("item_uuid"),
+            "file": kwargs.get("file"),
         }
-        if 'file' in kwargs and kwargs['file']:
-            request['file'] = {'name': kwargs['file'].name}
+        if "file" in kwargs and kwargs["file"]:
+            request["file"] = {"name": kwargs["file"].name}
         return request
 
     @property
@@ -480,10 +493,11 @@ class AsyncRPRequestLog(RPRequestLog):
         :return: JSON representation in the form of a Dictionary
         """
         data = self.__dict__.copy()
-        uuids = await asyncio.gather(await_if_necessary(data.pop('launch_uuid')),
-                                     await_if_necessary(data.pop('item_uuid')))
-        data['launch_uuid'] = uuids[0]
-        data['item_uuid'] = uuids[1]
+        uuids = await asyncio.gather(
+            await_if_necessary(data.pop("launch_uuid")), await_if_necessary(data.pop("item_uuid"))
+        )
+        data["launch_uuid"] = uuids[0]
+        data["item_uuid"] = uuids[1]
         return RPRequestLog._create_request(**data)
 
     @property
@@ -511,15 +525,13 @@ class RPLogBatch(RPRequestBase):
         :param log_reqs:
         """
         super().__init__()
-        self.default_content = 'application/octet-stream'
+        self.default_content = "application/octet-stream"
         self.log_reqs = log_reqs
         self.priority = LOW_PRIORITY
 
     def __get_file(self, rp_file) -> Tuple[str, tuple]:
         """Form a tuple for the single file."""
-        return ('file', (rp_file.name,
-                         rp_file.content,
-                         rp_file.content_type or self.default_content))
+        return "file", (rp_file.name, rp_file.content, rp_file.content_type or self.default_content)
 
     def _get_files(self) -> List[Tuple[str, tuple]]:
         """Get list of files for the JSON body."""
@@ -530,13 +542,12 @@ class RPLogBatch(RPRequestBase):
         return files
 
     def __get_request_part(self) -> List[Tuple[str, tuple]]:
-        body = [(
-            'json_request_part', (
-                None,
-                json_converter.dumps([log.payload for log in self.log_reqs]),
-                'application/json'
+        body = [
+            (
+                "json_request_part",
+                (None, json_converter.dumps([log.payload for log in self.log_reqs]), "application/json"),
             )
-        )]
+        ]
         return body
 
     @property
@@ -584,11 +595,11 @@ class AsyncRPLogBatch(RPLogBatch):
         :return: Multipart request object capable to send with AIOHTTP
         """
         json_payload = aiohttp.JsonPayload(await self.__get_request_part())
-        json_payload.set_content_disposition('form-data', name='json_request_part')
-        mp_writer = aiohttp.MultipartWriter('form-data')
+        json_payload.set_content_disposition("form-data", name="json_request_part")
+        mp_writer = aiohttp.MultipartWriter("form-data")
         mp_writer.append_payload(json_payload)
         for _, file in self._get_files():
             file_payload = aiohttp.BytesPayload(file[1], content_type=file[2])
-            file_payload.set_content_disposition('form-data', name='file', filename=file[0])
+            file_payload.set_content_disposition("form-data", name="file", filename=file[0])
             mp_writer.append_payload(file_payload)
         return mp_writer

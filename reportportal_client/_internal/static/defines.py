@@ -18,13 +18,13 @@ import aenum as enum
 from reportportal_client.helpers import ATTRIBUTE_LENGTH_LIMIT as ATTRIBUTE_LIMIT
 
 RP_LOG_LEVELS = {
-    60000: 'UNKNOWN',
-    50000: 'FATAL',
-    40000: 'ERROR',
-    30000: 'WARN',
-    20000: 'INFO',
-    10000: 'DEBUG',
-    5000: 'TRACE'
+    60000: "UNKNOWN",
+    50000: "FATAL",
+    40000: "ERROR",
+    30000: "WARN",
+    20000: "INFO",
+    10000: "DEBUG",
+    5000: "TRACE",
 }
 
 
@@ -49,23 +49,23 @@ class _PresenceSentinel:
 class ItemStartType(str, enum.Enum):
     """This class defines item type mapping."""
 
-    BEFORE_CLASS = 'before_class'
-    BEFORE_GROUPS = 'before_groups'
-    BEFORE_METHOD = 'before_method'
-    BEFORE_SUITE = 'before_suite'
-    BEFORE_TEST = 'before_test'
+    BEFORE_CLASS = "before_class"
+    BEFORE_GROUPS = "before_groups"
+    BEFORE_METHOD = "before_method"
+    BEFORE_SUITE = "before_suite"
+    BEFORE_TEST = "before_test"
 
-    SUITE = 'class'
-    STORY = 'groups'
-    TEST = 'method'
-    SCENARIO = 'suite'
-    STEP = 'test'
+    SUITE = "class"
+    STORY = "groups"
+    TEST = "method"
+    SCENARIO = "suite"
+    STEP = "test"
 
-    AFTER_CLASS = 'after_class'
-    AFTER_GROUPS = 'after_groups'
-    AFTER_METHOD = 'after_method'
-    AFTER_SUITE = 'after_suite'
-    AFTER_TEST = 'after_test'
+    AFTER_CLASS = "after_class"
+    AFTER_GROUPS = "after_groups"
+    AFTER_METHOD = "after_method"
+    AFTER_SUITE = "after_suite"
+    AFTER_TEST = "after_test"
 
 
 class Priority(enum.IntEnum):

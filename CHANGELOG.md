@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 ### Added
+- `match_pattern` and `translate_glob_to_regex`, `normalize_caseless`, `caseless_equal` functions in `helpers` module, by @HardNorth
+- `client.RP.start_test_item` method and all its children now accept `uuid` argument, by @HardNorth
+### Removed
+- `Python 3.7` support, by @HardNorth
+
+## [5.5.10]
+### Added
 - Official `Python 3.13` support, by @HardNorth
 ### Fixed
 - Issue [#244](https://github.com/reportportal/client-Python/issues/244): Client crash on different error responses, by @HardNorth

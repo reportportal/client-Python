@@ -13,7 +13,8 @@
 
 """This module provides base abstract class for RP request objects."""
 
-from abc import ABCMeta as _ABCMeta, abstractmethod
+from abc import ABCMeta as _ABCMeta
+from abc import abstractmethod
 
 __all__ = ["AbstractBaseClass", "abstractmethod"]
 
@@ -35,12 +36,12 @@ class AbstractBaseClass(_ABCMeta):
     i = Implementation() -> success
     """
 
-    _abc_registry = []
+    _abc_registry = set()
 
     def __call__(cls, *args, **kwargs):
         """Disable instantiation for the interface classes."""
         if cls.__name__ in AbstractBaseClass._abc_registry:
-            raise TypeError("No instantiation allowed for Interface-Class '{}'. Please inherit.".format(cls.__name__))
+            raise TypeError(f'No instantiation allowed for Interface-Class "{cls.__name__}". Please inherit.')
 
         result = super(AbstractBaseClass, cls).__call__(*args, **kwargs)
         return result
@@ -49,5 +50,5 @@ class AbstractBaseClass(_ABCMeta):
         """Register instance of the implementation class."""
         class_ = super(AbstractBaseClass, mcs).__new__(mcs, name, bases, namespace)
         if namespace.get("__metaclass__") is AbstractBaseClass:
-            mcs._abc_registry.append(name)
+            mcs._abc_registry.add(name)
         return class_

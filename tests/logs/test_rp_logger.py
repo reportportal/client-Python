@@ -34,57 +34,62 @@ def verify_record(logger_handler):
     return record
 
 
-@mock.patch('reportportal_client.logs.logging.Logger.handle')
+@mock.patch("reportportal_client.logs.logging.Logger.handle")
 def test_record_make(logger_handler):
-    logger = RPLogger('test_logger')
-    logger.info('test_log')
+    logger = RPLogger("test_logger")
+    logger.info("test_log")
     record = verify_record(logger_handler)
-    assert not getattr(record, 'attachment')
+    assert not getattr(record, "attachment")
     assert record.pathname == __file__
 
 
-@mock.patch('reportportal_client.logs.logging.Logger.handle')
+@mock.patch("reportportal_client.logs.logging.Logger.handle")
 def test_record_attachment(logger_handler):
-    logger = RPLogger('test_logger')
-    attachment = {'name': 'test.txt', 'content': 'test',
-                  'content_type': 'text/plain'}
-    logger.info('test_log', attachment=attachment)
+    logger = RPLogger("test_logger")
+    attachment = {"name": "test.txt", "content": "test", "content_type": "text/plain"}
+    logger.info("test_log", attachment=attachment)
     record = verify_record(logger_handler)
-    result_attachment = getattr(record, 'attachment')
+    result_attachment = getattr(record, "attachment")
     assert result_attachment
     assert result_attachment == attachment
 
 
 @pytest.mark.parametrize(
-    'handler_level, log_level, expected_calls',
+    "handler_level, log_level, expected_calls",
     [
-        (logging.WARN, 'info', 0),
-        (logging.INFO, 'info', 1),
-    ]
+        (logging.WARN, "info", 0),
+        (logging.INFO, "info", 1),
+    ],
 )
 def test_log_level_filter(handler_level, log_level, expected_calls):
     mock_client = mock.Mock()
     set_current(mock_client)
 
-    logger = RPLogger('test_logger')
+    logger = RPLogger("test_logger")
     logger.addHandler(RPLogHandler(level=handler_level))
-    getattr(logger, log_level)('test_log')
+    getattr(logger, log_level)("test_log")
 
     assert mock_client.log.call_count == expected_calls
 
 
-@pytest.mark.skipif(sys.version_info < (3, 8),
-                    reason='"stacklevel" introduced in Python 3.8, so not '
-                           'actual for earlier versions')
-@mock.patch('reportportal_client.logs.logging.Logger.handle')
+@mock.patch("reportportal_client.logs.logging.Logger.handle")
 def test_stacklevel_record_make(logger_handler):
-    logger = RPLogger('test_logger')
+    logger = RPLogger("test_logger")
+
     if sys.version_info < (3, 11):
-        logger.error('test_log', exc_info=RuntimeError('test'),
-                     stack_info=inspect.stack(), stacklevel=1)
+        logger.error("test_log", exc_info=RuntimeError("test"), stack_info=inspect.stack(), stacklevel=1)
     else:
-        logger.error('test_log', exc_info=RuntimeError('test'),
-                     stack_info=inspect.stack(), stacklevel=2)
+        logger.error("test_log", exc_info=RuntimeError("test"), stack_info=inspect.stack(), stacklevel=2)
+
     record = verify_record(logger_handler)
-    assert record.stack_info.endswith("logger.error('test_log', exc_info=RuntimeError('test'),")
+
+    if sys.version_info < (3, 11):
+        assert record.stack_info.endswith(
+            'logger.error("test_log", exc_info=RuntimeError("test"), stack_info=inspect.stack(), stacklevel=1)'
+        )
+    else:
+        assert record.stack_info.endswith(
+            'logger.error("test_log", exc_info=RuntimeError("test"), stack_info=inspect.stack(), stacklevel=2)'
+        )
+
     assert record.pathname == __file__

@@ -15,8 +15,5 @@ from typing import Optional
 
 from reportportal_client import RP
 
-
 def current() -> Optional[RP]: ...
-
-
 def set_current(client: Optional[RP]) -> None: ...

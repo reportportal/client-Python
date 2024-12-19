@@ -15,14 +15,14 @@
 
 import logging
 import threading
-from typing import List, Optional, TypeVar, Generic, Dict, Any
+from typing import Any, Dict, Generic, List, Optional, TypeVar
 
-from reportportal_client.core.rp_requests import RPRequestLog, AsyncRPRequestLog
-from reportportal_client.logs import MAX_LOG_BATCH_SIZE, MAX_LOG_BATCH_PAYLOAD_SIZE
+from reportportal_client.core.rp_requests import AsyncRPRequestLog, RPRequestLog
+from reportportal_client.logs import MAX_LOG_BATCH_PAYLOAD_SIZE, MAX_LOG_BATCH_SIZE
 
 logger = logging.getLogger(__name__)
 
-T_co = TypeVar('T_co', bound='RPRequestLog', covariant=True)
+T_co = TypeVar("T_co", bound="RPRequestLog", covariant=True)
 
 
 class LogBatcher(Generic[T_co]):
@@ -102,7 +102,7 @@ class LogBatcher(Generic[T_co]):
         """
         state = self.__dict__.copy()
         # Don't pickle 'session' field, since it contains unpickling 'socket'
-        del state['_lock']
+        del state["_lock"]
         return state
 
     def __setstate__(self, state: Dict[str, Any]) -> None:

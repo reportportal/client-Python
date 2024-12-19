@@ -17,11 +17,11 @@ import asyncio
 import sys
 import time
 from asyncio import Future
-from typing import Optional, List, TypeVar, Generic, Union, Generator, Awaitable, Coroutine, Any
+from typing import Any, Awaitable, Coroutine, Generator, Generic, List, Optional, TypeVar, Union
 
-from reportportal_client.aio.tasks import Task, BlockingOperationError
+from reportportal_client.aio.tasks import BlockingOperationError, Task
 
-_T = TypeVar('_T')
+_T = TypeVar("_T")
 
 DEFAULT_TASK_TRIGGER_NUM: int = 10
 DEFAULT_TASK_TRIGGER_INTERVAL: float = 1.0
@@ -33,11 +33,11 @@ class BatchedTask(Generic[_T], Task[_T]):
     __loop: asyncio.AbstractEventLoop
 
     def __init__(
-            self,
-            coro: Union[Generator[Future, None, _T], Awaitable[_T]],
-            *,
-            loop: asyncio.AbstractEventLoop,
-            name: Optional[str] = None
+        self,
+        coro: Union[Generator[Future, None, _T], Awaitable[_T]],
+        *,
+        loop: asyncio.AbstractEventLoop,
+        name: Optional[str] = None,
     ) -> None:
         """Initialize an instance of the Task.
 
@@ -65,12 +65,12 @@ class ThreadedTask(Generic[_T], Task[_T]):
     __wait_timeout: float
 
     def __init__(
-            self,
-            coro: Union[Generator[Future, None, _T], Awaitable[_T]],
-            wait_timeout: float,
-            *,
-            loop: asyncio.AbstractEventLoop,
-            name: Optional[str] = None
+        self,
+        coro: Union[Generator[Future, None, _T], Awaitable[_T]],
+        wait_timeout: float,
+        *,
+        loop: asyncio.AbstractEventLoop,
+        name: Optional[str] = None,
     ) -> None:
         """Initialize an instance of the Task.
 
@@ -90,13 +90,13 @@ class ThreadedTask(Generic[_T], Task[_T]):
         if self.done():
             return self.result()
         if not self.__loop.is_running() or self.__loop.is_closed():
-            raise BlockingOperationError('Running loop is not alive')
+            raise BlockingOperationError("Running loop is not alive")
         start_time = time.time()
         sleep_time = sys.getswitchinterval()
         while not self.done() and time.time() - start_time < self.__wait_timeout:
             time.sleep(sleep_time)
         if not self.done():
-            raise BlockingOperationError('Timed out waiting for the task execution')
+            raise BlockingOperationError("Timed out waiting for the task execution")
         return self.result()
 
 
@@ -104,10 +104,7 @@ class BatchedTaskFactory:
     """Factory protocol which creates Batched Tasks."""
 
     def __call__(
-            self,
-            loop: asyncio.AbstractEventLoop,
-            factory: Union[Coroutine[Any, Any, _T], Generator[Any, None, _T]],
-            **_
+        self, loop: asyncio.AbstractEventLoop, factory: Union[Coroutine[Any, Any, _T], Generator[Any, None, _T]], **_
     ) -> Task[_T]:
         """Create Batched Task in appropriate Event Loop.
 
@@ -130,10 +127,7 @@ class ThreadedTaskFactory:
         self.__wait_timeout = wait_timeout
 
     def __call__(
-            self,
-            loop: asyncio.AbstractEventLoop,
-            factory: Union[Coroutine[Any, Any, _T], Generator[Any, None, _T]],
-            **_
+        self, loop: asyncio.AbstractEventLoop, factory: Union[Coroutine[Any, Any, _T], Generator[Any, None, _T]], **_
     ) -> Task[_T]:
         """Create Threaded Task in appropriate Event Loop.
 
@@ -151,9 +145,9 @@ class TriggerTaskBatcher(Generic[_T]):
     __trigger_num: int
     __trigger_interval: float
 
-    def __init__(self,
-                 trigger_num: int = DEFAULT_TASK_TRIGGER_NUM,
-                 trigger_interval: float = DEFAULT_TASK_TRIGGER_INTERVAL) -> None:
+    def __init__(
+        self, trigger_num: int = DEFAULT_TASK_TRIGGER_NUM, trigger_interval: float = DEFAULT_TASK_TRIGGER_INTERVAL
+    ) -> None:
         """Initialize an instance of the Batcher.
 
         :param trigger_num: object number threshold which triggers batch return and reset
@@ -169,8 +163,7 @@ class TriggerTaskBatcher(Generic[_T]):
         last_time = self.__last_run_time
         if len(self.__task_list) <= 0:
             return False
-        if (len(self.__task_list) >= self.__trigger_num
-                or current_time - last_time >= self.__trigger_interval):
+        if len(self.__task_list) >= self.__trigger_num or current_time - last_time >= self.__trigger_interval:
             self.__last_run_time = current_time
             return True
         return False
@@ -213,7 +206,7 @@ class BackgroundTaskList(Generic[_T]):
             if not task.done():
                 break
             i += 1
-        self.__task_list = self.__task_list[i + 1:]
+        self.__task_list = self.__task_list[i + 1 :]
 
     def append(self, value: _T) -> None:
         """Add an object to internal batch.

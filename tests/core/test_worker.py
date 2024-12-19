@@ -17,16 +17,12 @@ import queue
 import time
 from unittest import mock
 
-from reportportal_client.core.rp_requests import (
-    HttpRequest,
-    RPLogBatch,
-    RPRequestLog
-)
+from reportportal_client.core.rp_requests import HttpRequest, RPLogBatch, RPRequestLog
 from reportportal_client.core.worker import APIWorker
 from reportportal_client.helpers import timestamp
 
-LOG_REQUEST_URL = 'http://docker.local:8080/api/v1/default_personal/log'
-TEST_LAUNCH_UUID = 'test_uuid'
+LOG_REQUEST_URL = "http://docker.local:8080/api/v1/default_personal/log"
+TEST_LAUNCH_UUID = "test_uuid"
 TEST_MASSAGE = "test message"
 
 
@@ -35,15 +31,12 @@ def test_worker_continue_working_on_request_error():
     worker = APIWorker(test_queue)
     worker.start()
 
-    log_request = RPRequestLog(TEST_LAUNCH_UUID, timestamp(),
-                               message=TEST_MASSAGE)
+    log_request = RPRequestLog(TEST_LAUNCH_UUID, timestamp(), message=TEST_MASSAGE)
     log_batch = RPLogBatch([log_request])
 
     fail_session = mock.Mock()
     fail_session.side_effect = Exception()
-    http_fail = HttpRequest(
-        fail_session, LOG_REQUEST_URL, files=log_batch.payload,
-        verify_ssl=False)
+    http_fail = HttpRequest(fail_session, LOG_REQUEST_URL, files=log_batch.payload, verify_ssl=False)
     worker.send(http_fail)
 
     start_time = time.time()
@@ -53,9 +46,7 @@ def test_worker_continue_working_on_request_error():
     assert fail_session.call_count == 1
 
     pass_session = mock.Mock()
-    http_pass = HttpRequest(
-        pass_session, LOG_REQUEST_URL, files=log_batch.payload,
-        verify_ssl=False)
+    http_pass = HttpRequest(pass_session, LOG_REQUEST_URL, files=log_batch.payload, verify_ssl=False)
     worker.send(http_pass)
 
     start_time = time.time()

@@ -19,9 +19,9 @@ https://github.com/reportportal/documentation/blob/master/src/md/src/DevGuides/r
 """
 
 import logging
-from typing import Any, Optional, Generator, Mapping, Tuple, Union
+from typing import Any, Generator, Mapping, Optional, Tuple, Union
 
-from aiohttp import ClientResponse, ClientError
+from aiohttp import ClientError, ClientResponse
 from requests import Response
 
 # noinspection PyProtectedMember
@@ -33,18 +33,20 @@ logger = logging.getLogger(__name__)
 def _iter_json_messages(json: Any) -> Generator[str, None, None]:
     if not isinstance(json, Mapping):
         return
-    data = json.get('responses', [json])
+    data = json.get("responses", [json])
     for chunk in data:
-        message = chunk.get('message', chunk.get('error_code', NOT_FOUND))
+        message = chunk.get("message", chunk.get("error_code", NOT_FOUND))
         if message:
             yield message
 
 
 def _get_json_decode_error_message(response: Union[Response, ClientResponse]) -> str:
-    status = getattr(response, 'status', getattr(response, 'status_code', None))
-    ok = getattr(response, 'ok', None)
-    return f'Unable to decode JSON response, got {"passed" if ok else "failed"} ' \
-           f'response with code "{status}" please check your endpoint configuration or API key'
+    status = getattr(response, "status", getattr(response, "status_code", None))
+    ok = getattr(response, "ok", None)
+    return (
+        f'Unable to decode JSON response, got {"passed" if ok else "failed"} '
+        f'response with code "{status}" please check your endpoint configuration or API key'
+    )
 
 
 class RPResponse:
@@ -69,7 +71,7 @@ class RPResponse:
         """
         if self.json is None:
             return
-        return self.json.get('id', NOT_FOUND)
+        return self.json.get("id", NOT_FOUND)
 
     @property
     def is_success(self) -> bool:
@@ -101,7 +103,7 @@ class RPResponse:
         """
         if self.json is None:
             return
-        return self.json.get('message')
+        return self.json.get("message")
 
     @property
     def messages(self) -> Optional[Tuple[str, ...]]:
@@ -137,7 +139,7 @@ class AsyncRPResponse:
         json = await self.json
         if json is None:
             return
-        return json.get('id', NOT_FOUND)
+        return json.get("id", NOT_FOUND)
 
     @property
     def is_success(self) -> bool:
@@ -170,7 +172,7 @@ class AsyncRPResponse:
         json = await self.json
         if json is None:
             return
-        return json.get('message', NOT_FOUND)
+        return json.get("message", NOT_FOUND)
 
     @property
     async def messages(self) -> Optional[Tuple[str, ...]]:

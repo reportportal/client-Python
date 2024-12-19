@@ -19,34 +19,31 @@ import logging
 import os
 from uuid import uuid4
 
-from .constants import CLIENT_ID_PROPERTY, RP_FOLDER_PATH, \
-    RP_PROPERTIES_FILE_PATH
+from .constants import CLIENT_ID_PROPERTY, RP_FOLDER_PATH, RP_PROPERTIES_FILE_PATH
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
 
 class __NoSectionConfigParser(configparser.ConfigParser):
-    DEFAULT_SECTION = 'DEFAULT'
+    DEFAULT_SECTION = "DEFAULT"
 
     def __preprocess_file(self, fp):
-        content = u'[' + self.DEFAULT_SECTION + ']\n' + fp.read()
+        content = "[" + self.DEFAULT_SECTION + "]\n" + fp.read()
         return io.StringIO(content)
 
     def read(self, filenames, encoding=None):
         if isinstance(filenames, str):
             filenames = [filenames]
         for filename in filenames:
-            with open(filename, 'r') as fp:
+            with open(filename, "r") as fp:
                 preprocessed_fp = self.__preprocess_file(fp)
-                self.read_file(
-                    preprocessed_fp,
-                    filename)
+                self.read_file(preprocessed_fp, filename)
 
     def write(self, fp, space_around_delimiters=True):
         for key, value in self.items(self.DEFAULT_SECTION):
-            delimiter = ' = ' if space_around_delimiters else '='
-            fp.write(u'{}{}{}\n'.format(key, delimiter, value))
+            delimiter = " = " if space_around_delimiters else "="
+            fp.write("{}{}{}\n".format(key, delimiter, value))
 
 
 def __read_config():
@@ -58,19 +55,16 @@ def __read_config():
 
 def _read_client_id():
     config = __read_config()
-    if config.has_option(__NoSectionConfigParser.DEFAULT_SECTION,
-                         CLIENT_ID_PROPERTY):
-        return config.get(__NoSectionConfigParser.DEFAULT_SECTION,
-                          CLIENT_ID_PROPERTY)
+    if config.has_option(__NoSectionConfigParser.DEFAULT_SECTION, CLIENT_ID_PROPERTY):
+        return config.get(__NoSectionConfigParser.DEFAULT_SECTION, CLIENT_ID_PROPERTY)
 
 
 def _store_client_id(client_id):
     config = __read_config()
     if not os.path.exists(RP_FOLDER_PATH):
         os.makedirs(RP_FOLDER_PATH)
-    config.set(__NoSectionConfigParser.DEFAULT_SECTION, CLIENT_ID_PROPERTY,
-               client_id)
-    with open(RP_PROPERTIES_FILE_PATH, 'w') as fp:
+    config.set(__NoSectionConfigParser.DEFAULT_SECTION, CLIENT_ID_PROPERTY, client_id)
+    with open(RP_PROPERTIES_FILE_PATH, "w") as fp:
         config.write(fp)
 
 
@@ -80,13 +74,11 @@ def get_client_id():
     try:
         client_id = _read_client_id()
     except (PermissionError, IOError) as error:
-        logger.exception('[%s] Unknown exception has occurred. '
-                         'Skipping client ID reading.', error)
+        logger.exception("[%s] Unknown exception has occurred. " "Skipping client ID reading.", error)
     if not client_id:
         client_id = str(uuid4())
         try:
             _store_client_id(client_id)
         except (PermissionError, IOError) as error:
-            logger.exception('[%s] Unknown exception has occurred. '
-                             'Skipping client ID saving.', error)
+            logger.exception("[%s] Unknown exception has occurred. " "Skipping client ID saving.", error)
     return client_id

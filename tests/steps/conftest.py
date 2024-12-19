@@ -21,6 +21,6 @@ from reportportal_client.client import RPClient
 
 @fixture
 def rp_client():
-    client = RPClient('http://endpoint', 'project', 'api_key')
+    client = RPClient("http://endpoint", "project", "api_key")
     client.session = mock.Mock()
     return client

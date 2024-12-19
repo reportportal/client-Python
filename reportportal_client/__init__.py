@@ -20,7 +20,7 @@ import aenum
 # noinspection PyProtectedMember
 from reportportal_client._internal.local import current, set_current
 from reportportal_client.aio.client import AsyncRPClient, BatchedRPClient, ThreadedRPClient
-from reportportal_client.client import RP, RPClient, OutputType
+from reportportal_client.client import RP, OutputType, RPClient
 from reportportal_client.logs import RPLogger, RPLogHandler
 from reportportal_client.steps import step
 
@@ -36,12 +36,7 @@ class ClientType(aenum.Enum):
 
 # noinspection PyIncorrectDocstring
 def create_client(
-        client_type: ClientType,
-        endpoint: str,
-        project: str,
-        *,
-        api_key: str = None,
-        **kwargs: typing.Any
+    client_type: ClientType, endpoint: str, project: str, *, api_key: str = None, **kwargs: typing.Any
 ) -> typing.Optional[RP]:
     """Create and ReportPortal Client based on the type and arguments provided.
 
@@ -106,21 +101,21 @@ def create_client(
         return ThreadedRPClient(endpoint, project, api_key=api_key, **kwargs)
     if client_type is ClientType.ASYNC_BATCHED:
         return BatchedRPClient(endpoint, project, api_key=api_key, **kwargs)
-    warnings.warn(f'Unknown ReportPortal Client type requested: {client_type}', RuntimeWarning, stacklevel=2)
+    warnings.warn(f"Unknown ReportPortal Client type requested: {client_type}", RuntimeWarning, stacklevel=2)
 
 
 __all__ = [
-    'ClientType',
-    'create_client',
-    'current',
-    'set_current',
-    'RP',
-    'RPClient',
-    'AsyncRPClient',
-    'BatchedRPClient',
-    'ThreadedRPClient',
-    'OutputType',
-    'RPLogger',
-    'RPLogHandler',
-    'step',
+    "ClientType",
+    "create_client",
+    "current",
+    "set_current",
+    "RP",
+    "RPClient",
+    "AsyncRPClient",
+    "BatchedRPClient",
+    "ThreadedRPClient",
+    "OutputType",
+    "RPLogger",
+    "RPLogHandler",
+    "step",
 ]
