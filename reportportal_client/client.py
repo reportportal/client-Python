@@ -86,10 +86,10 @@ class RP(metaclass=AbstractBaseClass):
         :return: UUID string.
         """
         warnings.warn(
-            message='`launch_id` property is deprecated since 5.5.0 and will be subject for removing in the'
-                    ' next major version. Use `launch_uuid` property instead.',
+            message="`launch_id` property is deprecated since 5.5.0 and will be subject for removing in the"
+            " next major version. Use `launch_uuid` property instead.",
             category=DeprecationWarning,
-            stacklevel=2
+            stacklevel=2,
         )
         return self.launch_uuid
 
@@ -121,14 +121,16 @@ class RP(metaclass=AbstractBaseClass):
         raise NotImplementedError('"step_reporter" property is not implemented!')
 
     @abstractmethod
-    def start_launch(self,
-                     name: str,
-                     start_time: str,
-                     description: Optional[str] = None,
-                     attributes: Optional[Union[list, dict]] = None,
-                     rerun: bool = False,
-                     rerun_of: Optional[str] = None,
-                     **kwargs) -> Optional[str]:
+    def start_launch(
+        self,
+        name: str,
+        start_time: str,
+        description: Optional[str] = None,
+        attributes: Optional[Union[list, dict]] = None,
+        rerun: bool = False,
+        rerun_of: Optional[str] = None,
+        **kwargs,
+    ) -> Optional[str]:
         """Start a new Launch with the given arguments.
 
         :param name:        Launch name.
@@ -143,20 +145,22 @@ class RP(metaclass=AbstractBaseClass):
         raise NotImplementedError('"start_launch" method is not implemented!')
 
     @abstractmethod
-    def start_test_item(self,
-                        name: str,
-                        start_time: str,
-                        item_type: str,
-                        description: Optional[str] = None,
-                        attributes: Optional[Union[List[dict], dict]] = None,
-                        parameters: Optional[dict] = None,
-                        parent_item_id: Optional[str] = None,
-                        has_stats: Optional[bool] = True,
-                        code_ref: Optional[str] = None,
-                        retry: Optional[bool] = False,
-                        test_case_id: Optional[str] = None,
-                        retry_of: Optional[str] = None,
-                        **kwargs: Any) -> Optional[str]:
+    def start_test_item(
+        self,
+        name: str,
+        start_time: str,
+        item_type: str,
+        description: Optional[str] = None,
+        attributes: Optional[Union[List[dict], dict]] = None,
+        parameters: Optional[dict] = None,
+        parent_item_id: Optional[str] = None,
+        has_stats: Optional[bool] = True,
+        code_ref: Optional[str] = None,
+        retry: Optional[bool] = False,
+        test_case_id: Optional[str] = None,
+        retry_of: Optional[str] = None,
+        **kwargs: Any,
+    ) -> Optional[str]:
         """Start Test Case/Suite/Step/Nested Step Item.
 
         :param name:           Name of the Test Item.
@@ -180,17 +184,19 @@ class RP(metaclass=AbstractBaseClass):
         raise NotImplementedError('"start_test_item" method is not implemented!')
 
     @abstractmethod
-    def finish_test_item(self,
-                         item_id: str,
-                         end_time: str,
-                         status: Optional[str] = None,
-                         issue: Optional[Issue] = None,
-                         attributes: Optional[Union[list, dict]] = None,
-                         description: Optional[str] = None,
-                         retry: Optional[bool] = False,
-                         test_case_id: Optional[str] = None,
-                         retry_of: Optional[str] = None,
-                         **kwargs: Any) -> Optional[str]:
+    def finish_test_item(
+        self,
+        item_id: str,
+        end_time: str,
+        status: Optional[str] = None,
+        issue: Optional[Issue] = None,
+        attributes: Optional[Union[list, dict]] = None,
+        description: Optional[str] = None,
+        retry: Optional[bool] = False,
+        test_case_id: Optional[str] = None,
+        retry_of: Optional[str] = None,
+        **kwargs: Any,
+    ) -> Optional[str]:
         """Finish Test Suite/Case/Step/Nested Step Item.
 
         :param item_id:      ID of the Test Item.
@@ -210,11 +216,13 @@ class RP(metaclass=AbstractBaseClass):
         raise NotImplementedError('"finish_test_item" method is not implemented!')
 
     @abstractmethod
-    def finish_launch(self,
-                      end_time: str,
-                      status: Optional[str] = None,
-                      attributes: Optional[Union[list, dict]] = None,
-                      **kwargs: Any) -> Optional[str]:
+    def finish_launch(
+        self,
+        end_time: str,
+        status: Optional[str] = None,
+        attributes: Optional[Union[list, dict]] = None,
+        **kwargs: Any,
+    ) -> Optional[str]:
         """Finish a Launch.
 
         :param end_time:   Launch end time.
@@ -226,10 +234,12 @@ class RP(metaclass=AbstractBaseClass):
         raise NotImplementedError('"finish_launch" method is not implemented!')
 
     @abstractmethod
-    def update_test_item(self,
-                         item_uuid: Optional[str],
-                         attributes: Optional[Union[list, dict]] = None,
-                         description: Optional[str] = None) -> Optional[str]:
+    def update_test_item(
+        self,
+        item_uuid: Optional[str],
+        attributes: Optional[Union[list, dict]] = None,
+        description: Optional[str] = None,
+    ) -> Optional[str]:
         """Update existing Test Item at the ReportPortal.
 
         :param item_uuid:   Test Item UUID returned on the item start.
@@ -281,11 +291,14 @@ class RP(metaclass=AbstractBaseClass):
         raise NotImplementedError('"get_project_settings" method is not implemented!')
 
     @abstractmethod
-    def log(self,
-            time: str, message: str,
-            level: Optional[Union[int, str]] = None,
-            attachment: Optional[dict] = None,
-            item_id: Optional[str] = None) -> Optional[Tuple[str, ...]]:
+    def log(
+        self,
+        time: str,
+        message: str,
+        level: Optional[Union[int, str]] = None,
+        attachment: Optional[dict] = None,
+        item_id: Optional[str] = None,
+    ) -> Optional[Tuple[str, ...]]:
         """Send Log message to the ReportPortal and attach it to a Test Item or Launch.
 
         This method stores Log messages in internal batch and sent it when batch is full, so not every method
@@ -309,7 +322,7 @@ class RP(metaclass=AbstractBaseClass):
         raise NotImplementedError('"current_item" method is not implemented!')
 
     @abstractmethod
-    def clone(self) -> 'RP':
+    def clone(self) -> "RP":
         """Clone the Client object, set current Item ID as cloned Item ID.
 
         :return: Cloned client object.
@@ -325,19 +338,19 @@ class RP(metaclass=AbstractBaseClass):
     def start(self) -> None:
         """Start the client."""
         warnings.warn(
-            message='`start` method is deprecated since 5.5.0 and will be subject for removing in the'
-                    ' next major version. There is no any necessity to call this method anymore.',
+            message="`start` method is deprecated since 5.5.0 and will be subject for removing in the"
+            " next major version. There is no any necessity to call this method anymore.",
             category=DeprecationWarning,
-            stacklevel=2
+            stacklevel=2,
         )
 
     def terminate(self, *_: Any, **__: Any) -> None:
         """Call this to terminate the client."""
         warnings.warn(
-            message='`terminate` method is deprecated since 5.5.0 and will be subject for removing in the'
-                    ' next major version. There is no any necessity to call this method anymore.',
+            message="`terminate` method is deprecated since 5.5.0 and will be subject for removing in the"
+            " next major version. There is no any necessity to call this method anymore.",
             category=DeprecationWarning,
-            stacklevel=2
+            stacklevel=2,
         )
         self.close()
 
@@ -409,41 +422,38 @@ class RPClient(RP):
         return self.__step_reporter
 
     def __init_session(self) -> None:
-        retry_strategy = Retry(
-            total=self.retries,
-            backoff_factor=0.1,
-            status_forcelist=[429, 500, 502, 503, 504]
-        ) if self.retries else DEFAULT_RETRIES
+        retry_strategy = (
+            Retry(total=self.retries, backoff_factor=0.1, status_forcelist=[429, 500, 502, 503, 504])
+            if self.retries
+            else DEFAULT_RETRIES
+        )
         session = requests.Session()
-        session.mount('https://', HTTPAdapter(
-            max_retries=retry_strategy, pool_maxsize=self.max_pool_size))
+        session.mount("https://", HTTPAdapter(max_retries=retry_strategy, pool_maxsize=self.max_pool_size))
         # noinspection HttpUrlsUsage
-        session.mount('http://', HTTPAdapter(
-            max_retries=retry_strategy, pool_maxsize=self.max_pool_size))
+        session.mount("http://", HTTPAdapter(max_retries=retry_strategy, pool_maxsize=self.max_pool_size))
         if self.api_key:
-            session.headers['Authorization'] = 'Bearer {0}'.format(
-                self.api_key)
+            session.headers["Authorization"] = "Bearer {0}".format(self.api_key)
         self.session = session
 
     def __init__(
-            self,
-            endpoint: str,
-            project: str,
-            api_key: str = None,
-            log_batch_size: int = 20,
-            is_skipped_an_issue: bool = True,
-            verify_ssl: Union[bool, str] = True,
-            retries: int = None,
-            max_pool_size: int = 50,
-            launch_uuid: str = None,
-            http_timeout: Union[float, Tuple[float, float]] = (10, 10),
-            log_batch_payload_size: int = MAX_LOG_BATCH_PAYLOAD_SIZE,
-            mode: str = 'DEFAULT',
-            launch_uuid_print: bool = False,
-            print_output: OutputType = OutputType.STDOUT,
-            log_batcher: Optional[LogBatcher[RPRequestLog]] = None,
-            truncate_attributes: bool = True,
-            **kwargs: Any
+        self,
+        endpoint: str,
+        project: str,
+        api_key: str = None,
+        log_batch_size: int = 20,
+        is_skipped_an_issue: bool = True,
+        verify_ssl: Union[bool, str] = True,
+        retries: int = None,
+        max_pool_size: int = 50,
+        launch_uuid: str = None,
+        http_timeout: Union[float, Tuple[float, float]] = (10, 10),
+        log_batch_payload_size: int = MAX_LOG_BATCH_PAYLOAD_SIZE,
+        mode: str = "DEFAULT",
+        launch_uuid_print: bool = False,
+        print_output: OutputType = OutputType.STDOUT,
+        log_batcher: Optional[LogBatcher[RPRequestLog]] = None,
+        truncate_attributes: bool = True,
+        **kwargs: Any,
     ) -> None:
         """Initialize the class instance with arguments.
 
@@ -468,23 +478,21 @@ class RPClient(RP):
         :param truncate_attributes:    Truncate test item attributes to default maximum length.
         """
         set_current(self)
-        self.api_v1, self.api_v2 = 'v1', 'v2'
+        self.api_v1, self.api_v2 = "v1", "v2"
         self.__endpoint = endpoint
         self.__project = project
-        self.base_url_v1 = uri_join(
-            self.__endpoint, 'api/{}'.format(self.api_v1), self.__project)
-        self.base_url_v2 = uri_join(
-            self.__endpoint, 'api/{}'.format(self.api_v2), self.__project)
+        self.base_url_v1 = uri_join(self.__endpoint, "api/{}".format(self.api_v1), self.__project)
+        self.base_url_v2 = uri_join(self.__endpoint, "api/{}".format(self.api_v2), self.__project)
         self.is_skipped_an_issue = is_skipped_an_issue
         self.__launch_uuid = launch_uuid
         if not self.__launch_uuid:
-            launch_id = kwargs.get('launch_id')
+            launch_id = kwargs.get("launch_id")
             if launch_id:
                 warnings.warn(
-                    message='`launch_id` property is deprecated since 5.5.0 and will be subject for removing'
-                            ' in the next major version. Use `launch_uuid` property instead.',
+                    message="`launch_id` property is deprecated since 5.5.0 and will be subject for removing"
+                    " in the next major version. Use `launch_uuid` property instead.",
                     category=DeprecationWarning,
-                    stacklevel=2
+                    stacklevel=2,
                 )
                 self.__launch_uuid = launch_id
         self.use_own_launch = not bool(self.__launch_uuid)
@@ -498,41 +506,43 @@ class RPClient(RP):
         self.__step_reporter = StepReporter(self)
         self._item_stack = LifoQueue()
         self.mode = mode
-        self._skip_analytics = getenv('AGENT_NO_ANALYTICS')
+        self._skip_analytics = getenv("AGENT_NO_ANALYTICS")
         self.launch_uuid_print = launch_uuid_print
         self.print_output = print_output
         self.truncate_attributes = truncate_attributes
 
         self.api_key = api_key
         if not self.api_key:
-            if 'token' in kwargs:
+            if "token" in kwargs:
                 warnings.warn(
-                    message='Argument `token` is deprecated since 5.3.5 and will be subject for removing in '
-                            'the next major version. Use `api_key` argument instead.',
+                    message="Argument `token` is deprecated since 5.3.5 and will be subject for removing in "
+                    "the next major version. Use `api_key` argument instead.",
                     category=DeprecationWarning,
-                    stacklevel=2
+                    stacklevel=2,
                 )
-                self.api_key = kwargs['token']
+                self.api_key = kwargs["token"]
 
             if not self.api_key:
                 warnings.warn(
-                    message='Argument `api_key` is `None` or empty string, that is not supposed to happen '
-                            'because ReportPortal is usually requires an authorization key. Please check '
-                            'your code.',
+                    message="Argument `api_key` is `None` or empty string, that is not supposed to happen "
+                    "because ReportPortal is usually requires an authorization key. Please check "
+                    "your code.",
                     category=RuntimeWarning,
-                    stacklevel=2
+                    stacklevel=2,
                 )
 
         self.__init_session()
 
-    def start_launch(self,
-                     name: str,
-                     start_time: str,
-                     description: Optional[str] = None,
-                     attributes: Optional[Union[list, dict]] = None,
-                     rerun: bool = False,
-                     rerun_of: Optional[str] = None,
-                     **kwargs) -> Optional[str]:
+    def start_launch(
+        self,
+        name: str,
+        start_time: str,
+        description: Optional[str] = None,
+        attributes: Optional[Union[list, dict]] = None,
+        rerun: bool = False,
+        rerun_of: Optional[str] = None,
+        **kwargs,
+    ) -> Optional[str]:
         """Start a new Launch with the given arguments.
 
         :param name:        Launch name.
@@ -546,7 +556,7 @@ class RPClient(RP):
         """
         if not self.use_own_launch:
             return self.launch_uuid
-        url = uri_join(self.base_url_v2, 'launch')
+        url = uri_join(self.base_url_v2, "launch")
         request_payload = LaunchStartRequest(
             name=name,
             start_time=start_time,
@@ -554,36 +564,43 @@ class RPClient(RP):
             description=description,
             mode=self.mode,
             rerun=rerun,
-            rerun_of=rerun_of
+            rerun_of=rerun_of,
         ).payload
-        response = HttpRequest(self.session.post, url=url, json=request_payload, verify_ssl=self.verify_ssl,
-                               http_timeout=self.http_timeout).make()
+        response = HttpRequest(
+            self.session.post,
+            url=url,
+            json=request_payload,
+            verify_ssl=self.verify_ssl,
+            http_timeout=self.http_timeout,
+        ).make()
         if not response:
             return
 
         if not self._skip_analytics:
-            send_event('start_launch', *agent_name_version(attributes))
+            send_event("start_launch", *agent_name_version(attributes))
 
         self.__launch_uuid = response.id
-        logger.debug('start_launch - ID: %s', self.launch_uuid)
+        logger.debug("start_launch - ID: %s", self.launch_uuid)
         if self.launch_uuid_print and self.print_output:
-            print(f'ReportPortal Launch UUID: {self.launch_uuid}', file=self.print_output.get_output())
+            print(f"ReportPortal Launch UUID: {self.launch_uuid}", file=self.print_output.get_output())
         return self.launch_uuid
 
-    def start_test_item(self,
-                        name: str,
-                        start_time: str,
-                        item_type: str,
-                        description: Optional[str] = None,
-                        attributes: Optional[Union[List[dict], dict]] = None,
-                        parameters: Optional[dict] = None,
-                        parent_item_id: Optional[str] = None,
-                        has_stats: bool = True,
-                        code_ref: Optional[str] = None,
-                        retry: bool = False,
-                        test_case_id: Optional[str] = None,
-                        retry_of: Optional[str] = None,
-                        **_: Any) -> Optional[str]:
+    def start_test_item(
+        self,
+        name: str,
+        start_time: str,
+        item_type: str,
+        description: Optional[str] = None,
+        attributes: Optional[Union[List[dict], dict]] = None,
+        parameters: Optional[dict] = None,
+        parent_item_id: Optional[str] = None,
+        has_stats: bool = True,
+        code_ref: Optional[str] = None,
+        retry: bool = False,
+        test_case_id: Optional[str] = None,
+        retry_of: Optional[str] = None,
+        **_: Any,
+    ) -> Optional[str]:
         """Start Test Case/Suite/Step/Nested Step Item.
 
         :param name:           Name of the Test Item.
@@ -605,12 +622,12 @@ class RPClient(RP):
         :return:               Test Item UUID if successfully started or None.
         """
         if parent_item_id is NOT_FOUND:
-            logger.warning('Attempt to start item for non-existent parent item.')
+            logger.warning("Attempt to start item for non-existent parent item.")
             return
         if parent_item_id:
-            url = uri_join(self.base_url_v2, 'item', parent_item_id)
+            url = uri_join(self.base_url_v2, "item", parent_item_id)
         else:
-            url = uri_join(self.base_url_v2, 'item')
+            url = uri_join(self.base_url_v2, "item")
         request_payload = ItemStartRequest(
             name,
             start_time,
@@ -623,33 +640,39 @@ class RPClient(RP):
             parameters=parameters,
             retry=retry,
             test_case_id=test_case_id,
-            retry_of=retry_of
+            retry_of=retry_of,
         ).payload
 
-        response = HttpRequest(self.session.post, url=url, json=request_payload, verify_ssl=self.verify_ssl,
-                               http_timeout=self.http_timeout).make()
+        response = HttpRequest(
+            self.session.post,
+            url=url,
+            json=request_payload,
+            verify_ssl=self.verify_ssl,
+            http_timeout=self.http_timeout,
+        ).make()
         if not response:
             return
         item_id = response.id
         if item_id is not NOT_FOUND:
-            logger.debug('start_test_item - ID: %s', item_id)
+            logger.debug("start_test_item - ID: %s", item_id)
             self._add_current_item(item_id)
         else:
-            logger.warning('start_test_item - invalid response: %s',
-                           str(response.json))
+            logger.warning("start_test_item - invalid response: %s", str(response.json))
         return item_id
 
-    def finish_test_item(self,
-                         item_id: str,
-                         end_time: str,
-                         status: Optional[str] = None,
-                         issue: Optional[Issue] = None,
-                         attributes: Optional[Union[list, dict]] = None,
-                         description: Optional[str] = None,
-                         retry: Optional[bool] = False,
-                         test_case_id: Optional[str] = None,
-                         retry_of: Optional[str] = None,
-                         **kwargs: Any) -> Optional[str]:
+    def finish_test_item(
+        self,
+        item_id: str,
+        end_time: str,
+        status: Optional[str] = None,
+        issue: Optional[Issue] = None,
+        attributes: Optional[Union[list, dict]] = None,
+        description: Optional[str] = None,
+        retry: Optional[bool] = False,
+        test_case_id: Optional[str] = None,
+        retry_of: Optional[str] = None,
+        **kwargs: Any,
+    ) -> Optional[str]:
         """Finish Test Suite/Case/Step/Nested Step Item.
 
         :param item_id:      ID of the Test Item.
@@ -667,9 +690,9 @@ class RPClient(RP):
         :return:             Response message.
         """
         if item_id is NOT_FOUND or not item_id:
-            logger.warning('Attempt to finish non-existent item')
+            logger.warning("Attempt to finish non-existent item")
             return
-        url = uri_join(self.base_url_v2, 'item', item_id)
+        url = uri_join(self.base_url_v2, "item", item_id)
         request_payload = ItemFinishRequest(
             end_time,
             self.launch_uuid,
@@ -680,22 +703,25 @@ class RPClient(RP):
             issue=issue,
             retry=retry,
             test_case_id=test_case_id,
-            retry_of=retry_of
+            retry_of=retry_of,
         ).payload
-        response = HttpRequest(self.session.put, url=url, json=request_payload, verify_ssl=self.verify_ssl,
-                               http_timeout=self.http_timeout).make()
+        response = HttpRequest(
+            self.session.put, url=url, json=request_payload, verify_ssl=self.verify_ssl, http_timeout=self.http_timeout
+        ).make()
         if not response:
             return
         self._remove_current_item()
-        logger.debug('finish_test_item - ID: %s', item_id)
-        logger.debug('response message: %s', response.message)
+        logger.debug("finish_test_item - ID: %s", item_id)
+        logger.debug("response message: %s", response.message)
         return response.message
 
-    def finish_launch(self,
-                      end_time: str,
-                      status: Optional[str] = None,
-                      attributes: Optional[Union[list, dict]] = None,
-                      **kwargs: Any) -> Optional[str]:
+    def finish_launch(
+        self,
+        end_time: str,
+        status: Optional[str] = None,
+        attributes: Optional[Union[list, dict]] = None,
+        **kwargs: Any,
+    ) -> Optional[str]:
         """Finish launch.
 
         :param end_time:    Launch end time
@@ -705,30 +731,36 @@ class RPClient(RP):
         """
         if self.use_own_launch:
             if self.launch_uuid is NOT_FOUND or not self.launch_uuid:
-                logger.warning('Attempt to finish non-existent launch')
+                logger.warning("Attempt to finish non-existent launch")
                 return
-            url = uri_join(self.base_url_v2, 'launch', self.launch_uuid, 'finish')
+            url = uri_join(self.base_url_v2, "launch", self.launch_uuid, "finish")
             request_payload = LaunchFinishRequest(
                 end_time,
                 status=status,
                 attributes=verify_value_length(attributes) if self.truncate_attributes else attributes,
-                description=kwargs.get('description')
+                description=kwargs.get("description"),
             ).payload
-            response = HttpRequest(self.session.put, url=url, json=request_payload,
-                                   verify_ssl=self.verify_ssl, name='Finish Launch',
-                                   http_timeout=self.http_timeout).make()
+            response = HttpRequest(
+                self.session.put,
+                url=url,
+                json=request_payload,
+                verify_ssl=self.verify_ssl,
+                name="Finish Launch",
+                http_timeout=self.http_timeout,
+            ).make()
             if not response:
                 return
-            logger.debug('finish_launch - ID: %s', self.launch_uuid)
-            logger.debug('response message: %s', response.message)
+            logger.debug("finish_launch - ID: %s", self.launch_uuid)
+            logger.debug("response message: %s", response.message)
             message = response.message
         else:
             message = ""
         self._log(self._log_batcher.flush())
         return message
 
-    def update_test_item(self, item_uuid: str, attributes: Optional[Union[list, dict]] = None,
-                         description: Optional[str] = None) -> Optional[str]:
+    def update_test_item(
+        self, item_uuid: str, attributes: Optional[Union[list, dict]] = None, description: Optional[str] = None
+    ) -> Optional[str]:
         """Update existing Test Item at the ReportPortal.
 
         :param item_uuid:   Test Item UUID returned on the item start.
@@ -737,32 +769,40 @@ class RPClient(RP):
         :return:            Response message or None.
         """
         data = {
-            'description': description,
-            'attributes': verify_value_length(attributes) if self.truncate_attributes else attributes,
+            "description": description,
+            "attributes": verify_value_length(attributes) if self.truncate_attributes else attributes,
         }
         item_id = self.get_item_id_by_uuid(item_uuid)
-        url = uri_join(self.base_url_v1, 'item', item_id, 'update')
-        response = HttpRequest(self.session.put, url=url, json=data, verify_ssl=self.verify_ssl,
-                               http_timeout=self.http_timeout).make()
+        url = uri_join(self.base_url_v1, "item", item_id, "update")
+        response = HttpRequest(
+            self.session.put, url=url, json=data, verify_ssl=self.verify_ssl, http_timeout=self.http_timeout
+        ).make()
         if not response:
             return
-        logger.debug('update_test_item - Item: %s', item_id)
+        logger.debug("update_test_item - Item: %s", item_id)
         return response.message
 
     def _log(self, batch: Optional[List[RPRequestLog]]) -> Optional[Tuple[str, ...]]:
         if batch:
-            url = uri_join(self.base_url_v2, 'log')
-            response = HttpRequest(self.session.post, url, files=RPLogBatch(batch).payload,
-                                   verify_ssl=self.verify_ssl, http_timeout=self.http_timeout).make()
+            url = uri_join(self.base_url_v2, "log")
+            response = HttpRequest(
+                self.session.post,
+                url,
+                files=RPLogBatch(batch).payload,
+                verify_ssl=self.verify_ssl,
+                http_timeout=self.http_timeout,
+            ).make()
             if response:
                 return response.messages
 
-    def log(self,
-            time: str,
-            message: str,
-            level: Optional[Union[int, str]] = None,
-            attachment: Optional[dict] = None,
-            item_id: Optional[str] = None) -> Optional[Tuple[str, ...]]:
+    def log(
+        self,
+        time: str,
+        message: str,
+        level: Optional[Union[int, str]] = None,
+        attachment: Optional[dict] = None,
+        item_id: Optional[str] = None,
+    ) -> Optional[Tuple[str, ...]]:
         """Send Log message to the ReportPortal and attach it to a Test Item or Launch.
 
         This method stores Log messages in internal batch and sent it when batch is full, so not every method
@@ -788,9 +828,10 @@ class RPClient(RP):
         :param item_uuid: String UUID returned on the Item start.
         :return:          Test Item ID.
         """
-        url = uri_join(self.base_url_v1, 'item', 'uuid', item_uuid)
-        response = HttpRequest(self.session.get, url=url, verify_ssl=self.verify_ssl,
-                               http_timeout=self.http_timeout).make()
+        url = uri_join(self.base_url_v1, "item", "uuid", item_uuid)
+        response = HttpRequest(
+            self.session.get, url=url, verify_ssl=self.verify_ssl, http_timeout=self.http_timeout
+        ).make()
         return response.id if response else None
 
     def get_launch_info(self) -> Optional[dict]:
@@ -800,20 +841,19 @@ class RPClient(RP):
         """
         if self.launch_uuid is None:
             return {}
-        url = uri_join(self.base_url_v1, 'launch', 'uuid', self.launch_uuid)
-        logger.debug('get_launch_info - ID: %s', self.launch_uuid)
-        response = HttpRequest(self.session.get, url=url, verify_ssl=self.verify_ssl,
-                               http_timeout=self.http_timeout).make()
+        url = uri_join(self.base_url_v1, "launch", "uuid", self.launch_uuid)
+        logger.debug("get_launch_info - ID: %s", self.launch_uuid)
+        response = HttpRequest(
+            self.session.get, url=url, verify_ssl=self.verify_ssl, http_timeout=self.http_timeout
+        ).make()
         if not response:
             return
         launch_info = None
         if response.is_success:
             launch_info = response.json
-            logger.debug(
-                'get_launch_info - Launch info: %s', response.json)
+            logger.debug("get_launch_info - Launch info: %s", response.json)
         else:
-            logger.warning('get_launch_info - Launch info: '
-                           'Failed to fetch launch ID from the API.')
+            logger.warning("get_launch_info - Launch info: " "Failed to fetch launch ID from the API.")
         return launch_info
 
     def get_launch_ui_id(self) -> Optional[int]:
@@ -822,7 +862,7 @@ class RPClient(RP):
         :return: Launch ID of the Launch. None if not found.
         """
         launch_info = self.get_launch_info()
-        return launch_info.get('id') if launch_info else None
+        return launch_info.get("id") if launch_info else None
 
     def get_launch_ui_url(self) -> Optional[str]:
         """Get full quality URL of the current Launch.
@@ -830,20 +870,20 @@ class RPClient(RP):
         :return: Launch URL string.
         """
         launch_info = self.get_launch_info()
-        ui_id = launch_info.get('id') if launch_info else None
+        ui_id = launch_info.get("id") if launch_info else None
         if not ui_id:
             return
-        mode = launch_info.get('mode') if launch_info else None
+        mode = launch_info.get("mode") if launch_info else None
         if not mode:
             mode = self.mode
 
-        launch_type = 'launches' if mode.upper() == 'DEFAULT' else 'userdebug'
+        launch_type = "launches" if mode.upper() == "DEFAULT" else "userdebug"
 
-        path = 'ui/#{project_name}/{launch_type}/all/{launch_id}'.format(
-            project_name=self.__project.lower(), launch_type=launch_type,
-            launch_id=ui_id)
+        path = "ui/#{project_name}/{launch_type}/all/{launch_id}".format(
+            project_name=self.__project.lower(), launch_type=launch_type, launch_id=ui_id
+        )
         url = uri_join(self.__endpoint, path)
-        logger.debug('get_launch_ui_url - UUID: %s', self.launch_uuid)
+        logger.debug("get_launch_ui_url - UUID: %s", self.launch_uuid)
         return url
 
     def get_project_settings(self) -> Optional[dict]:
@@ -851,9 +891,10 @@ class RPClient(RP):
 
         :return: Settings response in Dictionary.
         """
-        url = uri_join(self.base_url_v1, 'settings')
-        response = HttpRequest(self.session.get, url=url, verify_ssl=self.verify_ssl,
-                               http_timeout=self.http_timeout).make()
+        url = uri_join(self.base_url_v1, "settings")
+        response = HttpRequest(
+            self.session.get, url=url, verify_ssl=self.verify_ssl, http_timeout=self.http_timeout
+        ).make()
         return response.json if response else None
 
     def _add_current_item(self, item: str) -> None:
@@ -877,7 +918,7 @@ class RPClient(RP):
         """
         return self._item_stack.last()
 
-    def clone(self) -> 'RPClient':
+    def clone(self) -> "RPClient":
         """Clone the Client object, set current Item ID as cloned Item ID.
 
         :return: Cloned client object.
@@ -896,7 +937,7 @@ class RPClient(RP):
             http_timeout=self.http_timeout,
             log_batch_payload_size=self.log_batch_payload_size,
             mode=self.mode,
-            log_batcher=self._log_batcher
+            log_batcher=self._log_batcher,
         )
         current_item = self.current_item()
         if current_item:
@@ -916,7 +957,7 @@ class RPClient(RP):
         """
         state = self.__dict__.copy()
         # Don't pickle 'session' field, since it contains unpickling 'socket'
-        del state['session']
+        del state["session"]
         return state
 
     def __setstate__(self, state: Dict[str, Any]) -> None:

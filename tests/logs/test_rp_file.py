@@ -17,17 +17,10 @@ import pytest
 from reportportal_client.core.rp_file import RPFile
 
 
-@pytest.mark.parametrize(
-    ['name'],
-    [
-        [''],
-        [None],
-        ['   ']
-    ]
-)
+@pytest.mark.parametrize(["name"], [[""], [None], ["   "]])
 def test_rp_file_name_should_not_be_empty(name):
-    file = RPFile(name, b'{"test": true}', 'application/json')
+    file = RPFile(name, b'{"test": true}', "application/json")
 
     payload = file.payload
-    assert payload['name']
-    assert len(payload['name']) > 10
+    assert payload["name"]
+    assert len(payload["name"]) > 10

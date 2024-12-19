@@ -31,9 +31,17 @@ logger = logging.getLogger(__name__)
 class LogManager:
     """Manager of the log items."""
 
-    def __init__(self, rp_url, session, api_version, launch_id, project_name,
-                 max_entry_number=MAX_LOG_BATCH_SIZE, verify_ssl=True,
-                 max_payload_size=MAX_LOG_BATCH_PAYLOAD_SIZE):
+    def __init__(
+        self,
+        rp_url,
+        session,
+        api_version,
+        launch_id,
+        project_name,
+        max_entry_number=MAX_LOG_BATCH_SIZE,
+        verify_ssl=True,
+        max_payload_size=MAX_LOG_BATCH_PAYLOAD_SIZE,
+    ):
         """Initialize instance attributes.
 
         :param rp_url:           ReportPortal URL
@@ -49,10 +57,10 @@ class LogManager:
                                  processed in one batch
         """
         warnings.warn(
-            message='`LogManager` class is deprecated since 5.5.0 and will be subject for removing in the'
-                    ' next major version.',
+            message="`LogManager` class is deprecated since 5.5.0 and will be subject for removing in the"
+            " next major version.",
             category=DeprecationWarning,
-            stacklevel=2
+            stacklevel=2,
         )
         self._lock = Lock()
         self._batch = []
@@ -68,17 +76,16 @@ class LogManager:
         self.session = session
         self.verify_ssl = verify_ssl
 
-        self._log_endpoint = (
-            '{rp_url}/api/{version}/{project_name}/log'
-            .format(rp_url=rp_url.rstrip('/'), version=self.api_version,
-                    project_name=self.project_name))
+        self._log_endpoint = "{rp_url}/api/{version}/{project_name}/log".format(
+            rp_url=rp_url.rstrip("/"), version=self.api_version, project_name=self.project_name
+        )
 
     def _send_batch(self):
         """Send existing batch logs to the worker."""
         batch = RPLogBatch(self._batch)
         http_request = HttpRequest(
-            self.session.post, self._log_endpoint, files=batch.payload,
-            verify_ssl=self.verify_ssl)
+            self.session.post, self._log_endpoint, files=batch.payload, verify_ssl=self.verify_ssl
+        )
         self._worker.send(http_request)
         self._batch = []
         self._payload_size = helpers.TYPICAL_MULTIPART_FOOTER_LENGTH
@@ -98,8 +105,7 @@ class LogManager:
             if len(self._batch) >= self.max_entry_number:
                 self._send_batch()
 
-    def log(self, time, message=None, level=None, attachment=None,
-            item_id=None):
+    def log(self, time, message=None, level=None, attachment=None, item_id=None):
         """Log message. Can be added to test item in any state.
 
         :param time:        Log time
@@ -112,8 +118,7 @@ class LogManager:
             logger.warning("Attempt to log to non-existent item")
             return
         rp_file = RPFile(**attachment) if attachment else None
-        rp_log = RPRequestLog(self.launch_id, time, rp_file, item_id,
-                              level, message)
+        rp_log = RPRequestLog(self.launch_id, time, rp_file, item_id, level, message)
         self._log_process(rp_log)
 
     def start(self):
@@ -129,8 +134,7 @@ class LogManager:
             with self._lock:
                 if self._batch:
                     self._send_batch()
-                logger.debug('Waiting for worker {0} to complete'
-                             'processing batches.'.format(self._worker))
+                logger.debug("Waiting for worker {0} to complete" "processing batches.".format(self._worker))
                 self._worker.stop()
 
     def stop_force(self):

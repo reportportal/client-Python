@@ -62,10 +62,10 @@ class APIWorker(object):
     def __init__(self, task_queue):
         """Initialize instance attributes."""
         warnings.warn(
-            message='`APIWorker` class is deprecated since 5.5.0 and will be subject for removing in the'
-                    ' next major version.',
+            message="`APIWorker` class is deprecated since 5.5.0 and will be subject for removing in the"
+            " next major version.",
             category=DeprecationWarning,
-            stacklevel=2
+            stacklevel=2,
         )
         self._queue = task_queue
         self._thread = None
@@ -85,10 +85,9 @@ class APIWorker(object):
 
         :param cmd: a command to be processed
         """
-        logger.debug('[%s] Processing {%s} command', self.name, cmd)
+        logger.debug("[%s] Processing {%s} command", self.name, cmd)
         if cmd == ControlCommand.REPORT_STATUS:
-            logger.debug('[%s] Current status for tasks is: {%s} unfinished',
-                         self.name, self._queue.unfinished_tasks)
+            logger.debug("[%s] Current status for tasks is: {%s} unfinished", self.name, self._queue.unfinished_tasks)
 
         if cmd.is_stop_cmd():
             if cmd == ControlCommand.STOP_IMMEDIATE:
@@ -98,12 +97,11 @@ class APIWorker(object):
 
     def _request_process(self, request):
         """Send request to RP and update response attribute of the request."""
-        logger.debug('[%s] Processing {%s} request', self.name, request)
+        logger.debug("[%s] Processing {%s} request", self.name, request)
         try:
             request.make()
         except Exception as err:
-            logger.exception('[%s] Unknown exception has occurred. '
-                             'Skipping it.', err)
+            logger.exception("[%s] Unknown exception has occurred. " "Skipping it.", err)
 
     def _monitor(self):
         """Monitor worker queues and process them.
@@ -119,14 +117,13 @@ class APIWorker(object):
                 continue  # No command received
 
             if isinstance(cmd, ControlCommand):
-                logger.debug('[%s] Received {%s} command', self.name, cmd)
+                logger.debug("[%s] Received {%s} command", self.name, cmd)
                 self._command_process(cmd)
                 if cmd and cmd.is_stop_cmd():
-                    logger.debug('[%s] Exiting due to {%s} command',
-                                 self.name, cmd)
+                    logger.debug("[%s] Exiting due to {%s} command", self.name, cmd)
                     break
             else:
-                logger.debug('[%s] Received {%s} request', self.name, cmd)
+                logger.debug("[%s] Received {%s} request", self.name, cmd)
                 self._request_process(cmd)
 
     def _stop(self):

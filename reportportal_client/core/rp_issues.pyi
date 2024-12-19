@@ -20,17 +20,16 @@ class Issue:
     ignore_analyzer: bool = ...
     issue_type: Text = ...
 
-    def __init__(self,
-                 issue_type: Text,
-                 comment: Optional[Text] = ...,
-                 auto_analyzed: Optional[bool] = ...,
-                 ignore_analyzer: Optional[bool] = ...) -> None: ...
-
+    def __init__(
+        self,
+        issue_type: Text,
+        comment: Optional[Text] = ...,
+        auto_analyzed: Optional[bool] = ...,
+        ignore_analyzer: Optional[bool] = ...,
+    ) -> None: ...
     def external_issue_add(self, issue: ExternalIssue) -> None: ...
-
     @property
     def payload(self) -> Dict: ...
-
 
 class ExternalIssue:
     bts_url: Text = ...
@@ -39,12 +38,13 @@ class ExternalIssue:
     ticket_id: Text = ...
     url: Text = ...
 
-    def __init__(self,
-                 bts_url: Optional[Text] = ...,
-                 bts_project: Optional[Text] = ...,
-                 submit_date: Optional[Text] = ...,
-                 ticket_id: Optional[Text] = ...,
-                 url: Optional[Text] = ...) -> None: ...
-
+    def __init__(
+        self,
+        bts_url: Optional[Text] = ...,
+        bts_project: Optional[Text] = ...,
+        submit_date: Optional[Text] = ...,
+        ticket_id: Optional[Text] = ...,
+        url: Optional[Text] = ...,
+    ) -> None: ...
     @property
     def payload(self) -> Dict: ...

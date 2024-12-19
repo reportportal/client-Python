@@ -20,7 +20,7 @@ __INSTANCES = local()
 
 def current():
     """Return current ReportPortal client."""
-    if hasattr(__INSTANCES, 'current'):
+    if hasattr(__INSTANCES, "current"):
         return __INSTANCES.current
 
 

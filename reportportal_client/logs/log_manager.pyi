@@ -23,7 +23,6 @@ from reportportal_client.core.worker import APIWorker as APIWorker
 
 logger: Logger
 
-
 class LogManager:
     _lock: Lock = ...
     _log_endpoint: Text = ...
@@ -40,29 +39,27 @@ class LogManager:
     verify_ssl: bool = ...
     max_payload_size: int = ...
 
-    def __init__(self,
-                 rp_url: Text,
-                 session: Session,
-                 api_version: Text,
-                 launch_id: Text,
-                 project_name: Text,
-                 max_entry_number: int = ...,
-                 verify_ssl: bool = ...,
-                 max_payload_size: int = ...) -> None: ...
-
+    def __init__(
+        self,
+        rp_url: Text,
+        session: Session,
+        api_version: Text,
+        launch_id: Text,
+        project_name: Text,
+        max_entry_number: int = ...,
+        verify_ssl: bool = ...,
+        max_payload_size: int = ...,
+    ) -> None: ...
     def _log_process(self, log_req: RPRequestLog) -> None: ...
-
     def _send_batch(self) -> None: ...
-
-    def log(self,
-            time: Text,
-            message: Optional[Text] = ...,
-            level: Optional[Text] = ...,
-            attachment: Optional[Dict] = ...,
-            item_id: Optional[Text] = ...) -> None: ...
-
+    def log(
+        self,
+        time: Text,
+        message: Optional[Text] = ...,
+        level: Optional[Text] = ...,
+        attachment: Optional[Dict] = ...,
+        item_id: Optional[Text] = ...,
+    ) -> None: ...
     def start(self) -> None: ...
-
     def stop(self) -> None: ...
-
     def stop_force(self) -> None: ...

@@ -33,7 +33,7 @@ def response():
         :param ret_value: Return value for the response
         :return:          Mocked Response object with the given parameters
         """
-        with mock.patch('requests.Response') as resp:
+        with mock.patch("requests.Response") as resp:
             resp.status_code = ret_code
             resp.json.return_value = ret_value
             return resp
@@ -44,7 +44,7 @@ def response():
 @fixture
 def rp_client():
     """Prepare instance of the RPClient for testing."""
-    client = RPClient('http://endpoint', 'project', 'api_key')
+    client = RPClient("http://endpoint", "project", "api_key")
     client.session = mock.Mock()
     client._skip_analytics = True
     return client
@@ -53,7 +53,7 @@ def rp_client():
 @fixture
 def aio_client():
     """Prepare instance of the Client for testing."""
-    client = Client('http://endpoint', 'project', api_key='api_key')
+    client = Client("http://endpoint", "project", api_key="api_key")
     client._session = mock.AsyncMock()
     client._skip_analytics = True
     return client
@@ -62,22 +62,19 @@ def aio_client():
 @fixture
 def async_client():
     """Prepare instance of the AsyncRPClient for testing."""
-    client = AsyncRPClient('http://endpoint', 'project', api_key='api_key',
-                           client=mock.AsyncMock())
+    client = AsyncRPClient("http://endpoint", "project", api_key="api_key", client=mock.AsyncMock())
     return client
 
 
 @fixture
 def batched_client():
     """Prepare instance of the AsyncRPClient for testing."""
-    client = BatchedRPClient('http://endpoint', 'project', api_key='api_key',
-                             client=mock.AsyncMock())
+    client = BatchedRPClient("http://endpoint", "project", api_key="api_key", client=mock.AsyncMock())
     return client
 
 
 @fixture
 def threaded_client():
     """Prepare instance of the AsyncRPClient for testing."""
-    client = ThreadedRPClient('http://endpoint', 'project', api_key='api_key',
-                              client=mock.AsyncMock())
+    client = ThreadedRPClient("http://endpoint", "project", api_key="api_key", client=mock.AsyncMock())
     return client

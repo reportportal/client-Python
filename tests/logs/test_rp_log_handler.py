@@ -23,49 +23,39 @@ from reportportal_client.logs import RPLogger, RPLogHandler
 
 
 @pytest.mark.parametrize(
-    'logger_name, filter_logs,expected_result',
+    "logger_name, filter_logs,expected_result",
     [
-        ('reportportal_client', False, True),
-        ('reportportal_client', True, False),
-        ('some_logger', False, True),
-        ('some_logger', True, True)
-    ]
+        ("reportportal_client", False, True),
+        ("reportportal_client", True, False),
+        ("some_logger", False, True),
+        ("some_logger", True, True),
+    ],
 )
-@mock.patch('reportportal_client.logs.logging.Logger.handle')
-def test_filter_client_logs(mocked_handle, logger_name, filter_logs,
-                            expected_result):
-    RPLogger(logger_name).info('test message')
+@mock.patch("reportportal_client.logs.logging.Logger.handle")
+def test_filter_client_logs(mocked_handle, logger_name, filter_logs, expected_result):
+    RPLogger(logger_name).info("test message")
     record = mocked_handle.call_args[0][0]
 
     log_handler = RPLogHandler(filter_client_logs=filter_logs)
     assert log_handler.filter(record) == expected_result
 
 
-@pytest.mark.parametrize(
-    'hostname, expected_result',
-    [
-        ('localhost', True),
-        ('docker.local', False)
-    ]
-)
-@mock.patch('reportportal_client.logs.logging.Logger.handle')
+@pytest.mark.parametrize("hostname, expected_result", [("localhost", True), ("docker.local", False)])
+@mock.patch("reportportal_client.logs.logging.Logger.handle")
 def test_filter_by_endpoint(mocked_handle, hostname, expected_result):
-    RPLogger('urllib3.connectionpool').info(hostname + ': test message')
+    RPLogger("urllib3.connectionpool").info(hostname + ": test message")
     record = mocked_handle.call_args[0][0]
-    log_handler = RPLogHandler(
-        filter_client_logs=True,
-        endpoint='http://docker.local:8080'
-    )
+    log_handler = RPLogHandler(filter_client_logs=True, endpoint="http://docker.local:8080")
     assert log_handler.filter(record) == expected_result
 
 
-@mock.patch('reportportal_client.logs.logging.Logger.handle')
+@mock.patch("reportportal_client.logs.logging.Logger.handle")
 def test_emit_simple(mocked_handle):
-    test_message = 'test message'
-    RPLogger('test_logger').info(test_message)
+    test_message = "test message"
+    RPLogger("test_logger").info(test_message)
     record = mocked_handle.call_args[0][0]
 
-    item_id = 'item_id'
+    item_id = "item_id"
     mock_client = mock.Mock()
     mock_client.current_item.side_effect = lambda: item_id
     set_current(mock_client)
@@ -77,17 +67,17 @@ def test_emit_simple(mocked_handle):
     call_args = mock_client.log.call_args[0]
     call_kwargs = mock_client.log.call_args[1]
 
-    assert re.match('^[0-9]+$', call_args[0])
+    assert re.match("^[0-9]+$", call_args[0])
     assert test_message == call_args[1]
-    assert call_kwargs['level'] == 'INFO'
-    assert not call_kwargs['attachment']
-    assert call_kwargs['item_id'] == item_id
+    assert call_kwargs["level"] == "INFO"
+    assert not call_kwargs["attachment"]
+    assert call_kwargs["item_id"] == item_id
 
 
-@mock.patch('reportportal_client.logs.logging.Logger.handle')
+@mock.patch("reportportal_client.logs.logging.Logger.handle")
 def test_emit_custom_level(mocked_handle):
-    test_message = 'test message'
-    RPLogger('test_logger').log(30, test_message)
+    test_message = "test message"
+    RPLogger("test_logger").log(30, test_message)
     record = mocked_handle.call_args[0][0]
 
     mock_client = mock.Mock()
@@ -97,13 +87,13 @@ def test_emit_custom_level(mocked_handle):
     log_handler.emit(record)
     assert mock_client.log.call_count == 1
     call_args, call_kwargs = mock_client.log.call_args
-    assert call_kwargs['level'] == 'WARN'
+    assert call_kwargs["level"] == "WARN"
 
 
-@mock.patch('reportportal_client.logs.logging.Logger.handle')
+@mock.patch("reportportal_client.logs.logging.Logger.handle")
 def test_emit_null_client_no_error(mocked_handle):
-    test_message = 'test message'
-    RPLogger('test_logger').log(30, test_message)
+    test_message = "test message"
+    RPLogger("test_logger").log(30, test_message)
     record = mocked_handle.call_args[0][0]
 
     set_current(None)
@@ -112,10 +102,10 @@ def test_emit_null_client_no_error(mocked_handle):
     log_handler.emit(record)
 
 
-@mock.patch('reportportal_client.logs.logging.Logger.handle')
+@mock.patch("reportportal_client.logs.logging.Logger.handle")
 def test_emit_custom_client(mocked_handle):
-    test_message = 'test message'
-    RPLogger('test_logger').log(30, test_message)
+    test_message = "test message"
+    RPLogger("test_logger").log(30, test_message)
     record = mocked_handle.call_args[0][0]
 
     thread_client = mock.Mock()

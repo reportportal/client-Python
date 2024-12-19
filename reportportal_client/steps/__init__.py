@@ -52,20 +52,32 @@ from reportportal_client._internal.aio.tasks import Task
 from reportportal_client._internal.local import current
 from reportportal_client.helpers import get_function_params, timestamp
 
-NESTED_STEP_ITEMS = ('step', 'scenario', 'before_class', 'before_groups', 'before_method', 'before_suite',
-                     'before_test', 'after_test', 'after_suite', 'after_class', 'after_groups', 'after_method')
+NESTED_STEP_ITEMS = (
+    "step",
+    "scenario",
+    "before_class",
+    "before_groups",
+    "before_method",
+    "before_suite",
+    "before_test",
+    "after_test",
+    "after_suite",
+    "after_class",
+    "after_groups",
+    "after_method",
+)
 
-_Param = TypeVar('_Param')
-_Return = TypeVar('_Return')
+_Param = TypeVar("_Param")
+_Return = TypeVar("_Return")
 
 
 # noinspection PyUnresolvedReferences
 class StepReporter:
     """Nested Steps context handling class."""
 
-    client: 'rp.RP'
+    client: "rp.RP"
 
-    def __init__(self, rp_client: 'rp.RP'):
+    def __init__(self, rp_client: "rp.RP"):
         """Initialize required attributes.
 
         :param rp_client: ReportPortal client which will be used to report
@@ -73,8 +85,9 @@ class StepReporter:
         """
         self.client = rp_client
 
-    def start_nested_step(self, name: str, start_time: str, parameters: Optional[Dict[str, Any]] = None,
-                          **_: Dict[str, Any]) -> Union[Optional[str], Task[Optional[str]]]:
+    def start_nested_step(
+        self, name: str, start_time: str, parameters: Optional[Dict[str, Any]] = None, **_: Dict[str, Any]
+    ) -> Union[Optional[str], Task[Optional[str]]]:
         """Start Nested Step on ReportPortal.
 
         :param name:       Nested Step name
@@ -85,10 +98,12 @@ class StepReporter:
         if not parent_id:
             return
         return self.client.start_test_item(
-            name, start_time, 'step', has_stats=False, parameters=parameters, parent_item_id=parent_id)
+            name, start_time, "step", has_stats=False, parameters=parameters, parent_item_id=parent_id
+        )
 
-    def finish_nested_step(self, item_id: str, end_time: str, status: str = None,
-                           **_: Dict[str, Any]) -> Union[Optional[str], Task[Optional[str]]]:
+    def finish_nested_step(
+        self, item_id: str, end_time: str, status: str = None, **_: Dict[str, Any]
+    ) -> Union[Optional[str], Task[Optional[str]]]:
         """Finish a Nested Step on ReportPortal.
 
         :param item_id:  Nested Step item ID
@@ -104,10 +119,10 @@ class Step(Callable[[_Param], _Return]):
     name: str
     params: Dict
     status: str
-    client: Optional['rp.RP']
+    client: Optional["rp.RP"]
     __item_id: Union[Optional[str], Task[Optional[str]]]
 
-    def __init__(self, name: str, params: Dict, status: str, rp_client: Optional['rp.RP']) -> None:
+    def __init__(self, name: str, params: Dict, status: str, rp_client: Optional["rp.RP"]) -> None:
         """Initialize required attributes.
 
         :param name:      Nested Step name
@@ -132,12 +147,9 @@ class Step(Callable[[_Param], _Return]):
             return
         self.__item_id = rp_client.step_reporter.start_nested_step(self.name, timestamp(), parameters=self.params)
         if self.params:
-            param_list = [
-                str(key) + ": " + str(value)
-                for key, value in sorted(self.params.items())
-            ]
-            param_str = 'Parameters: ' + '; '.join(param_list)
-            rp_client.log(timestamp(), param_str, level='INFO', item_id=self.__item_id)
+            param_list = [str(key) + ": " + str(value) for key, value in sorted(self.params.items())]
+            param_str = "Parameters: " + "; ".join(param_list)
+            rp_client.log(timestamp(), param_str, level="INFO", item_id=self.__item_id)
 
     def __exit__(self, exc_type: Type[BaseException], exc_val, exc_tb) -> None:
         """Exit the runtime context related to this object."""
@@ -150,7 +162,7 @@ class Step(Callable[[_Param], _Return]):
             return
         step_status = self.status
         if any((exc_type, exc_val, exc_tb)):
-            step_status = 'FAILED'
+            step_status = "FAILED"
         rp_client.step_reporter.finish_nested_step(self.__item_id, timestamp(), step_status)
 
     def __call__(self, *args, **kwargs):
@@ -172,8 +184,12 @@ class Step(Callable[[_Param], _Return]):
         return wrapper
 
 
-def step(name_source: Union[Callable[[_Param], _Return], str], params: Optional[Dict] = None, status: str = 'PASSED',
-         rp_client: Optional['rp.RP'] = None) -> Callable[[_Param], _Return]:
+def step(
+    name_source: Union[Callable[[_Param], _Return], str],
+    params: Optional[Dict] = None,
+    status: str = "PASSED",
+    rp_client: Optional["rp.RP"] = None,
+) -> Callable[[_Param], _Return]:
     """Nested step report function.
 
     Create a Nested Step inside a test method on ReportPortal.

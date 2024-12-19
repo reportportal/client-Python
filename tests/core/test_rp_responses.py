@@ -24,22 +24,40 @@ class JSONDecodeError(ValueError):
 
 
 def json_error():
-    raise json.JSONDecodeError('Expecting value: line 1 column 1 (char 0)', '<html />', 0)
+    raise json.JSONDecodeError("Expecting value: line 1 column 1 (char 0)", "<html />", 0)
 
 
 def custom_error():
-    raise JSONDecodeError('Expecting value: line 1 column 1 (char 0)')
+    raise JSONDecodeError("Expecting value: line 1 column 1 (char 0)")
 
 
-@mock.patch('reportportal_client.core.rp_responses.logging.Logger.error')
-@pytest.mark.parametrize('ok, response_code, error_function, expected_message', [
-    (False, 404, json_error, 'Unable to decode JSON response, got failed response with code "404" please check your '
-                             'endpoint configuration or API key'),
-    (True, 200, json_error, 'Unable to decode JSON response, got passed response with code "200" please check your '
-                            'endpoint configuration or API key'),
-    (True, 200, custom_error, 'Unable to decode JSON response, got passed response with code "200" please check your '
-                              'endpoint configuration or API key'),
-])
+@mock.patch("reportportal_client.core.rp_responses.logging.Logger.error")
+@pytest.mark.parametrize(
+    "ok, response_code, error_function, expected_message",
+    [
+        (
+            False,
+            404,
+            json_error,
+            'Unable to decode JSON response, got failed response with code "404" please check your '
+            "endpoint configuration or API key",
+        ),
+        (
+            True,
+            200,
+            json_error,
+            'Unable to decode JSON response, got passed response with code "200" please check your '
+            "endpoint configuration or API key",
+        ),
+        (
+            True,
+            200,
+            custom_error,
+            'Unable to decode JSON response, got passed response with code "200" please check your '
+            "endpoint configuration or API key",
+        ),
+    ],
+)
 def test_custom_decode_error(error_log, ok, response_code, error_function, expected_message):
     response = mock.Mock()
     response.ok = ok
@@ -53,16 +71,34 @@ def test_custom_decode_error(error_log, ok, response_code, error_function, expec
     assert error_log.call_args_list[0][0][0] == expected_message
 
 
-@mock.patch('reportportal_client.core.rp_responses.logging.Logger.error')
+@mock.patch("reportportal_client.core.rp_responses.logging.Logger.error")
 @pytest.mark.asyncio
-@pytest.mark.parametrize('ok, response_code, error_function, expected_message', [
-    (False, 404, json_error, 'Unable to decode JSON response, got failed response with code "404" please check your '
-                             'endpoint configuration or API key'),
-    (True, 200, json_error, 'Unable to decode JSON response, got passed response with code "200" please check your '
-                            'endpoint configuration or API key'),
-    (True, 200, custom_error, 'Unable to decode JSON response, got passed response with code "200" please check your '
-                              'endpoint configuration or API key'),
-])
+@pytest.mark.parametrize(
+    "ok, response_code, error_function, expected_message",
+    [
+        (
+            False,
+            404,
+            json_error,
+            'Unable to decode JSON response, got failed response with code "404" please check your '
+            "endpoint configuration or API key",
+        ),
+        (
+            True,
+            200,
+            json_error,
+            'Unable to decode JSON response, got passed response with code "200" please check your '
+            "endpoint configuration or API key",
+        ),
+        (
+            True,
+            200,
+            custom_error,
+            'Unable to decode JSON response, got passed response with code "200" please check your '
+            "endpoint configuration or API key",
+        ),
+    ],
+)
 async def test_json_decode_error_async(error_log, ok, response_code, error_function, expected_message):
     response = mock.AsyncMock()
     response.ok = ok

@@ -18,9 +18,9 @@ from reportportal_client import step
 # noinspection PyProtectedMember
 from reportportal_client._internal.local import set_current
 
-NESTED_STEP_NAME = 'test nested step'
-PARENT_STEP_ID = '123-123-1234-123'
-NESTED_STEP_ID = '321-321-4321-321'
+NESTED_STEP_NAME = "test nested step"
+PARENT_STEP_ID = "123-123-1234-123"
+NESTED_STEP_ID = "321-321-4321-321"
 
 
 def test_nested_steps_are_skipped_without_parent(rp_client):
@@ -57,8 +57,7 @@ def test_nested_step_name(rp_client):
     with step(NESTED_STEP_NAME):
         pass
 
-    assert rp_client.session.post.call_args[1]['json']['name'] == \
-           NESTED_STEP_NAME
+    assert rp_client.session.post.call_args[1]["json"]["name"] == NESTED_STEP_NAME
 
 
 def test_nested_step_times(rp_client):
@@ -67,8 +66,8 @@ def test_nested_step_times(rp_client):
     with step(NESTED_STEP_NAME):
         pass
 
-    assert rp_client.session.post.call_args[1]['json']['startTime']
-    assert rp_client.session.put.call_args[1]['json']['endTime']
+    assert rp_client.session.post.call_args[1]["json"]["startTime"]
+    assert rp_client.session.put.call_args[1]["json"]["endTime"]
 
 
 @step
@@ -94,37 +93,35 @@ def test_nested_step_failed(rp_client):
         pass
     assert rp_client.session.post.call_count == 1
     assert rp_client.session.put.call_count == 1
-    assert rp_client.session.put.call_args[1]['json']['status'] == 'FAILED'
+    assert rp_client.session.put.call_args[1]["json"]["status"] == "FAILED"
 
 
 def test_nested_step_custom_status(rp_client):
     rp_client._add_current_item(PARENT_STEP_ID)
-    with step(NESTED_STEP_NAME, status='INFO'):
+    with step(NESTED_STEP_NAME, status="INFO"):
         pass
     assert rp_client.session.post.call_count == 1
     assert rp_client.session.put.call_count == 1
-    assert rp_client.session.put.call_args[1]['json']['status'] == 'INFO'
+    assert rp_client.session.put.call_args[1]["json"]["status"] == "INFO"
 
 
 def test_nested_step_custom_status_failed(rp_client):
     rp_client._add_current_item(PARENT_STEP_ID)
     try:
-        with step(NESTED_STEP_NAME, status='INFO'):
+        with step(NESTED_STEP_NAME, status="INFO"):
             raise AssertionError
     except AssertionError:
         pass
     assert rp_client.session.post.call_count == 1
     assert rp_client.session.put.call_count == 1
-    assert rp_client.session.put.call_args[1]['json']['status'] == 'FAILED'
+    assert rp_client.session.put.call_args[1]["json"]["status"] == "FAILED"
 
 
 def item_id_gen(*args, **kwargs):
-    item_id = 'post-{}-{}'.format(
-        str(round(time.time() * 1000)),
-        random.randint(0, 9999))
+    item_id = "post-{}-{}".format(str(round(time.time() * 1000)), random.randint(0, 9999))
     result = mock.Mock()
     result.text = '{{"id": "{}"}}'.format(item_id)
-    result.json = lambda: {'id': item_id}
+    result.json = lambda: {"id": item_id}
     return result
 
 
@@ -136,38 +133,34 @@ def nested_step_params(param1, param2, param3=None):
 def test_verify_parameters_logging_default_value(rp_client):
     rp_client.session.post.side_effect = item_id_gen
     rp_client._add_current_item(PARENT_STEP_ID)
-    nested_step_params(1, 'two')
+    nested_step_params(1, "two")
     assert len(rp_client._log_batcher._batch) == 1
-    assert rp_client._log_batcher._batch[0].message \
-           == "Parameters: param1: 1; param2: two"
+    assert rp_client._log_batcher._batch[0].message == "Parameters: param1: 1; param2: two"
 
 
 def test_verify_parameters_logging_no_default_value(rp_client):
     rp_client.session.post.side_effect = item_id_gen
     rp_client._add_current_item(PARENT_STEP_ID)
-    nested_step_params(1, 'two', 'three')
+    nested_step_params(1, "two", "three")
     assert len(rp_client._log_batcher._batch) == 1
-    assert rp_client._log_batcher._batch[0].message \
-           == "Parameters: param1: 1; param2: two; param3: three"
+    assert rp_client._log_batcher._batch[0].message == "Parameters: param1: 1; param2: two; param3: three"
 
 
 def test_verify_parameters_logging_named_value(rp_client):
     rp_client.session.post.side_effect = item_id_gen
     rp_client._add_current_item(PARENT_STEP_ID)
-    nested_step_params(1, 'two', param3='three')
+    nested_step_params(1, "two", param3="three")
     assert len(rp_client._log_batcher._batch) == 1
-    assert rp_client._log_batcher._batch[0].message \
-           == "Parameters: param1: 1; param2: two; param3: three"
+    assert rp_client._log_batcher._batch[0].message == "Parameters: param1: 1; param2: two; param3: three"
 
 
 def test_verify_parameters_inline_logging(rp_client):
     rp_client.session.post.side_effect = item_id_gen
     rp_client._add_current_item(PARENT_STEP_ID)
-    with step(NESTED_STEP_NAME, params={'param1': 1, 'param2': 'two'}):
+    with step(NESTED_STEP_NAME, params={"param1": 1, "param2": "two"}):
         pass
     assert len(rp_client._log_batcher._batch) == 1
-    assert rp_client._log_batcher._batch[0].message \
-           == "Parameters: param1: 1; param2: two"
+    assert rp_client._log_batcher._batch[0].message == "Parameters: param1: 1; param2: two"
 
 
 @step
@@ -185,19 +178,19 @@ def test_two_level_nested_step_decorator(rp_client):
     assert len(rp_client._log_batcher._batch) == 0
 
     request_uri = rp_client.session.post.call_args_list[0][0][0]
-    first_parent_id = request_uri[request_uri.rindex('/') + 1:]
+    first_parent_id = request_uri[request_uri.rindex("/") + 1 :]
     request_uri = rp_client.session.post.call_args_list[1][0][0]
-    second_parent_id = request_uri[request_uri.rindex('/') + 1:]
+    second_parent_id = request_uri[request_uri.rindex("/") + 1 :]
 
     request_uri = rp_client.session.put.call_args_list[0][0][0]
-    first_id = request_uri[request_uri.rindex('/') + 1:]
+    first_id = request_uri[request_uri.rindex("/") + 1 :]
     request_uri = rp_client.session.put.call_args_list[1][0][0]
-    second_id = request_uri[request_uri.rindex('/') + 1:]
+    second_id = request_uri[request_uri.rindex("/") + 1 :]
 
     assert first_parent_id == PARENT_STEP_ID
-    assert second_parent_id.startswith('post-')
-    assert first_id.startswith('post-')
-    assert second_id.startswith('post-')
+    assert second_parent_id.startswith("post-")
+    assert first_id.startswith("post-")
+    assert second_id.startswith("post-")
     assert first_id != second_id
 
 

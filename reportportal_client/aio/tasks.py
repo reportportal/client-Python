@@ -21,7 +21,7 @@ from typing import Awaitable, Generator, Generic, Optional, TypeVar, Union
 # noinspection PyProtectedMember
 from reportportal_client._internal.static.abstract import AbstractBaseClass
 
-_T = TypeVar('_T')
+_T = TypeVar("_T")
 
 
 class BlockingOperationError(RuntimeError):
@@ -40,11 +40,11 @@ class Task(Generic[_T], asyncio.Task, metaclass=AbstractBaseClass):
     name: Optional[str]
 
     def __init__(
-            self,
-            coro: Union[Generator[Future, None, _T], Awaitable[_T]],
-            *,
-            loop: asyncio.AbstractEventLoop,
-            name: Optional[str] = None
+        self,
+        coro: Union[Generator[Future, None, _T], Awaitable[_T]],
+        *,
+        loop: asyncio.AbstractEventLoop,
+        name: Optional[str] = None,
     ) -> None:
         """Initialize an instance of the Task.
 

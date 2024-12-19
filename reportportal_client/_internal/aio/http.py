@@ -51,11 +51,11 @@ class RetryingClientSession:
     __retry_delay: float
 
     def __init__(
-            self,
-            *args,
-            max_retry_number: int = DEFAULT_RETRY_NUMBER,
-            base_retry_delay: float = DEFAULT_RETRY_DELAY,
-            **kwargs
+        self,
+        *args,
+        max_retry_number: int = DEFAULT_RETRY_NUMBER,
+        base_retry_delay: float = DEFAULT_RETRY_DELAY,
+        **kwargs,
     ):
         """Initialize an instance of the session with arguments.
 
@@ -82,9 +82,7 @@ class RetryingClientSession:
         else:
             return self.__nothing()
 
-    async def __request(
-            self, method: Callable, url, **kwargs: Any
-    ) -> ClientResponse:
+    async def __request(self, method: Callable, url, **kwargs: Any) -> ClientResponse:
         """Make a request and retry if necessary.
 
         The method retries requests depending on error class and retry number. For no-retry errors, such as
@@ -123,8 +121,7 @@ class RetryingClientSession:
                 if sys.version_info > (3, 10):
                     # noinspection PyCompatibility
                     raise ExceptionGroup(  # noqa: F821
-                        'During retry attempts the following exceptions happened',
-                        exceptions
+                        "During retry attempts the following exceptions happened", exceptions
                     )
                 else:
                     raise exceptions[-1]
@@ -132,8 +129,7 @@ class RetryingClientSession:
                 raise exceptions[0]
         return result
 
-    def get(self, url: str, *, allow_redirects: bool = True,
-            **kwargs: Any) -> Coroutine[Any, Any, ClientResponse]:
+    def get(self, url: str, *, allow_redirects: bool = True, **kwargs: Any) -> Coroutine[Any, Any, ClientResponse]:
         """Perform HTTP GET request."""
         return self.__request(self._client.get, url, allow_redirects=allow_redirects, **kwargs)
 
@@ -154,10 +150,10 @@ class RetryingClientSession:
         return self
 
     async def __aexit__(
-            self,
-            exc_type: Optional[Type[BaseException]],
-            exc_val: Optional[BaseException],
-            exc_tb: Optional[TracebackType],
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType],
     ) -> None:
         """Auxiliary method which controls what `async with` construction does on block exit."""
         await self.close()

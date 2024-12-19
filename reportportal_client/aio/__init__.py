@@ -19,13 +19,13 @@ from reportportal_client.aio.client import (DEFAULT_SHUTDOWN_TIMEOUT, DEFAULT_TA
 from reportportal_client.aio.tasks import BlockingOperationError, Task
 
 __all__ = [
-    'Task',
-    'BlockingOperationError',
-    'DEFAULT_TASK_TIMEOUT',
-    'DEFAULT_SHUTDOWN_TIMEOUT',
-    'DEFAULT_TASK_TRIGGER_NUM',
-    'DEFAULT_TASK_TRIGGER_INTERVAL',
-    'AsyncRPClient',
-    'BatchedRPClient',
-    'ThreadedRPClient'
+    "Task",
+    "BlockingOperationError",
+    "DEFAULT_TASK_TIMEOUT",
+    "DEFAULT_SHUTDOWN_TIMEOUT",
+    "DEFAULT_TASK_TRIGGER_NUM",
+    "DEFAULT_TASK_TRIGGER_INTERVAL",
+    "AsyncRPClient",
+    "BatchedRPClient",
+    "ThreadedRPClient",
 ]

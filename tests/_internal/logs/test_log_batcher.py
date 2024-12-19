@@ -20,14 +20,14 @@ from reportportal_client.core.rp_file import RPFile
 from reportportal_client.core.rp_requests import RPRequestLog
 from reportportal_client.logs import MAX_LOG_BATCH_PAYLOAD_SIZE
 
-TEST_LAUNCH_ID = 'test_launch_uuid'
-TEST_ITEM_ID = 'test_item_id'
-PROJECT_NAME = 'test_project'
-TEST_MASSAGE = 'test_message'
-TEST_LEVEL = 'DEBUG'
+TEST_LAUNCH_ID = "test_launch_uuid"
+TEST_ITEM_ID = "test_item_id"
+PROJECT_NAME = "test_project"
+TEST_MASSAGE = "test_message"
+TEST_LEVEL = "DEBUG"
 TEST_BATCH_SIZE = 5
-TEST_ATTACHMENT_NAME = 'test_file.bin'
-TEST_ATTACHMENT_TYPE = 'application/zip'
+TEST_ATTACHMENT_NAME = "test_file.bin"
+TEST_ATTACHMENT_TYPE = "application/zip"
 
 
 def test_log_batch_send_by_length():
@@ -35,8 +35,14 @@ def test_log_batch_send_by_length():
 
     for i in range(TEST_BATCH_SIZE):
         result = log_batcher.append(
-            RPRequestLog(launch_uuid=TEST_LAUNCH_ID, time=helpers.timestamp(), message=TEST_MASSAGE,
-                         level=TEST_LEVEL, item_uuid=TEST_ITEM_ID))
+            RPRequestLog(
+                launch_uuid=TEST_LAUNCH_ID,
+                time=helpers.timestamp(),
+                message=TEST_MASSAGE,
+                level=TEST_LEVEL,
+                item_uuid=TEST_ITEM_ID,
+            )
+        )
         if i < TEST_BATCH_SIZE - 1:
             assert result is None
             assert len(log_batcher._batch) == i + 1
@@ -52,8 +58,14 @@ def test_log_batch_send_by_flush():
 
     for _ in range(TEST_BATCH_SIZE - 1):
         log_batcher.append(
-            RPRequestLog(launch_uuid=TEST_LAUNCH_ID, time=helpers.timestamp(), message=TEST_MASSAGE,
-                         level=TEST_LEVEL, item_uuid=TEST_ITEM_ID))
+            RPRequestLog(
+                launch_uuid=TEST_LAUNCH_ID,
+                time=helpers.timestamp(),
+                message=TEST_MASSAGE,
+                level=TEST_LEVEL,
+                item_uuid=TEST_ITEM_ID,
+            )
+        )
     result = log_batcher.flush()
 
     assert len(result) == TEST_BATCH_SIZE - 1
@@ -66,13 +78,24 @@ def test_log_batch_send_by_size():
 
     random_byte_array = bytearray(os.urandom(MAX_LOG_BATCH_PAYLOAD_SIZE))
     binary_result = log_batcher.append(
-        RPRequestLog(launch_uuid=TEST_LAUNCH_ID, time=helpers.timestamp(), message=TEST_MASSAGE,
-                     level=TEST_LEVEL, item_uuid=TEST_ITEM_ID,
-                     file=RPFile(name=TEST_ATTACHMENT_NAME, content=random_byte_array,
-                                 content_type=TEST_ATTACHMENT_TYPE)))
+        RPRequestLog(
+            launch_uuid=TEST_LAUNCH_ID,
+            time=helpers.timestamp(),
+            message=TEST_MASSAGE,
+            level=TEST_LEVEL,
+            item_uuid=TEST_ITEM_ID,
+            file=RPFile(name=TEST_ATTACHMENT_NAME, content=random_byte_array, content_type=TEST_ATTACHMENT_TYPE),
+        )
+    )
     message_result = log_batcher.append(
-        RPRequestLog(launch_uuid=TEST_LAUNCH_ID, time=helpers.timestamp(), message=TEST_MASSAGE,
-                     level=TEST_LEVEL, item_uuid=TEST_ITEM_ID))
+        RPRequestLog(
+            launch_uuid=TEST_LAUNCH_ID,
+            time=helpers.timestamp(),
+            message=TEST_MASSAGE,
+            level=TEST_LEVEL,
+            item_uuid=TEST_ITEM_ID,
+        )
+    )
 
     assert binary_result is None
     assert message_result is not None
@@ -88,14 +111,25 @@ def test_log_batch_triggers_previous_request_to_send():
     random_byte_array = bytearray(os.urandom(MAX_LOG_BATCH_PAYLOAD_SIZE))
 
     message_result = log_batcher.append(
-        RPRequestLog(launch_uuid=TEST_LAUNCH_ID, time=helpers.timestamp(), message=TEST_MASSAGE,
-                     level=TEST_LEVEL, item_uuid=TEST_ITEM_ID))
+        RPRequestLog(
+            launch_uuid=TEST_LAUNCH_ID,
+            time=helpers.timestamp(),
+            message=TEST_MASSAGE,
+            level=TEST_LEVEL,
+            item_uuid=TEST_ITEM_ID,
+        )
+    )
 
     binary_result = log_batcher.append(
-        RPRequestLog(launch_uuid=TEST_LAUNCH_ID, time=helpers.timestamp(), message=TEST_MASSAGE,
-                     level=TEST_LEVEL, item_uuid=TEST_ITEM_ID,
-                     file=RPFile(name=TEST_ATTACHMENT_NAME, content=random_byte_array,
-                                 content_type=TEST_ATTACHMENT_TYPE)))
+        RPRequestLog(
+            launch_uuid=TEST_LAUNCH_ID,
+            time=helpers.timestamp(),
+            message=TEST_MASSAGE,
+            level=TEST_LEVEL,
+            item_uuid=TEST_ITEM_ID,
+            file=RPFile(name=TEST_ATTACHMENT_NAME, content=random_byte_array, content_type=TEST_ATTACHMENT_TYPE),
+        )
+    )
 
     assert binary_result is not None
     assert message_result is None

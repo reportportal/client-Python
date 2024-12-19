@@ -35,31 +35,33 @@ except ImportError:
     import json
 
 logger: logging.Logger = logging.getLogger(__name__)
-_T = TypeVar('_T')
+_T = TypeVar("_T")
 ATTRIBUTE_LENGTH_LIMIT: int = 128
-TRUNCATE_REPLACEMENT: str = '...'
+TRUNCATE_REPLACEMENT: str = "..."
 BYTES_TO_READ_FOR_DETECTION = 128
 
-CONTENT_TYPE_TO_EXTENSIONS = MappingProxyType({
-    'application/pdf': 'pdf',
-    'application/zip': 'zip',
-    'application/java-archive': 'jar',
-    'image/jpeg': 'jpg',
-    'image/png': 'png',
-    'image/gif': 'gif',
-    'image/bmp': 'bmp',
-    'image/vnd.microsoft.icon': 'ico',
-    'image/webp': 'webp',
-    'audio/mpeg': 'mp3',
-    'audio/wav': 'wav',
-    'video/mpeg': 'mpeg',
-    'video/avi': 'avi',
-    'video/webm': 'webm',
-    'text/plain': 'txt',
-    'application/octet-stream': 'bin'
-})
+CONTENT_TYPE_TO_EXTENSIONS = MappingProxyType(
+    {
+        "application/pdf": "pdf",
+        "application/zip": "zip",
+        "application/java-archive": "jar",
+        "image/jpeg": "jpg",
+        "image/png": "png",
+        "image/gif": "gif",
+        "image/bmp": "bmp",
+        "image/vnd.microsoft.icon": "ico",
+        "image/webp": "webp",
+        "audio/mpeg": "mp3",
+        "audio/wav": "wav",
+        "video/mpeg": "mpeg",
+        "video/avi": "avi",
+        "video/webm": "webm",
+        "text/plain": "txt",
+        "application/octet-stream": "bin",
+    }
+)
 
-PATTERN_MATCHES_EMPTY_STRING: re.Pattern = re.compile('^$')
+PATTERN_MATCHES_EMPTY_STRING: re.Pattern = re.compile("^$")
 
 
 class LifoQueue(Generic[_T]):
@@ -112,7 +114,7 @@ class LifoQueue(Generic[_T]):
         """
         state = self.__dict__.copy()
         # Don't pickle 'session' field, since it contains unpickling 'socket'
-        del state['_lock']
+        del state["_lock"]
         return state
 
     def __setstate__(self, state: Dict[str, Any]) -> None:
@@ -143,12 +145,12 @@ def dict_to_payload(dictionary: Optional[dict]) -> Optional[List[dict]]:
         return dictionary
     my_dictionary = dict(dictionary)
 
-    hidden = my_dictionary.pop('system', None)
+    hidden = my_dictionary.pop("system", None)
     result = []
     for key, value in sorted(my_dictionary.items()):
-        attribute = {'key': str(key), 'value': str(value)}
+        attribute = {"key": str(key), "value": str(value)}
         if hidden is not None:
-            attribute['system'] = hidden
+            attribute["system"] = hidden
         result.append(attribute)
     return result
 
@@ -168,11 +170,11 @@ def gen_attributes(rp_attributes: Iterable[str]) -> List[Dict[str, str]]:
     attrs = []
     for rp_attr in rp_attributes:
         try:
-            key, value = rp_attr.split(':')
-            attr_dict = {'key': key, 'value': value}
+            key, value = rp_attr.split(":")
+            attr_dict = {"key": key, "value": value}
         except ValueError as exc:
             logger.debug(str(exc))
-            attr_dict = {'value': rp_attr}
+            attr_dict = {"value": rp_attr}
 
         if all(attr_dict.values()):
             attrs.append(attr_dict)
@@ -189,10 +191,10 @@ def get_launch_sys_attrs() -> Dict[str, str]:
                    'machine': 'Windows10_pc'}
     """
     return {
-        'os': system(),
-        'cpu': processor() or 'unknown',
-        'machine': machine(),
-        'system': True  # This one is the flag for RP to hide these attributes
+        "os": system(),
+        "cpu": processor() or "unknown",
+        "machine": machine(),
+        "system": True,  # This one is the flag for RP to hide these attributes
     }
 
 
@@ -208,6 +210,7 @@ def get_package_parameters(package_name: str, parameters: List[str] = None) -> L
         return result
 
     from importlib.metadata import PackageNotFoundError, distribution
+
     try:
         package_info = distribution(package_name)
     except PackageNotFoundError:
@@ -223,7 +226,7 @@ def get_package_version(package_name: str) -> Optional[str]:
     :param package_name: Name of the package.
     :return:             Version of the package.
     """
-    return get_package_parameters(package_name, ['version'])[0]
+    return get_package_parameters(package_name, ["version"])[0]
 
 
 def truncate_attribute_string(text: str) -> str:
@@ -234,7 +237,7 @@ def truncate_attribute_string(text: str) -> str:
     """
     truncation_length = len(TRUNCATE_REPLACEMENT)
     if len(text) > ATTRIBUTE_LENGTH_LIMIT and len(text) > truncation_length:
-        return text[:ATTRIBUTE_LENGTH_LIMIT - truncation_length] + TRUNCATE_REPLACEMENT
+        return text[: ATTRIBUTE_LENGTH_LIMIT - truncation_length] + TRUNCATE_REPLACEMENT
     return text
 
 
@@ -260,16 +263,16 @@ def verify_value_length(attributes: Optional[Union[List[dict], dict]]) -> Option
     for pair in my_attributes:
         if not isinstance(pair, dict):
             continue
-        attr_value = pair.get('value')
+        attr_value = pair.get("value")
         if attr_value is None:
             continue
         truncated = {}
         truncated.update(pair)
         result.append(truncated)
-        attr_key = pair.get('key')
+        attr_key = pair.get("key")
         if attr_key:
-            truncated['key'] = truncate_attribute_string(str(attr_key))
-        truncated['value'] = truncate_attribute_string(str(attr_value))
+            truncated["key"] = truncate_attribute_string(str(attr_key))
+        truncated["value"] = truncate_attribute_string(str(attr_value))
     return result
 
 
@@ -289,7 +292,7 @@ def uri_join(*uri_parts: str) -> str:
     Returns:
         An uri string.
     """
-    return '/'.join(str(s).strip('/').strip('\\') for s in uri_parts)
+    return "/".join(str(s).strip("/").strip("\\") for s in uri_parts)
 
 
 def root_uri_join(*uri_parts: str) -> str:
@@ -303,7 +306,7 @@ def root_uri_join(*uri_parts: str) -> str:
     Returns:
         An uri string.
     """
-    return '/' + uri_join(*uri_parts)
+    return "/" + uri_join(*uri_parts)
 
 
 def get_function_params(func: Callable, args: tuple, kwargs: Dict[str, Any]) -> Dict[str, Any]:
@@ -325,23 +328,29 @@ def get_function_params(func: Callable, args: tuple, kwargs: Dict[str, Any]) -> 
     return result if len(result.items()) > 0 else None
 
 
-TYPICAL_MULTIPART_BOUNDARY: str = '--972dbca3abacfd01fb4aea0571532b52'
-TYPICAL_JSON_PART_HEADER: str = TYPICAL_MULTIPART_BOUNDARY + '''\r
+TYPICAL_MULTIPART_BOUNDARY: str = "--972dbca3abacfd01fb4aea0571532b52"
+TYPICAL_JSON_PART_HEADER: str = (
+    TYPICAL_MULTIPART_BOUNDARY
+    + """\r
 Content-Disposition: form-data; name="json_request_part"\r
 Content-Type: application/json\r
 \r
-'''
-TYPICAL_FILE_PART_HEADER: str = TYPICAL_MULTIPART_BOUNDARY + '''\r
+"""
+)
+TYPICAL_FILE_PART_HEADER: str = (
+    TYPICAL_MULTIPART_BOUNDARY
+    + """\r
 Content-Disposition: form-data; name="file"; filename="{0}"\r
 Content-Type: {1}\r
 \r
-'''
+"""
+)
 TYPICAL_JSON_PART_HEADER_LENGTH: int = len(TYPICAL_JSON_PART_HEADER)
-TYPICAL_MULTIPART_FOOTER: str = '\r\n' + TYPICAL_MULTIPART_BOUNDARY + '--'
+TYPICAL_MULTIPART_FOOTER: str = "\r\n" + TYPICAL_MULTIPART_BOUNDARY + "--"
 TYPICAL_MULTIPART_FOOTER_LENGTH: int = len(TYPICAL_MULTIPART_FOOTER)
-TYPICAL_JSON_ARRAY: str = '[]'
+TYPICAL_JSON_ARRAY: str = "[]"
 TYPICAL_JSON_ARRAY_LENGTH: int = len(TYPICAL_JSON_ARRAY)
-TYPICAL_JSON_ARRAY_ELEMENT: str = ','
+TYPICAL_JSON_ARRAY_ELEMENT: str = ","
 TYPICAL_JSON_ARRAY_ELEMENT_LENGTH: int = len(TYPICAL_JSON_ARRAY_ELEMENT)
 
 
@@ -381,9 +390,9 @@ def agent_name_version(attributes: Optional[Union[list, dict]] = None) -> Tuple[
     if isinstance(my_attributes, dict):
         my_attributes = dict_to_payload(my_attributes)
     agent_name, agent_version = None, None
-    agent_attribute = [a for a in my_attributes if a.get('key') == 'agent'] if my_attributes else []
-    if len(agent_attribute) > 0 and agent_attribute[0].get('value'):
-        agent_name, agent_version = agent_attribute[0]['value'].split('|')
+    agent_attribute = [a for a in my_attributes if a.get("key") == "agent"] if my_attributes else []
+    if len(agent_attribute) > 0 and agent_attribute[0].get("value"):
+        agent_name, agent_version = agent_attribute[0]["value"].split("|")
     return agent_name, agent_version
 
 
@@ -408,7 +417,7 @@ def is_binary(iterable: Union[bytes, bytearray, str]) -> bool:
     :return: True if iterable contains binary bytes, False otherwise
     """
     if isinstance(iterable, str):
-        byte_iterable = iterable.encode('utf-8')
+        byte_iterable = iterable.encode("utf-8")
     else:
         byte_iterable = iterable
 
@@ -431,49 +440,49 @@ def guess_content_type_from_bytes(data: Union[bytes, bytearray, List[int]]) -> s
         my_data = my_data[:BYTES_TO_READ_FOR_DETECTION]
 
     if not is_binary(my_data):
-        return 'text/plain'
+        return "text/plain"
 
     # images
-    if my_data.startswith(b'\xff\xd8\xff'):
-        return 'image/jpeg'
-    if my_data.startswith(b'\x89PNG\r\n\x1a\n'):
-        return 'image/png'
-    if my_data.startswith(b'GIF8'):
-        return 'image/gif'
-    if my_data.startswith(b'BM'):
-        return 'image/bmp'
-    if my_data.startswith(b'\x00\x00\x01\x00'):
-        return 'image/vnd.microsoft.icon'
-    if my_data.startswith(b'RIFF') and b'WEBP' in my_data:
-        return 'image/webp'
+    if my_data.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    if my_data.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    if my_data.startswith(b"GIF8"):
+        return "image/gif"
+    if my_data.startswith(b"BM"):
+        return "image/bmp"
+    if my_data.startswith(b"\x00\x00\x01\x00"):
+        return "image/vnd.microsoft.icon"
+    if my_data.startswith(b"RIFF") and b"WEBP" in my_data:
+        return "image/webp"
 
     # audio
-    if my_data.startswith(b'ID3'):
-        return 'audio/mpeg'
-    if my_data.startswith(b'RIFF') and b'WAVE' in my_data:
-        return 'audio/wav'
+    if my_data.startswith(b"ID3"):
+        return "audio/mpeg"
+    if my_data.startswith(b"RIFF") and b"WAVE" in my_data:
+        return "audio/wav"
 
     # video
-    if my_data.startswith(b'\x00\x00\x01\xba'):
-        return 'video/mpeg'
-    if my_data.startswith(b'RIFF') and b'AVI LIST' in my_data:
-        return 'video/avi'
-    if my_data.startswith(b'\x1aE\xdf\xa3'):
-        return 'video/webm'
+    if my_data.startswith(b"\x00\x00\x01\xba"):
+        return "video/mpeg"
+    if my_data.startswith(b"RIFF") and b"AVI LIST" in my_data:
+        return "video/avi"
+    if my_data.startswith(b"\x1aE\xdf\xa3"):
+        return "video/webm"
 
     # archives
-    if my_data.startswith(b'PK\x03\x04'):
-        if my_data.startswith(b'PK\x03\x04\x14\x00\x08'):
-            return 'application/java-archive'
-        return 'application/zip'
-    if my_data.startswith(b'PK\x05\x06'):
-        return 'application/zip'
+    if my_data.startswith(b"PK\x03\x04"):
+        if my_data.startswith(b"PK\x03\x04\x14\x00\x08"):
+            return "application/java-archive"
+        return "application/zip"
+    if my_data.startswith(b"PK\x05\x06"):
+        return "application/zip"
 
     # office
-    if my_data.startswith(b'%PDF'):
-        return 'application/pdf'
+    if my_data.startswith(b"%PDF"):
+        return "application/pdf"
 
-    return 'application/octet-stream'
+    return "application/octet-stream"
 
 
 def to_bool(value: Optional[Any]) -> Optional[bool]:
@@ -485,11 +494,11 @@ def to_bool(value: Optional[Any]) -> Optional[bool]:
     """
     if value is None:
         return None
-    if value in {'TRUE', 'True', 'true', '1', 'Y', 'y', 1, True}:
+    if value in {"TRUE", "True", "true", "1", "Y", "y", 1, True}:
         return True
-    if value in {'FALSE', 'False', 'false', '0', 'N', 'n', 0, False}:
+    if value in {"FALSE", "False", "false", "0", "N", "n", 0, False}:
         return False
-    raise ValueError(f'Invalid boolean value {value}.')
+    raise ValueError(f"Invalid boolean value {value}.")
 
 
 def translate_glob_to_regex(pattern: Optional[str]) -> Optional[re.Pattern]:
@@ -500,7 +509,7 @@ def translate_glob_to_regex(pattern: Optional[str]) -> Optional[re.Pattern]:
     """
     if pattern is None:
         return None
-    if pattern == '':
+    if pattern == "":
         return PATTERN_MATCHES_EMPTY_STRING
     return re.compile(fnmatch.translate(pattern))
 

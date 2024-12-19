@@ -19,12 +19,7 @@ import uuid
 class RPFile(object):
     """Class representation for a file that will be attached to the log."""
 
-    def __init__(self,
-                 name=None,
-                 content=None,
-                 content_type=None,
-                 data=None,
-                 mime=None):
+    def __init__(self, name=None, content=None, content_type=None, data=None, mime=None):
         """Initialize instance attributes.
 
         :param name:         File name
@@ -40,8 +35,4 @@ class RPFile(object):
     @property
     def payload(self):
         """Get HTTP payload for the request."""
-        return {
-            'content': self.content,
-            'contentType': self.content_type,
-            'name': self.name
-        }
+        return {"content": self.content, "contentType": self.content_type, "name": self.name}

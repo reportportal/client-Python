@@ -38,8 +38,7 @@ class RPLogger(logging.getLoggerClass()):
         """
         super(RPLogger, self).__init__(name, level=level)
 
-    def _log(self, level, msg, args, exc_info=None, extra=None,
-             stack_info=False, attachment=None, **kwargs):
+    def _log(self, level, msg, args, exc_info=None, extra=None, stack_info=False, attachment=None, **kwargs):
         """
         Low-level logging routine which creates a LogRecord and then calls.
 
@@ -59,24 +58,22 @@ class RPLogger(logging.getLoggerClass()):
             # IronPython can use logging.
             try:
                 if sys.version_info >= (3, 11):
-                    kwargs.setdefault('stacklevel', 2)
-                if 'stacklevel' in kwargs:
-                    fn, lno, func, sinfo = \
-                        self.findCaller(stack_info, kwargs['stacklevel'])
+                    kwargs.setdefault("stacklevel", 2)
+                if "stacklevel" in kwargs:
+                    fn, lno, func, sinfo = self.findCaller(stack_info, kwargs["stacklevel"])
                 else:
                     fn, lno, func, sinfo = self.findCaller(stack_info)
 
             except ValueError:  # pragma: no cover
-                fn, lno, func = '(unknown file)', 0, '(unknown function)'
+                fn, lno, func = "(unknown file)", 0, "(unknown function)"
         else:
-            fn, lno, func = '(unknown file)', 0, '(unknown function)'
+            fn, lno, func = "(unknown file)", 0, "(unknown function)"
 
         if exc_info and not isinstance(exc_info, tuple):
             exc_info = sys.exc_info()
 
-        record = self.makeRecord(self.name, level, fn, lno, msg, args,
-                                 exc_info, func, extra, sinfo)
-        if not getattr(record, 'attachment', None):
+        record = self.makeRecord(self.name, level, fn, lno, msg, args, exc_info, func, extra, sinfo)
+        if not getattr(record, "attachment", None):
             record.attachment = attachment
         self.handle(record)
 
@@ -86,19 +83,23 @@ class RPLogHandler(logging.Handler):
 
     # Map loglevel codes from `logging` module to ReportPortal text names:
     _loglevel_map = {
-        logging.NOTSET: 'TRACE',
-        logging.DEBUG: 'DEBUG',
-        logging.INFO: 'INFO',
-        logging.WARNING: 'WARN',
-        logging.ERROR: 'ERROR',
-        logging.CRITICAL: 'ERROR',
+        logging.NOTSET: "TRACE",
+        logging.DEBUG: "DEBUG",
+        logging.INFO: "INFO",
+        logging.WARNING: "WARN",
+        logging.ERROR: "ERROR",
+        logging.CRITICAL: "ERROR",
     }
     _sorted_levelnos = sorted(_loglevel_map.keys(), reverse=True)
 
-    def __init__(self, level=logging.NOTSET, filter_client_logs=False,
-                 endpoint=None,
-                 ignored_record_names=tuple('reportportal_client'),
-                 rp_client=None):
+    def __init__(
+        self,
+        level=logging.NOTSET,
+        filter_client_logs=False,
+        endpoint=None,
+        ignored_record_names=tuple("reportportal_client"),
+        rp_client=None,
+    ):
         """
         Initialize RPLogHandler instance.
 
@@ -127,13 +128,13 @@ class RPLogHandler(logging.Handler):
             return True
         if record.name.startswith(self.ignored_record_names):
             return False
-        if record.name.startswith('urllib3.connectionpool'):
+        if record.name.startswith("urllib3.connectionpool"):
             # Filter the reportportal_client requests instance
             # urllib3 usage
             hostname = urlparse(self.endpoint).hostname
             if hostname:
-                if hasattr(hostname, 'decode') and callable(hostname.decode):
-                    if hostname.decode('utf-8') in self.format(record):
+                if hasattr(hostname, "decode") and callable(hostname.decode):
+                    if hostname.decode("utf-8") in self.format(record):
                         return False
                 else:
                     if str(hostname) in self.format(record):
@@ -142,11 +143,7 @@ class RPLogHandler(logging.Handler):
 
     def _get_rp_log_level(self, levelno):
         return next(
-            (
-                self._loglevel_map[level]
-                for level in self._sorted_levelnos
-                if levelno >= level
-            ),
+            (self._loglevel_map[level] for level in self._sorted_levelnos if levelno >= level),
             self._loglevel_map[logging.NOTSET],
         )
 
@@ -156,7 +153,7 @@ class RPLogHandler(logging.Handler):
 
         :param record: a log Record of requests
         """
-        msg = ''
+        msg = ""
 
         # noinspection PyBroadException
         try:
@@ -171,8 +168,7 @@ class RPLogHandler(logging.Handler):
         if not rp_client:
             rp_client = current()
             if not rp_client:
-                rp_client = getattr(threading.current_thread(),
-                                    'parent_rp_client', None)
+                rp_client = getattr(threading.current_thread(), "parent_rp_client", None)
                 if rp_client:
                     set_current(rp_client)
         if rp_client:
@@ -180,7 +176,7 @@ class RPLogHandler(logging.Handler):
                 timestamp(),
                 msg,
                 level=log_level,
-                attachment=record.__dict__.get('attachment', None),
-                item_id=rp_client.current_item()
+                attachment=record.__dict__.get("attachment", None),
+                item_id=rp_client.current_item(),
             )
         return

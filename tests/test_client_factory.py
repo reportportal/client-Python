@@ -18,14 +18,14 @@ from reportportal_client import AsyncRPClient, BatchedRPClient, ClientType, RPCl
 
 
 @pytest.mark.parametrize(
-    'requested_type, expected_type',
+    "requested_type, expected_type",
     [
         (ClientType.SYNC, RPClient),
         (ClientType.ASYNC, AsyncRPClient),
         (ClientType.ASYNC_THREAD, ThreadedRPClient),
         (ClientType.ASYNC_BATCHED, BatchedRPClient),
-    ]
+    ],
 )
 def test_client_factory_types(requested_type: ClientType, expected_type):
-    result = create_client(requested_type, 'http://endpoint', 'default_personal')
+    result = create_client(requested_type, "http://endpoint", "default_personal")
     assert isinstance(result, expected_type)

@@ -16,7 +16,7 @@
 from abc import ABCMeta as _ABCMeta
 from abc import abstractmethod
 
-__all__ = ['AbstractBaseClass', 'abstractmethod']
+__all__ = ["AbstractBaseClass", "abstractmethod"]
 
 
 class AbstractBaseClass(_ABCMeta):
@@ -49,6 +49,6 @@ class AbstractBaseClass(_ABCMeta):
     def __new__(mcs, name, bases, namespace):
         """Register instance of the implementation class."""
         class_ = super(AbstractBaseClass, mcs).__new__(mcs, name, bases, namespace)
-        if namespace.get('__metaclass__') is AbstractBaseClass:
+        if namespace.get("__metaclass__") is AbstractBaseClass:
             mcs._abc_registry.add(name)
         return class_
