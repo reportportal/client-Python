@@ -19,13 +19,16 @@ from typing import List, Optional
 from unittest import mock
 
 import aiohttp
+
 # noinspection PyPackageRequirements
 import pytest
 from aiohttp import ServerConnectionError
 
 from reportportal_client import OutputType
+
 # noinspection PyProtectedMember
 from reportportal_client._internal.aio.http import DEFAULT_RETRY_NUMBER, RetryingClientSession
+
 # noinspection PyProtectedMember
 from reportportal_client._internal.static.defines import NOT_SET
 from reportportal_client.aio.client import Client

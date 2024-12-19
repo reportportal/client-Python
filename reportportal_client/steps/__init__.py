@@ -46,8 +46,10 @@ from functools import wraps
 from typing import Any, Callable, Dict, Optional, Type, TypeVar, Union
 
 import reportportal_client as rp
+
 # noinspection PyProtectedMember
 from reportportal_client._internal.aio.tasks import Task
+
 # noinspection PyProtectedMember
 from reportportal_client._internal.local import current
 from reportportal_client.helpers import get_function_params, timestamp

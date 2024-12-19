@@ -19,6 +19,7 @@ import warnings
 from threading import Lock
 
 from reportportal_client import helpers
+
 # noinspection PyProtectedMember
 from reportportal_client._internal.static.defines import NOT_FOUND
 from reportportal_client.core.rp_requests import HttpRequest, RPFile, RPLogBatch, RPRequestLog

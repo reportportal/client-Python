@@ -18,9 +18,18 @@ from unittest import mock
 # noinspection PyPackageRequirements
 import pytest
 
-from reportportal_client.helpers import (ATTRIBUTE_LENGTH_LIMIT, TRUNCATE_REPLACEMENT, gen_attributes,
-                                         get_launch_sys_attrs, guess_content_type_from_bytes, is_binary, match_pattern,
-                                         to_bool, translate_glob_to_regex, verify_value_length)
+from reportportal_client.helpers import (
+    ATTRIBUTE_LENGTH_LIMIT,
+    TRUNCATE_REPLACEMENT,
+    gen_attributes,
+    get_launch_sys_attrs,
+    guess_content_type_from_bytes,
+    is_binary,
+    match_pattern,
+    to_bool,
+    translate_glob_to_regex,
+    verify_value_length,
+)
 
 
 def test_gen_attributes():

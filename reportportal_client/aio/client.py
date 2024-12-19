@@ -27,28 +27,52 @@ import certifi
 
 # noinspection PyProtectedMember
 from reportportal_client._internal.aio.http import RetryingClientSession
+
 # noinspection PyProtectedMember
-from reportportal_client._internal.aio.tasks import (DEFAULT_TASK_TRIGGER_INTERVAL, DEFAULT_TASK_TRIGGER_NUM,
-                                                     BackgroundTaskList, BatchedTaskFactory, ThreadedTaskFactory,
-                                                     TriggerTaskBatcher)
+from reportportal_client._internal.aio.tasks import (
+    DEFAULT_TASK_TRIGGER_INTERVAL,
+    DEFAULT_TASK_TRIGGER_NUM,
+    BackgroundTaskList,
+    BatchedTaskFactory,
+    ThreadedTaskFactory,
+    TriggerTaskBatcher,
+)
+
 # noinspection PyProtectedMember
 from reportportal_client._internal.local import set_current
+
 # noinspection PyProtectedMember
 from reportportal_client._internal.logs.batcher import LogBatcher
+
 # noinspection PyProtectedMember
 from reportportal_client._internal.services.statistics import async_send_event
+
 # noinspection PyProtectedMember
 from reportportal_client._internal.static.abstract import AbstractBaseClass, abstractmethod
+
 # noinspection PyProtectedMember
 from reportportal_client._internal.static.defines import NOT_FOUND, NOT_SET
 from reportportal_client.aio.tasks import Task
 from reportportal_client.client import RP, OutputType
 from reportportal_client.core.rp_issues import Issue
-from reportportal_client.core.rp_requests import (AsyncHttpRequest, AsyncItemFinishRequest, AsyncItemStartRequest,
-                                                  AsyncRPLogBatch, AsyncRPRequestLog, LaunchFinishRequest,
-                                                  LaunchStartRequest, RPFile)
-from reportportal_client.helpers import (LifoQueue, agent_name_version, await_if_necessary, root_uri_join, uri_join,
-                                         verify_value_length)
+from reportportal_client.core.rp_requests import (
+    AsyncHttpRequest,
+    AsyncItemFinishRequest,
+    AsyncItemStartRequest,
+    AsyncRPLogBatch,
+    AsyncRPRequestLog,
+    LaunchFinishRequest,
+    LaunchStartRequest,
+    RPFile,
+)
+from reportportal_client.helpers import (
+    LifoQueue,
+    agent_name_version,
+    await_if_necessary,
+    root_uri_join,
+    uri_join,
+    verify_value_length,
+)
 from reportportal_client.logs import MAX_LOG_BATCH_PAYLOAD_SIZE
 from reportportal_client.steps import StepReporter
 

@@ -14,6 +14,7 @@
 import os
 
 from reportportal_client import helpers
+
 # noinspection PyProtectedMember
 from reportportal_client._internal.logs.batcher import LogBatcher
 from reportportal_client.core.rp_file import RPFile

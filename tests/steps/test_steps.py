@@ -15,6 +15,7 @@ import time
 from unittest import mock
 
 from reportportal_client import step
+
 # noinspection PyProtectedMember
 from reportportal_client._internal.local import set_current
 

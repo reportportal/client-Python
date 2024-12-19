@@ -25,6 +25,7 @@ from uuid import UUID, uuid4
 
 # noinspection PyProtectedMember
 from reportportal_client._internal.services.client_id import get_client_id
+
 # noinspection PyProtectedMember
 from reportportal_client._internal.services.constants import RP_PROPERTIES_FILE_PATH
 

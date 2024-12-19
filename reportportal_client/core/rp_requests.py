@@ -26,8 +26,10 @@ from typing import Any, Callable, List, Optional, Tuple, TypeVar, Union
 import aiohttp
 
 from reportportal_client import helpers
+
 # noinspection PyProtectedMember
 from reportportal_client._internal.static.abstract import AbstractBaseClass, abstractmethod
+
 # noinspection PyProtectedMember
 from reportportal_client._internal.static.defines import DEFAULT_PRIORITY, LOW_PRIORITY, RP_LOG_LEVELS, Priority
 from reportportal_client.core.rp_file import RPFile

@@ -30,6 +30,7 @@ from requests.exceptions import RequestException
 
 # noinspection PyProtectedMember
 from reportportal_client._internal.services.constants import CLIENT_INFO, ENDPOINT
+
 # noinspection PyProtectedMember
 from reportportal_client._internal.services.statistics import async_send_event, send_event
 

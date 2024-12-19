@@ -25,6 +25,7 @@ import time
 from unittest import mock
 
 import aiohttp
+
 # noinspection PyPackageRequirements
 import pytest
 
