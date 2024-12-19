@@ -14,6 +14,7 @@
 import json
 from unittest import mock
 
+# noinspection PyPackageRequirements
 import pytest
 
 from reportportal_client.core.rp_responses import AsyncRPResponse, RPResponse
