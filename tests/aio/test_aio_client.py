@@ -285,7 +285,7 @@ async def test_start_launch_statistics_send(async_send_event):
     # noinspection PyTypeChecker
     session = mock.AsyncMock()
     client = Client("http://endpoint", "project", api_key="api_key")
-    client._skip_analytics = False
+    client._skip_analytics = ""
     client._session = session
     mock_basic_post_response(session)
 
@@ -335,7 +335,7 @@ async def test_launch_uuid_print():
         endpoint="http://endpoint", project="project", api_key="test", launch_uuid_print=True, print_output=output_mock
     )
     client._session = mock.AsyncMock()
-    client._skip_analytics = True
+    client._skip_analytics = "1"
     await client.start_launch("Test Launch", timestamp())
     assert "ReportPortal Launch UUID: " in str_io.getvalue()
 
@@ -353,7 +353,7 @@ async def test_no_launch_uuid_print():
         print_output=output_mock,
     )
     client._session = mock.AsyncMock()
-    client._skip_analytics = True
+    client._skip_analytics = "1"
     await client.start_launch("Test Launch", timestamp())
     assert "ReportPortal Launch UUID: " not in str_io.getvalue()
 
@@ -363,7 +363,7 @@ async def test_no_launch_uuid_print():
 async def test_launch_uuid_print_default_io(mock_stdout):
     client = Client(endpoint="http://endpoint", project="project", api_key="test", launch_uuid_print=True)
     client._session = mock.AsyncMock()
-    client._skip_analytics = True
+    client._skip_analytics = "1"
     await client.start_launch("Test Launch", timestamp())
     assert "ReportPortal Launch UUID: " in mock_stdout.getvalue()
 
@@ -373,7 +373,7 @@ async def test_launch_uuid_print_default_io(mock_stdout):
 async def test_launch_uuid_print_default_print(mock_stdout):
     client = Client(endpoint="http://endpoint", project="project", api_key="test")
     client._session = mock.AsyncMock()
-    client._skip_analytics = True
+    client._skip_analytics = "1"
     await client.start_launch("Test Launch", timestamp())
     assert "ReportPortal Launch UUID: " not in mock_stdout.getvalue()
 
