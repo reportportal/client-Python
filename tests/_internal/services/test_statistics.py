@@ -39,7 +39,7 @@ EVENT_NAME = "start_launch"
 with open("setup.py") as f:
     EXPECTED_CL_VERSION = next(
         map(
-            lambda l: re.sub(f"^\\s*{VERSION_VAR}\\s*=\\s*['\"]([^'\"]+)['\"]", "\\g<1>", l),
+            lambda v: re.sub(f"^\\s*{VERSION_VAR}\\s*=\\s*['\"]([^'\"]+)['\"]", "\\g<1>", v),
             filter(lambda x: VERSION_VAR in x, f.read().splitlines()),
         )
     )
