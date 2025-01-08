@@ -401,6 +401,7 @@ class RPClient(RP):
     _skip_analytics: str
     _item_stack: LifoQueue
     _log_batcher: LogBatcher[RPRequestLog]
+    is_rerun: bool
 
     @property
     def launch_uuid(self) -> Optional[str]:
@@ -523,6 +524,7 @@ class RPClient(RP):
         self.launch_uuid_print = launch_uuid_print
         self.print_output = print_output
         self.truncate_attributes = truncate_attributes
+        self.is_rerun = False  # will be updated in start_launch
 
         self.api_key = api_key
         if not self.api_key:
@@ -567,7 +569,8 @@ class RPClient(RP):
                             'rerun' option.
         :return:            Launch UUID if successfully started or None.
         """
-        if not self.use_own_launch:
+        self.is_rerun = rerun
+        if not self.use_own_launch and not self.is_rerun:
             return self.launch_uuid
         url = uri_join(self.base_url_v2, "launch")
         request_payload = LaunchStartRequest(
@@ -576,6 +579,7 @@ class RPClient(RP):
             attributes=verify_value_length(attributes) if self.truncate_attributes else attributes,
             description=description,
             mode=self.mode,
+            uuid=self.launch_uuid,
             rerun=rerun,
             rerun_of=rerun_of,
         ).payload
@@ -745,7 +749,7 @@ class RPClient(RP):
                             PASSED, FAILED, STOPPED, SKIPPED, CANCELLED
         :param attributes:  Launch attributes
         """
-        if self.use_own_launch:
+        if self.use_own_launch or self.is_rerun:
             if self.launch_uuid is NOT_FOUND or not self.launch_uuid:
                 logger.warning("Attempt to finish non-existent launch")
                 return
