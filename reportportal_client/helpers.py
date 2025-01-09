@@ -421,7 +421,7 @@ def is_binary(iterable: Union[bytes, bytearray, str]) -> bool:
     else:
         byte_iterable = iterable
 
-    if 0x00 in byte_iterable:
+    if b'\x00' in byte_iterable or b'\xff' in byte_iterable:
         return True
     return False
 

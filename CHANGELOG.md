@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Changed
+- `helpers.is_binary` function to improve binary content detection, by @HardNorth
 
 ## [5.6.0]
 ### Added
