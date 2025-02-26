@@ -1,11 +1,11 @@
 from reportportal_client.helpers.markdown_helpers import (
-    as_markdown,
-    as_code,
-    format_data_table,
-    as_two_parts,
-    format_data_table_dict,
-    TABLE_INDENT,
     ONE_SPACE,
+    TABLE_INDENT,
+    as_code,
+    as_markdown,
+    as_two_parts,
+    format_data_table,
+    format_data_table_dict,
 )
 
 # Constants for table formatting

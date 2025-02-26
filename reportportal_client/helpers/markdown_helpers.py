@@ -1,8 +1,7 @@
 """A set of utility methods for reporting to ReportPortal."""
 
-from typing import List, Dict, Optional
 from itertools import zip_longest
-from typing import Any
+from typing import Any, Dict, List, Optional
 
 MARKDOWN_MODE = "!!!MARKDOWN_MODE!!!"
 NEW_LINE = "\n"

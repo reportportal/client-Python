@@ -3,10 +3,10 @@
 from reportportal_client.helpers import markdown_helpers
 from reportportal_client.helpers.common_helpers import (
     ATTRIBUTE_LENGTH_LIMIT,
-    TRUNCATE_REPLACEMENT,
     CONTENT_TYPE_TO_EXTENSIONS,
-    TYPICAL_MULTIPART_FOOTER_LENGTH,
+    TRUNCATE_REPLACEMENT,
     TYPICAL_FILE_PART_HEADER,
+    TYPICAL_MULTIPART_FOOTER_LENGTH,
     LifoQueue,
     agent_name_version,
     await_if_necessary,
