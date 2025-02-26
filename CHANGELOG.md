@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 ### Added
+- `markdown_helpers` module in `reportportal_client.helpers` package, by @HardNorth
+### Changed
+- `helpers.is_binary` function to improve binary content detection, by @HardNorth
+- `helpers` module moved to `reportportal_client.helpers` package, by @HardNorth
+
+## [5.6.0]
+### Added
 - `match_pattern` and `translate_glob_to_regex`, `normalize_caseless`, `caseless_equal` functions in `helpers` module, by @HardNorth
 - `client.RP.start_test_item` method and all its children now accept `uuid` argument, by @HardNorth
 ### Removed

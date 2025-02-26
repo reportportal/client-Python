@@ -39,18 +39,18 @@ def test_gen_attributes():
     assert expected_out == out
 
 
-@mock.patch("reportportal_client.helpers.system", mock.Mock(return_value="linux"))
-@mock.patch("reportportal_client.helpers.machine", mock.Mock(return_value="Windows-PC"))
-@mock.patch("reportportal_client.helpers.processor", mock.Mock(return_value="amd"))
+@mock.patch("reportportal_client.helpers.common_helpers.system", mock.Mock(return_value="linux"))
+@mock.patch("reportportal_client.helpers.common_helpers.machine", mock.Mock(return_value="Windows-PC"))
+@mock.patch("reportportal_client.helpers.common_helpers.processor", mock.Mock(return_value="amd"))
 def test_get_launch_sys_attrs():
     """Test for validate get_launch_sys_attrs function."""
     expected_result = {"cpu": "amd", "machine": "Windows-PC", "os": "linux", "system": True}
     assert get_launch_sys_attrs() == expected_result
 
 
-@mock.patch("reportportal_client.helpers.system", mock.Mock())
-@mock.patch("reportportal_client.helpers.machine", mock.Mock())
-@mock.patch("reportportal_client.helpers.processor", mock.Mock(return_value=""))
+@mock.patch("reportportal_client.helpers.common_helpers.system", mock.Mock())
+@mock.patch("reportportal_client.helpers.common_helpers.machine", mock.Mock())
+@mock.patch("reportportal_client.helpers.common_helpers.processor", mock.Mock(return_value=""))
 def test_get_launch_sys_attrs_docker():
     """Test that cpu key value is not empty.
 
