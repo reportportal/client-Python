@@ -1,8 +1,11 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- `markdown_helpers` module in `reportportal_client.helpers` package, by @HardNorth
 ### Changed
 - `helpers.is_binary` function to improve binary content detection, by @HardNorth
+- `helpers` module moved to `reportportal_client.helpers` package, by @HardNorth
 
 ## [5.6.0]
 ### Added

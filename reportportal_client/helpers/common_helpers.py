@@ -253,7 +253,7 @@ def verify_value_length(attributes: Optional[Union[List[dict], dict]]) -> Option
     :return:           List of attributes with corrected value length
     """
     if attributes is None:
-        return
+        return attributes
 
     my_attributes = attributes
     if isinstance(my_attributes, dict):
