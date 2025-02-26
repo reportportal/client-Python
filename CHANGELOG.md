@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.6.1]
 ### Added
 - `markdown_helpers` module in `reportportal_client.helpers` package, by @HardNorth
 ### Changed
