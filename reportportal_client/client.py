@@ -408,6 +408,8 @@ class RPClient(RP):
 
         :return: UUID string
         """
+        if self.__launch_uuid is NOT_FOUND:
+            return None
         return self.__launch_uuid
 
     @property
@@ -593,9 +595,9 @@ class RPClient(RP):
             send_event("start_launch", *agent_name_version(attributes))
 
         self.__launch_uuid = response.id
-        logger.debug("start_launch - ID: %s", self.launch_uuid)
+        logger.debug("start_launch - ID: %s", self.__launch_uuid)
         if self.launch_uuid_print and self.print_output:
-            print(f"ReportPortal Launch UUID: {self.launch_uuid}", file=self.print_output.get_output())
+            print(f"ReportPortal Launch UUID: {self.__launch_uuid}", file=self.print_output.get_output())
         return self.launch_uuid
 
     def start_test_item(
@@ -647,7 +649,7 @@ class RPClient(RP):
             name,
             start_time,
             item_type,
-            self.launch_uuid,
+            self.__launch_uuid,
             attributes=verify_value_length(attributes) if self.truncate_attributes else attributes,
             code_ref=code_ref,
             description=description,
@@ -711,7 +713,7 @@ class RPClient(RP):
         url = uri_join(self.base_url_v2, "item", item_id)
         request_payload = ItemFinishRequest(
             end_time,
-            self.launch_uuid,
+            self.__launch_uuid,
             status,
             attributes=verify_value_length(attributes) if self.truncate_attributes else attributes,
             description=description,
@@ -746,10 +748,10 @@ class RPClient(RP):
         :param attributes:  Launch attributes
         """
         if self.use_own_launch:
-            if self.launch_uuid is NOT_FOUND or not self.launch_uuid:
+            if self.__launch_uuid is NOT_FOUND or not self.__launch_uuid:
                 logger.warning("Attempt to finish non-existent launch")
                 return None
-            url = uri_join(self.base_url_v2, "launch", self.launch_uuid, "finish")
+            url = uri_join(self.base_url_v2, "launch", self.__launch_uuid, "finish")
             request_payload = LaunchFinishRequest(
                 end_time,
                 status=status,
@@ -766,7 +768,7 @@ class RPClient(RP):
             ).make()
             if not response:
                 return None
-            logger.debug("finish_launch - ID: %s", self.launch_uuid)
+            logger.debug("finish_launch - ID: %s", self.__launch_uuid)
             logger.debug("response message: %s", response.message)
             message = response.message
         else:
@@ -835,7 +837,7 @@ class RPClient(RP):
             logger.warning("Attempt to log to non-existent item")
             return None
         rp_file = RPFile(**attachment) if attachment else None
-        rp_log = RPRequestLog(self.launch_uuid, time, rp_file, item_id, level, message)
+        rp_log = RPRequestLog(self.__launch_uuid, time, rp_file, item_id, level, message)
         return self._log(self._log_batcher.append(rp_log))
 
     def get_item_id_by_uuid(self, item_uuid: str) -> Optional[str]:
@@ -857,8 +859,8 @@ class RPClient(RP):
         """
         if self.launch_uuid is None:
             return {}
-        url = uri_join(self.base_url_v1, "launch", "uuid", self.launch_uuid)
-        logger.debug("get_launch_info - ID: %s", self.launch_uuid)
+        url = uri_join(self.base_url_v1, "launch", "uuid", self.__launch_uuid)
+        logger.debug("get_launch_info - ID: %s", self.__launch_uuid)
         response = HttpRequest(
             self.session.get, url=url, verify_ssl=self.verify_ssl, http_timeout=self.http_timeout
         ).make()
@@ -899,7 +901,7 @@ class RPClient(RP):
             project_name=self.__project.lower(), launch_type=launch_type, launch_id=ui_id
         )
         url = uri_join(self.__endpoint, path)
-        logger.debug("get_launch_ui_url - UUID: %s", self.launch_uuid)
+        logger.debug("get_launch_ui_url - UUID: %s", self.__launch_uuid)
         return url
 
     def get_project_settings(self) -> Optional[dict]:
@@ -949,7 +951,7 @@ class RPClient(RP):
             verify_ssl=self.verify_ssl,
             retries=self.retries,
             max_pool_size=self.max_pool_size,
-            launch_uuid=self.launch_uuid,
+            launch_uuid=self.__launch_uuid,
             http_timeout=self.http_timeout,
             log_batch_payload_size=self.log_batch_payload_size,
             mode=self.mode,
