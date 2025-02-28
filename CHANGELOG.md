@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Changed
+- `helpers.common_helpers.gen_attributes` function now accepts refactored, by @HardNorth
 
 ## [5.6.1]
 ### Added
