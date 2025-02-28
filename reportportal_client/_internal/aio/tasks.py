@@ -54,7 +54,6 @@ class BatchedTask(Generic[_T], Task[_T]):
 
         :return: execution result or raise an error, or return immediately if already executed
         """
-
         if self.done():
             result = self.result()
         else:
