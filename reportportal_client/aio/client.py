@@ -227,14 +227,14 @@ class Client:
         item_id = await await_if_necessary(item_id_future)
         if item_id is NOT_FOUND or item_id is None:
             logger.warning("Attempt to make request for non-existent id.")
-            return
+            return None
         return root_uri_join(self.base_url_v2, "item", item_id)
 
     async def __get_launch_url(self, launch_uuid_future: Union[Optional[str], Task[Optional[str]]]) -> Optional[str]:
         launch_uuid = await await_if_necessary(launch_uuid_future)
         if launch_uuid is NOT_FOUND or launch_uuid is None:
             logger.warning("Attempt to make request for non-existent launch.")
-            return
+            return None
         return root_uri_join(self.base_url_v2, "launch", launch_uuid, "finish")
 
     async def start_launch(
@@ -272,7 +272,7 @@ class Client:
 
         response = await AsyncHttpRequest((await self.session()).post, url=url, json=request_payload).make()
         if not response:
-            return
+            return None
 
         if not self._skip_analytics:
             stat_coro = async_send_event("start_launch", *agent_name_version(attributes))
@@ -347,7 +347,7 @@ class Client:
 
         response = await AsyncHttpRequest((await self.session()).post, url=url, json=request_payload).make()
         if not response:
-            return
+            return None
         item_id = await response.id
         if item_id is NOT_FOUND or item_id is None:
             logger.warning("start_test_item - invalid response: %s", str(await response.json))
@@ -402,7 +402,7 @@ class Client:
         ).payload
         response = await AsyncHttpRequest((await self.session()).put, url=url, json=request_payload).make()
         if not response:
-            return
+            return None
         message = await response.message
         logger.debug("finish_test_item - ID: %s", await await_if_necessary(item_id))
         logger.debug("response message: %s", message)
@@ -437,7 +437,7 @@ class Client:
             (await self.session()).put, url=url, json=request_payload, name="Finish Launch"
         ).make()
         if not response:
-            return
+            return None
         message = await response.message
         logger.debug("finish_launch - ID: %s", await await_if_necessary(launch_uuid))
         logger.debug("response message: %s", message)
@@ -465,7 +465,7 @@ class Client:
         url = root_uri_join(self.base_url_v1, "item", item_id, "update")
         response = await AsyncHttpRequest((await self.session()).put, url=url, json=data).make()
         if not response:
-            return
+            return None
         logger.debug("update_test_item - Item: %s", item_id)
         return await response.message
 
@@ -473,7 +473,7 @@ class Client:
         launch_uuid = await await_if_necessary(launch_uuid_future)
         if launch_uuid is NOT_FOUND or launch_uuid is None:
             logger.warning("Attempt to make request for non-existent Launch UUID.")
-            return
+            return None
         logger.debug("get_launch_info - ID: %s", launch_uuid)
         return root_uri_join(self.base_url_v1, "launch", "uuid", launch_uuid)
 
@@ -486,7 +486,7 @@ class Client:
         url = self.__get_launch_uuid_url(launch_uuid_future)
         response = await AsyncHttpRequest((await self.session()).get, url=url).make()
         if not response:
-            return
+            return None
         launch_info = None
         if response.is_success:
             launch_info = await response.json
@@ -499,7 +499,7 @@ class Client:
         item_uuid = await await_if_necessary(item_uuid_future)
         if item_uuid is NOT_FOUND or item_uuid is None:
             logger.warning("Attempt to make request for non-existent UUID.")
-            return
+            return None
         return root_uri_join(self.base_url_v1, "item", "uuid", item_uuid)
 
     async def get_item_id_by_uuid(self, item_uuid_future: Union[str, Task[str]]) -> Optional[str]:
@@ -531,7 +531,7 @@ class Client:
         launch_info = await self.get_launch_info(launch_uuid)
         launch_id = launch_info.get("id") if launch_info else None
         if not launch_id:
-            return
+            return None
         mode = launch_info.get("mode") if launch_info else None
         if not mode:
             mode = self.mode
@@ -564,7 +564,7 @@ class Client:
                 (await self.session()).post, url=url, data=AsyncRPLogBatch(log_batch).payload
             ).make()
             if not response:
-                return
+                return None
             return await response.messages
 
     def clone(self) -> "Client":
@@ -639,6 +639,8 @@ class AsyncRPClient(RP):
 
         :return: UUID string.
         """
+        if self.__launch_uuid is NOT_FOUND:
+            return None
         return self.__launch_uuid
 
     @property
@@ -750,7 +752,7 @@ class AsyncRPClient(RP):
             name, start_time, description=description, attributes=attributes, rerun=rerun, rerun_of=rerun_of, **kwargs
         )
         self.__launch_uuid = launch_uuid
-        return launch_uuid
+        return self.launch_uuid
 
     async def start_test_item(
         self,
@@ -791,7 +793,7 @@ class AsyncRPClient(RP):
         :return:               Test Item UUID if successfully started or None.
         """
         item_id = await self.__client.start_test_item(
-            self.launch_uuid,
+            self.__launch_uuid,
             name,
             start_time,
             item_type,
@@ -842,7 +844,7 @@ class AsyncRPClient(RP):
         :return:             Response message.
         """
         result = await self.__client.finish_test_item(
-            self.launch_uuid,
+            self.__launch_uuid,
             item_id,
             end_time,
             status=status,
@@ -874,7 +876,7 @@ class AsyncRPClient(RP):
         """
         if self.use_own_launch:
             result = await self.__client.finish_launch(
-                self.launch_uuid, end_time, status=status, attributes=attributes, **kwargs
+                self.__launch_uuid, end_time, status=status, attributes=attributes, **kwargs
             )
         else:
             result = ""
@@ -915,7 +917,7 @@ class AsyncRPClient(RP):
         """
         if not self.launch_uuid:
             return {}
-        return await self.__client.get_launch_info(self.launch_uuid)
+        return await self.__client.get_launch_info(self.__launch_uuid)
 
     async def get_item_id_by_uuid(self, item_uuid: str) -> Optional[str]:
         """Get Test Item ID by the given Item UUID.
@@ -931,8 +933,8 @@ class AsyncRPClient(RP):
         :return: Launch ID of the Launch. None if not found.
         """
         if not self.launch_uuid:
-            return
-        return await self.__client.get_launch_ui_id(self.launch_uuid)
+            return None
+        return await self.__client.get_launch_ui_id(self.__launch_uuid)
 
     async def get_launch_ui_url(self) -> Optional[str]:
         """Get full quality URL of the current Launch.
@@ -940,8 +942,8 @@ class AsyncRPClient(RP):
         :return: Launch URL string.
         """
         if not self.launch_uuid:
-            return
-        return await self.__client.get_launch_ui_url(self.launch_uuid)
+            return None
+        return await self.__client.get_launch_ui_url(self.__launch_uuid)
 
     async def get_project_settings(self) -> Optional[dict]:
         """Get settings of the current Project.
@@ -972,9 +974,9 @@ class AsyncRPClient(RP):
         """
         if item_id is NOT_FOUND:
             logger.warning("Attempt to log to non-existent item")
-            return
+            return None
         rp_file = RPFile(**attachment) if attachment else None
-        rp_log = AsyncRPRequestLog(self.launch_uuid, time, rp_file, item_id, level, message)
+        rp_log = AsyncRPRequestLog(self.__launch_uuid, time, rp_file, item_id, level, message)
         return await self.__client.log_batch(await self._log_batcher.append_async(rp_log))
 
     def clone(self) -> "AsyncRPClient":
@@ -989,7 +991,7 @@ class AsyncRPClient(RP):
             endpoint=self.endpoint,
             project=self.project,
             client=cloned_client,
-            launch_uuid=self.launch_uuid,
+            launch_uuid=self.__launch_uuid,
             log_batch_size=self.log_batch_size,
             log_batch_payload_limit=self.log_batch_payload_limit,
             log_batcher=self._log_batcher,
@@ -1017,7 +1019,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
     _item_stack: LifoQueue
     _log_batcher: LogBatcher
     __client: Client
-    __launch_uuid: Optional[Task[str]]
+    __launch_uuid: Optional[Task[Optional[str]]]
     __endpoint: str
     __project: str
     __step_reporter: StepReporter
@@ -1031,7 +1033,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
         return self.__client
 
     @property
-    def launch_uuid(self) -> Task[Optional[str]]:
+    def launch_uuid(self) -> Optional[Task[Optional[str]]]:
         """Return current Launch UUID.
 
         :return: UUID string.
@@ -1068,7 +1070,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
         project: str,
         *,
         client: Optional[Client] = None,
-        launch_uuid: Optional[Task[str]] = None,
+        launch_uuid: Optional[Task[Optional[str]]] = None,
         log_batch_size: int = 20,
         log_batch_payload_limit: int = MAX_LOG_BATCH_PAYLOAD_SIZE,
         log_batcher: Optional[LogBatcher] = None,
@@ -1555,7 +1557,7 @@ class ThreadedRPClient(_RPClient):
         :return:     Task instance.
         """
         if not getattr(self, "_loop", None):
-            return
+            return None
         result = self._loop.create_task(coro)
         with self._task_mutex:
             self._task_list.append(result)
@@ -1742,7 +1744,7 @@ class BatchedRPClient(_RPClient):
         :return:     Task instance.
         """
         if not getattr(self, "_loop", None):
-            return
+            return None
         result = self._loop.create_task(coro)
         with self._task_mutex:
             tasks = self._task_list.append(result)

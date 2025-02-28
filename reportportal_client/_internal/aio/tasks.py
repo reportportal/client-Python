@@ -19,6 +19,7 @@ import time
 from asyncio import Future
 from typing import Any, Awaitable, Coroutine, Generator, Generic, List, Optional, TypeVar, Union
 
+from reportportal_client._internal.static.defines import NOT_FOUND
 from reportportal_client.aio.tasks import BlockingOperationError, Task
 
 _T = TypeVar("_T")
@@ -54,8 +55,10 @@ class BatchedTask(Generic[_T], Task[_T]):
         :return: execution result or raise an error, or return immediately if already executed
         """
         if self.done():
-            return self.result()
-        return self.__loop.run_until_complete(self)
+            result = self.result()
+        else:
+            result = self.__loop.run_until_complete(self)
+        return result if result is not NOT_FOUND else None
 
 
 class ThreadedTask(Generic[_T], Task[_T]):
@@ -88,7 +91,8 @@ class ThreadedTask(Generic[_T], Task[_T]):
         :return: execution result or raise an error, or return immediately if already executed
         """
         if self.done():
-            return self.result()
+            result = self.result()
+            return result if result is not NOT_FOUND else None
         if not self.__loop.is_running() or self.__loop.is_closed():
             raise BlockingOperationError("Running loop is not alive")
         start_time = time.time()
@@ -97,7 +101,8 @@ class ThreadedTask(Generic[_T], Task[_T]):
             time.sleep(sleep_time)
         if not self.done():
             raise BlockingOperationError("Timed out waiting for the task execution")
-        return self.result()
+        result = self.result()
+        return result if result is not NOT_FOUND else None
 
 
 class BatchedTaskFactory:
