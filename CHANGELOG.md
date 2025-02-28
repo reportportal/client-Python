@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.6.2]
 ### Fixed
 - Issue [#246](https://github.com/reportportal/client-Python/issues/246): Invalid return type, by @HardNorth
 ### Changed
