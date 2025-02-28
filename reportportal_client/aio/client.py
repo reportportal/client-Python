@@ -639,6 +639,8 @@ class AsyncRPClient(RP):
 
         :return: UUID string.
         """
+        if self.__launch_uuid is NOT_FOUND:
+            return None
         return self.__launch_uuid
 
     @property
@@ -750,7 +752,7 @@ class AsyncRPClient(RP):
             name, start_time, description=description, attributes=attributes, rerun=rerun, rerun_of=rerun_of, **kwargs
         )
         self.__launch_uuid = launch_uuid
-        return launch_uuid
+        return self.launch_uuid
 
     async def start_test_item(
         self,
@@ -791,7 +793,7 @@ class AsyncRPClient(RP):
         :return:               Test Item UUID if successfully started or None.
         """
         item_id = await self.__client.start_test_item(
-            self.launch_uuid,
+            self.__launch_uuid,
             name,
             start_time,
             item_type,
@@ -842,7 +844,7 @@ class AsyncRPClient(RP):
         :return:             Response message.
         """
         result = await self.__client.finish_test_item(
-            self.launch_uuid,
+            self.__launch_uuid,
             item_id,
             end_time,
             status=status,
@@ -874,7 +876,7 @@ class AsyncRPClient(RP):
         """
         if self.use_own_launch:
             result = await self.__client.finish_launch(
-                self.launch_uuid, end_time, status=status, attributes=attributes, **kwargs
+                self.__launch_uuid, end_time, status=status, attributes=attributes, **kwargs
             )
         else:
             result = ""
@@ -915,7 +917,7 @@ class AsyncRPClient(RP):
         """
         if not self.launch_uuid:
             return {}
-        return await self.__client.get_launch_info(self.launch_uuid)
+        return await self.__client.get_launch_info(self.__launch_uuid)
 
     async def get_item_id_by_uuid(self, item_uuid: str) -> Optional[str]:
         """Get Test Item ID by the given Item UUID.
@@ -932,7 +934,7 @@ class AsyncRPClient(RP):
         """
         if not self.launch_uuid:
             return None
-        return await self.__client.get_launch_ui_id(self.launch_uuid)
+        return await self.__client.get_launch_ui_id(self.__launch_uuid)
 
     async def get_launch_ui_url(self) -> Optional[str]:
         """Get full quality URL of the current Launch.
@@ -941,7 +943,7 @@ class AsyncRPClient(RP):
         """
         if not self.launch_uuid:
             return None
-        return await self.__client.get_launch_ui_url(self.launch_uuid)
+        return await self.__client.get_launch_ui_url(self.__launch_uuid)
 
     async def get_project_settings(self) -> Optional[dict]:
         """Get settings of the current Project.
@@ -974,7 +976,7 @@ class AsyncRPClient(RP):
             logger.warning("Attempt to log to non-existent item")
             return None
         rp_file = RPFile(**attachment) if attachment else None
-        rp_log = AsyncRPRequestLog(self.launch_uuid, time, rp_file, item_id, level, message)
+        rp_log = AsyncRPRequestLog(self.__launch_uuid, time, rp_file, item_id, level, message)
         return await self.__client.log_batch(await self._log_batcher.append_async(rp_log))
 
     def clone(self) -> "AsyncRPClient":
@@ -989,7 +991,7 @@ class AsyncRPClient(RP):
             endpoint=self.endpoint,
             project=self.project,
             client=cloned_client,
-            launch_uuid=self.launch_uuid,
+            launch_uuid=self.__launch_uuid,
             log_batch_size=self.log_batch_size,
             log_batch_payload_limit=self.log_batch_payload_limit,
             log_batcher=self._log_batcher,
@@ -1017,7 +1019,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
     _item_stack: LifoQueue
     _log_batcher: LogBatcher
     __client: Client
-    __launch_uuid: Optional[Task[str]]
+    __launch_uuid: Optional[Task[Optional[str]]]
     __endpoint: str
     __project: str
     __step_reporter: StepReporter
@@ -1031,7 +1033,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
         return self.__client
 
     @property
-    def launch_uuid(self) -> Task[Optional[str]]:
+    def launch_uuid(self) -> Optional[Task[Optional[str]]]:
         """Return current Launch UUID.
 
         :return: UUID string.
@@ -1068,7 +1070,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
         project: str,
         *,
         client: Optional[Client] = None,
-        launch_uuid: Optional[Task[str]] = None,
+        launch_uuid: Optional[Task[Optional[str]]] = None,
         log_batch_size: int = 20,
         log_batch_payload_limit: int = MAX_LOG_BATCH_PAYLOAD_SIZE,
         log_batcher: Optional[LogBatcher] = None,

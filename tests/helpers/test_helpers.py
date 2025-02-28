@@ -36,7 +36,7 @@ def test_gen_attributes():
     """Test functionality of the gen_attributes function."""
     expected_out = [{"value": "Tag"}, {"key": "Key", "value": "Value"}]
     out = gen_attributes(["Tag", "Key:Value", ""])
-    assert expected_out == out
+    assert out == expected_out
 
 
 @mock.patch("reportportal_client.helpers.common_helpers.system", mock.Mock(return_value="linux"))
