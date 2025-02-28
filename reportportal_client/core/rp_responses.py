@@ -70,7 +70,7 @@ class RPResponse:
         :return: ID as string or NOT_FOUND, or None if the response is not JSON
         """
         if self.json is None:
-            return
+            return None
         return self.json.get("id", NOT_FOUND)
 
     @property
@@ -102,7 +102,7 @@ class RPResponse:
         :return: message as string or NOT_FOUND, or None if the response is not JSON
         """
         if self.json is None:
-            return
+            return None
         return self.json.get("message")
 
     @property
@@ -112,7 +112,7 @@ class RPResponse:
         :return: a variable size tuple of strings or NOT_FOUND, or None if the response is not JSON
         """
         if self.json is None:
-            return
+            return None
         return tuple(_iter_json_messages(self.json))
 
 
@@ -138,7 +138,7 @@ class AsyncRPResponse:
         """
         json = await self.json
         if json is None:
-            return
+            return None
         return json.get("id", NOT_FOUND)
 
     @property
@@ -171,7 +171,7 @@ class AsyncRPResponse:
         """
         json = await self.json
         if json is None:
-            return
+            return None
         return json.get("message", NOT_FOUND)
 
     @property
@@ -182,5 +182,5 @@ class AsyncRPResponse:
         """
         json = await self.json
         if json is None:
-            return
+            return None
         return tuple(_iter_json_messages(json))

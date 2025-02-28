@@ -39,6 +39,7 @@ _T = TypeVar("_T")
 ATTRIBUTE_LENGTH_LIMIT: int = 128
 TRUNCATE_REPLACEMENT: str = "..."
 BYTES_TO_READ_FOR_DETECTION = 128
+ATTRIBUTE_DELIMITER = ":"
 
 CONTENT_TYPE_TO_EXTENSIONS = MappingProxyType(
     {
@@ -167,20 +168,18 @@ def gen_attributes(rp_attributes: Iterable[str]) -> List[Dict[str, str]]:
     :return:              Correctly created list of dictionaries
                           to be passed to RP
     """
-    attrs = []
-    for rp_attr in rp_attributes:
-        try:
-            key, value = rp_attr.split(":")
-            attr_dict = {"key": key, "value": value}
-        except ValueError as exc:
-            logger.debug(str(exc))
-            attr_dict = {"value": rp_attr}
-
-        if all(attr_dict.values()):
-            attrs.append(attr_dict)
+    attributes = []
+    for attr in rp_attributes:
+        if not attr:
             continue
-        logger.debug(f'Failed to process "{rp_attr}" attribute, attribute value should not be empty.')
-    return attrs
+        value = attr
+        if ATTRIBUTE_DELIMITER in attr:
+            key, value = attr.split(ATTRIBUTE_DELIMITER, 1)
+            attribute = {"key": key, "value": value}
+        else:
+            attribute = {"value": value}
+        attributes.append(attribute)
+    return attributes
 
 
 def get_launch_sys_attrs() -> Dict[str, str]:
@@ -253,7 +252,7 @@ def verify_value_length(attributes: Optional[Union[List[dict], dict]]) -> Option
     :return:           List of attributes with corrected value length
     """
     if attributes is None:
-        return
+        return attributes
 
     my_attributes = attributes
     if isinstance(my_attributes, dict):

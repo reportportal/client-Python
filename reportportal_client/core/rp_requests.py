@@ -173,7 +173,7 @@ class AsyncHttpRequest(HttpRequest):
         """
         url = await await_if_necessary(self.url)
         if not url:
-            return
+            return None
         data = await await_if_necessary(self.data)
         json = await await_if_necessary(self.json)
         try:
