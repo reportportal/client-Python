@@ -6,7 +6,7 @@
 ### Fixed
 - Issue [#246](https://github.com/reportportal/client-Python/issues/246): Invalid return type, by @HardNorth
 ### Changed
-- `helpers.common_helpers.gen_attributes` function now accepts refactored, by @HardNorth
+- `helpers.common_helpers.gen_attributes` function was refactored, by @HardNorth
 
 ## [5.6.1]
 ### Added
