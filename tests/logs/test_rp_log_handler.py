@@ -68,7 +68,7 @@ def test_emit_simple(mocked_handle):
     call_args = mock_client.log.call_args[0]
     call_kwargs = mock_client.log.call_args[1]
 
-    assert re.match("^[0-9]+$", call_args[0])
+    assert re.match(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z$", call_args[0])
     assert test_message == call_args[1]
     assert call_kwargs["level"] == "INFO"
     assert not call_kwargs["attachment"]
