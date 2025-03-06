@@ -25,6 +25,7 @@ import uuid
 from platform import machine, processor, system
 from types import MappingProxyType
 from typing import Any, Callable, Dict, Generic, Iterable, List, Optional, Tuple, TypeVar, Union
+from datetime import datetime, timezone
 
 from reportportal_client.core.rp_file import RPFile
 
@@ -276,8 +277,9 @@ def verify_value_length(attributes: Optional[Union[List[dict], dict]]) -> Option
 
 
 def timestamp() -> str:
-    """Return string representation of the current time in milliseconds."""
-    return str(int(time.time() * 1000))
+    """Return string representation of the current time in microseconds."""
+    now = datetime.now(timezone.utc)
+    return now.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
 
 def uri_join(*uri_parts: str) -> str:
