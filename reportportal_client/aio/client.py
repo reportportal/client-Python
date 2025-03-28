@@ -979,9 +979,6 @@ class AsyncRPClient(RP):
         :param item_id:    UUID of the ReportPortal Item the message belongs to.
         :return:           Response message Tuple if Log message batch was sent or None.
         """
-        if not item_id:
-            logger.warning("Attempt to log to non-existent item")
-            return None
         rp_file = RPFile(**attachment) if attachment else None
         rp_log = AsyncRPRequestLog(self.__launch_uuid, time, rp_file, item_id, level, message)
         return await self.__client.log_batch(await self._log_batcher.append_async(rp_log))
