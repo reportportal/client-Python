@@ -4,7 +4,7 @@
 ### Added
 - All Requests now have their names, by @HardNorth
 ### Removed
-- `NOT_FOUND` constant, as it only causes infinity issues, by @HardNorth
+- `NOT_FOUND` constant, as it only causes infinite issues, by @HardNorth
 
 ## [5.6.2]
 ### Fixed
