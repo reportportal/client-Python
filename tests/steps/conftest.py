@@ -16,8 +16,8 @@ from unittest import mock
 # noinspection PyPackageRequirements
 from pytest import fixture
 
-from tests.conftest import DummyResponse
 from reportportal_client.client import RPClient
+from tests.conftest import DummyResponse
 
 
 @fixture

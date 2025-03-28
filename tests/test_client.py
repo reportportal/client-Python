@@ -17,10 +17,10 @@ from unittest import mock
 
 # noinspection PyPackageRequirements
 import pytest
+from conftest import DummyResponse
 from requests import Response
 from requests.exceptions import ReadTimeout
 
-from conftest import DummyResponse
 from reportportal_client import RPClient
 from reportportal_client.core.rp_requests import RPRequestLog
 from reportportal_client.helpers import timestamp

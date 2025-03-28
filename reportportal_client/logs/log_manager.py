@@ -19,7 +19,6 @@ import warnings
 from threading import Lock
 
 from reportportal_client import helpers
-
 from reportportal_client.core.rp_requests import HttpRequest, RPFile, RPLogBatch, RPRequestLog
 from reportportal_client.core.worker import APIWorker
 from reportportal_client.logs import MAX_LOG_BATCH_PAYLOAD_SIZE, MAX_LOG_BATCH_SIZE
