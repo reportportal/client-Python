@@ -20,8 +20,6 @@ from threading import Lock
 
 from reportportal_client import helpers
 
-# noinspection PyProtectedMember
-from reportportal_client._internal.static.defines import NOT_FOUND
 from reportportal_client.core.rp_requests import HttpRequest, RPFile, RPLogBatch, RPRequestLog
 from reportportal_client.core.worker import APIWorker
 from reportportal_client.logs import MAX_LOG_BATCH_PAYLOAD_SIZE, MAX_LOG_BATCH_SIZE
@@ -115,7 +113,7 @@ class LogManager:
         :param attachment:  Attachments(images,files,etc.)
         :param item_id:     parent item UUID
         """
-        if item_id is NOT_FOUND:
+        if not item_id:
             logger.warning("Attempt to log to non-existent item")
             return
         rp_file = RPFile(**attachment) if attachment else None
