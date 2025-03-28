@@ -38,7 +38,6 @@ from reportportal_client._internal.services.statistics import send_event
 from reportportal_client._internal.static.abstract import AbstractBaseClass
 
 # noinspection PyProtectedMember
-from reportportal_client._internal.static.defines import NOT_FOUND
 from reportportal_client.core.rp_issues import Issue
 from reportportal_client.core.rp_requests import (
     HttpRequest,
@@ -408,8 +407,6 @@ class RPClient(RP):
 
         :return: UUID string
         """
-        if self.__launch_uuid is NOT_FOUND:
-            return None
         return self.__launch_uuid
 
     @property
@@ -587,6 +584,7 @@ class RPClient(RP):
             json=request_payload,
             verify_ssl=self.verify_ssl,
             http_timeout=self.http_timeout,
+            name="start_launch",
         ).make()
         if not response:
             return None
@@ -638,9 +636,6 @@ class RPClient(RP):
         :param uuid:           Test Item UUID to use on start (overrides server one, should be globally unique).
         :return:               Test Item UUID if successfully started or None.
         """
-        if parent_item_id is NOT_FOUND:
-            logger.warning("Attempt to start item for non-existent parent item.")
-            return None
         if parent_item_id:
             url = uri_join(self.base_url_v2, "item", parent_item_id)
         else:
@@ -667,15 +662,16 @@ class RPClient(RP):
             json=request_payload,
             verify_ssl=self.verify_ssl,
             http_timeout=self.http_timeout,
+            name="start_test_item",
         ).make()
         if not response:
             return None
         item_id = response.id
-        if item_id is not NOT_FOUND:
-            logger.debug("start_test_item - ID: %s", item_id)
-            self._add_current_item(item_id)
-        else:
+        if not item_id:
             logger.warning("start_test_item - invalid response: %s", str(response.json))
+            return None
+        logger.debug("start_test_item - ID: %s", item_id)
+        self._add_current_item(item_id)
         return item_id
 
     def finish_test_item(
@@ -707,7 +703,7 @@ class RPClient(RP):
                              with the 'retry' parameter.
         :return:             Response message.
         """
-        if item_id is NOT_FOUND or not item_id:
+        if not item_id:
             logger.warning("Attempt to finish non-existent item")
             return None
         url = uri_join(self.base_url_v2, "item", item_id)
@@ -724,7 +720,12 @@ class RPClient(RP):
             retry_of=retry_of,
         ).payload
         response = HttpRequest(
-            self.session.put, url=url, json=request_payload, verify_ssl=self.verify_ssl, http_timeout=self.http_timeout
+            self.session.put,
+            url=url,
+            json=request_payload,
+            verify_ssl=self.verify_ssl,
+            http_timeout=self.http_timeout,
+            name="finish_test_item",
         ).make()
         if not response:
             return None
@@ -748,7 +749,7 @@ class RPClient(RP):
         :param attributes:  Launch attributes
         """
         if self.use_own_launch:
-            if self.__launch_uuid is NOT_FOUND or not self.__launch_uuid:
+            if not self.__launch_uuid:
                 logger.warning("Attempt to finish non-existent launch")
                 return None
             url = uri_join(self.base_url_v2, "launch", self.__launch_uuid, "finish")
@@ -763,8 +764,8 @@ class RPClient(RP):
                 url=url,
                 json=request_payload,
                 verify_ssl=self.verify_ssl,
-                name="Finish Launch",
                 http_timeout=self.http_timeout,
+                name="finish_launch",
             ).make()
             if not response:
                 return None
@@ -793,7 +794,12 @@ class RPClient(RP):
         item_id = self.get_item_id_by_uuid(item_uuid)
         url = uri_join(self.base_url_v1, "item", item_id, "update")
         response = HttpRequest(
-            self.session.put, url=url, json=data, verify_ssl=self.verify_ssl, http_timeout=self.http_timeout
+            self.session.put,
+            url=url,
+            json=data,
+            verify_ssl=self.verify_ssl,
+            http_timeout=self.http_timeout,
+            name="update_test_item",
         ).make()
         if not response:
             return None
@@ -809,6 +815,7 @@ class RPClient(RP):
                 files=RPLogBatch(batch).payload,
                 verify_ssl=self.verify_ssl,
                 http_timeout=self.http_timeout,
+                name="log",
             ).make()
             if response:
                 return response.messages
@@ -833,9 +840,6 @@ class RPClient(RP):
         :param item_id:    UUID of the ReportPortal Item the message belongs to.
         :return:           Response message Tuple if Log message batch was sent or None.
         """
-        if item_id is NOT_FOUND:
-            logger.warning("Attempt to log to non-existent item")
-            return None
         rp_file = RPFile(**attachment) if attachment else None
         rp_log = RPRequestLog(self.__launch_uuid, time, rp_file, item_id, level, message)
         return self._log(self._log_batcher.append(rp_log))
@@ -848,7 +852,7 @@ class RPClient(RP):
         """
         url = uri_join(self.base_url_v1, "item", "uuid", item_uuid)
         response = HttpRequest(
-            self.session.get, url=url, verify_ssl=self.verify_ssl, http_timeout=self.http_timeout
+            self.session.get, url=url, verify_ssl=self.verify_ssl, http_timeout=self.http_timeout, name="get_item_id"
         ).make()
         return response.id if response else None
 
@@ -862,7 +866,11 @@ class RPClient(RP):
         url = uri_join(self.base_url_v1, "launch", "uuid", self.__launch_uuid)
         logger.debug("get_launch_info - ID: %s", self.__launch_uuid)
         response = HttpRequest(
-            self.session.get, url=url, verify_ssl=self.verify_ssl, http_timeout=self.http_timeout
+            self.session.get,
+            url=url,
+            verify_ssl=self.verify_ssl,
+            http_timeout=self.http_timeout,
+            name="get_launch_info",
         ).make()
         if not response:
             return None
@@ -911,7 +919,11 @@ class RPClient(RP):
         """
         url = uri_join(self.base_url_v1, "settings")
         response = HttpRequest(
-            self.session.get, url=url, verify_ssl=self.verify_ssl, http_timeout=self.http_timeout
+            self.session.get,
+            url=url,
+            verify_ssl=self.verify_ssl,
+            http_timeout=self.http_timeout,
+            name="get_project_settings",
         ).make()
         return response.json if response else None
 

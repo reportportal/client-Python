@@ -25,7 +25,7 @@ from aiohttp import ClientError, ClientResponse
 from requests import Response
 
 # noinspection PyProtectedMember
-from reportportal_client._internal.static.defines import NOT_FOUND, NOT_SET
+from reportportal_client._internal.static.defines import NOT_SET
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +35,10 @@ def _iter_json_messages(json: Any) -> Generator[str, None, None]:
         return
     data = json.get("responses", [json])
     for chunk in data:
-        message = chunk.get("message", chunk.get("error_code", NOT_FOUND))
+        if "message" not in chunk:
+            logger.warning(f"Response chunk does not contain 'message' field: {str(chunk)}")
+            continue
+        message = chunk["message"]
         if message:
             yield message
 
@@ -47,6 +50,18 @@ def _get_json_decode_error_message(response: Union[Response, ClientResponse]) ->
         f'Unable to decode JSON response, got {"passed" if ok else "failed"} '
         f'response with code "{status}" please check your endpoint configuration or API key'
     )
+
+
+def _get_field(name: str, json: Optional[Any]) -> Optional[str]:
+    if json is None:
+        return None
+    if name not in json:
+        logger.warning(f"Unable to get '{name}' from json: {str(json)}")
+        return None
+    result_id = json[name]
+    if result_id is None:
+        logger.warning(f"Unable to get '{name}' from json: {str(json)}")
+    return result_id
 
 
 class RPResponse:
@@ -69,9 +84,8 @@ class RPResponse:
 
         :return: ID as string or NOT_FOUND, or None if the response is not JSON
         """
-        if self.json is None:
-            return None
-        return self.json.get("id", NOT_FOUND)
+        json = self.json
+        return _get_field("id", json)
 
     @property
     def is_success(self) -> bool:
@@ -137,9 +151,7 @@ class AsyncRPResponse:
         :return: ID as string or NOT_FOUND, or None if the response is not JSON
         """
         json = await self.json
-        if json is None:
-            return None
-        return json.get("id", NOT_FOUND)
+        return _get_field("id", json)
 
     @property
     def is_success(self) -> bool:
@@ -172,7 +184,7 @@ class AsyncRPResponse:
         json = await self.json
         if json is None:
             return None
-        return json.get("message", NOT_FOUND)
+        return _get_field("message", json)
 
     @property
     async def messages(self) -> Optional[Tuple[str, ...]]:

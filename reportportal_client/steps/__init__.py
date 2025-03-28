@@ -98,7 +98,7 @@ class StepReporter:
         """
         parent_id = self.client.current_item()
         if not parent_id:
-            return
+            return None
         return self.client.start_test_item(
             name, start_time, "step", has_stats=False, parameters=parameters, parent_item_id=parent_id
         )

@@ -17,10 +17,13 @@ from unittest import mock
 from pytest import fixture
 
 from reportportal_client.client import RPClient
+from tests.conftest import DummyResponse
 
 
 @fixture
 def rp_client():
     client = RPClient("http://endpoint", "project", "api_key")
     client.session = mock.Mock()
+    client.session.post.return_value = DummyResponse()
+    client.session.put.return_value = DummyResponse()
     return client
