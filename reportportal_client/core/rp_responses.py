@@ -52,7 +52,7 @@ def _get_json_decode_error_message(response: Union[Response, ClientResponse]) ->
     )
 
 
-def get_field(name: str, json: Optional[Any]) -> Optional[str]:
+def _get_field(name: str, json: Optional[Any]) -> Optional[str]:
     if json is None:
         return None
     if name not in json:
@@ -85,7 +85,7 @@ class RPResponse:
         :return: ID as string or NOT_FOUND, or None if the response is not JSON
         """
         json = self.json
-        return get_field("id", json)
+        return _get_field("id", json)
 
     @property
     def is_success(self) -> bool:
@@ -151,7 +151,7 @@ class AsyncRPResponse:
         :return: ID as string or NOT_FOUND, or None if the response is not JSON
         """
         json = await self.json
-        return get_field("id", json)
+        return _get_field("id", json)
 
     @property
     def is_success(self) -> bool:
@@ -184,7 +184,7 @@ class AsyncRPResponse:
         json = await self.json
         if json is None:
             return None
-        return get_field("message", json)
+        return _get_field("message", json)
 
     @property
     async def messages(self) -> Optional[Tuple[str, ...]]:
