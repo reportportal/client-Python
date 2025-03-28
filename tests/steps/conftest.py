@@ -19,8 +19,19 @@ from pytest import fixture
 from reportportal_client.client import RPClient
 
 
+class DummyResponse:
+    # noinspection PyMethodMayBeStatic
+    def json(self):
+        return {
+            "id": "321-321-4321-321",
+            "message": "test",
+        }
+
+
 @fixture
 def rp_client():
     client = RPClient("http://endpoint", "project", "api_key")
     client.session = mock.Mock()
+    client.session.post.return_value = DummyResponse()
+    client.session.put.return_value = DummyResponse()
     return client
