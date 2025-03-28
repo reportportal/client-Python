@@ -58,7 +58,7 @@ def get_field(name: str, json: Optional[Any]) -> Optional[str]:
     if name not in json:
         logger.warning(f"Unable to get '{name}' from json: {str(json)}")
         return None
-    result_id = json["id"]
+    result_id = json[name]
     if result_id is None:
         logger.warning(f"Unable to get '{name}' from json: {str(json)}")
     return result_id
