@@ -636,9 +636,6 @@ class RPClient(RP):
         :param uuid:           Test Item UUID to use on start (overrides server one, should be globally unique).
         :return:               Test Item UUID if successfully started or None.
         """
-        if not parent_item_id:
-            logger.warning("Attempt to start item for non-existent parent item.")
-            return None
         if parent_item_id:
             url = uri_join(self.base_url_v2, "item", parent_item_id)
         else:

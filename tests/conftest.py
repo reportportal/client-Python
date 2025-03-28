@@ -22,6 +22,18 @@ from reportportal_client.aio.client import AsyncRPClient, BatchedRPClient, Clien
 from reportportal_client.client import RPClient
 
 
+class DummyResponse:
+    # noinspection PyMethodMayBeStatic
+    def json(self):
+        return {
+            "id": "321-321-4321-321",
+            "message": "test",
+        }
+
+    def ok(self):
+        return True
+
+
 @fixture
 def response():
     """Cook up a mock for the Response with specific arguments."""
@@ -46,6 +58,8 @@ def rp_client():
     """Prepare instance of the RPClient for testing."""
     client = RPClient("http://endpoint", "project", "api_key")
     client.session = mock.Mock()
+    client.session.post.return_value = DummyResponse()
+    client.session.put.return_value = DummyResponse()
     client._skip_analytics = True
     return client
 

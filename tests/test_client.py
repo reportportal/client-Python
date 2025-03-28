@@ -20,6 +20,7 @@ import pytest
 from requests import Response
 from requests.exceptions import ReadTimeout
 
+from conftest import DummyResponse
 from reportportal_client import RPClient
 from reportportal_client.core.rp_requests import RPRequestLog
 from reportportal_client.helpers import timestamp
@@ -38,7 +39,7 @@ def response_error(*args, **kwargs):
 
 def invalid_response(*args, **kwargs):
     result = Response()
-    result._content = "<html><head><title>Hello World!</title></head></html>"
+    result._content = "<html><head><title>Hello World!</title></head></html>".encode("ASCII")
     result.status_code = 200
     return result
 
@@ -60,6 +61,7 @@ def invalid_response(*args, **kwargs):
 )
 def test_connection_errors(rp_client, requests_method, client_method, client_params):
     rp_client._RPClient__launch_uuid = "test_launch_id"
+    rp_client.session.get.return_value = DummyResponse()
     getattr(rp_client.session, requests_method).side_effect = connection_error
     result = getattr(rp_client, client_method)(*client_params)
     assert result is None
@@ -105,20 +107,20 @@ def test_launch_url_get(rp_client, launch_mode, project_name, expected_url):
 
 @mock.patch("reportportal_client.client.getenv")
 @mock.patch("reportportal_client.client.send_event")
-def test_skip_statistics(send_event, getenv):
+def test_skip_statistics(send_event, getenv, rp_client):
     getenv.return_value = "1"
     client = RPClient("http://endpoint", "project", "api_key")
-    client.session = mock.Mock()
+    client.session = rp_client.session
     client.start_launch("Test Launch", timestamp())
     assert mock.call("start_launch", None, None) not in send_event.mock_calls
 
 
 @mock.patch("reportportal_client.client.getenv")
 @mock.patch("reportportal_client.client.send_event")
-def test_statistics(send_event, getenv):
+def test_statistics(send_event, getenv, rp_client):
     getenv.return_value = ""
     client = RPClient("http://endpoint", "project", "api_key")
-    client.session = mock.Mock()
+    client.session = rp_client.session
     client.start_launch("Test Launch", timestamp())
     assert mock.call("start_launch", None, None) in send_event.mock_calls
 
@@ -186,20 +188,20 @@ def test_empty_api_key_argument(warn):
     assert client.api_key == api_key
 
 
-def test_launch_uuid_print():
+def test_launch_uuid_print(rp_client):
     str_io = StringIO()
     output_mock = mock.Mock()
     output_mock.get_output.side_effect = lambda: str_io
     client = RPClient(
         endpoint="http://endpoint", project="project", api_key="test", launch_uuid_print=True, print_output=output_mock
     )
-    client.session = mock.Mock()
-    client._skip_analytics = True
+    client.session = rp_client.session
+    client._skip_analytics = "True"
     client.start_launch("Test Launch", timestamp())
     assert "ReportPortal Launch UUID: " in str_io.getvalue()
 
 
-def test_no_launch_uuid_print():
+def test_no_launch_uuid_print(rp_client):
     str_io = StringIO()
     output_mock = mock.Mock()
     output_mock.get_output.side_effect = lambda: str_io
@@ -210,27 +212,27 @@ def test_no_launch_uuid_print():
         launch_uuid_print=False,
         print_output=output_mock,
     )
-    client.session = mock.Mock()
-    client._skip_analytics = True
+    client.session = rp_client.session
+    client._skip_analytics = "True"
     client.start_launch("Test Launch", timestamp())
     assert "ReportPortal Launch UUID: " not in str_io.getvalue()
 
 
 @mock.patch("reportportal_client.client.sys.stdout", new_callable=StringIO)
-def test_launch_uuid_print_default_io(mock_stdout):
+def test_launch_uuid_print_default_io(mock_stdout, rp_client):
     client = RPClient(endpoint="http://endpoint", project="project", api_key="test", launch_uuid_print=True)
-    client.session = mock.Mock()
-    client._skip_analytics = True
+    client.session = rp_client.session
+    client._skip_analytics = "True"
     client.start_launch("Test Launch", timestamp())
 
     assert "ReportPortal Launch UUID: " in mock_stdout.getvalue()
 
 
 @mock.patch("reportportal_client.client.sys.stdout", new_callable=StringIO)
-def test_launch_uuid_print_default_print(mock_stdout):
+def test_launch_uuid_print_default_print(mock_stdout, rp_client):
     client = RPClient(endpoint="http://endpoint", project="project", api_key="test")
-    client.session = mock.Mock()
-    client._skip_analytics = True
+    client.session = rp_client.session
+    client._skip_analytics = "True"
     client.start_launch("Test Launch", timestamp())
 
     assert "ReportPortal Launch UUID: " not in mock_stdout.getvalue()
@@ -256,6 +258,7 @@ def test_client_pickling():
 def test_attribute_truncation(rp_client: RPClient, method, call_method, arguments):
     # noinspection PyTypeChecker
     session: mock.Mock = rp_client.session
+    session.get.return_value = DummyResponse()
     if method != "start_launch":
         rp_client._RPClient__launch_uuid = "test_launch_id"
 
@@ -285,8 +288,11 @@ def test_http_timeout_bypass(method, call_method, arguments):
     http_timeout = (35.1, 33.3)
     rp_client = RPClient("http://endpoint", "project", "api_key", http_timeout=http_timeout, log_batch_size=1)
     session: mock.Mock = mock.Mock()
+    session.get.return_value = DummyResponse()
+    session.post.return_value = DummyResponse()
+    session.put.return_value = DummyResponse()
     rp_client.session = session
-    rp_client._skip_analytics = True
+    rp_client._skip_analytics = "True"
 
     if method != "start_launch":
         rp_client._RPClient__launch_uuid = "test_launch_id"

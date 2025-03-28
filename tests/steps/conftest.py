@@ -16,16 +16,8 @@ from unittest import mock
 # noinspection PyPackageRequirements
 from pytest import fixture
 
+from tests.conftest import DummyResponse
 from reportportal_client.client import RPClient
-
-
-class DummyResponse:
-    # noinspection PyMethodMayBeStatic
-    def json(self):
-        return {
-            "id": "321-321-4321-321",
-            "message": "test",
-        }
 
 
 @fixture
