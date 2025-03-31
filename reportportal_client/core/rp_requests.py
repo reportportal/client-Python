@@ -20,7 +20,10 @@ https://github.com/reportportal/documentation/blob/master/src/md/src/DevGuides/r
 
 import asyncio
 import logging
+import sys
+import traceback
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any, Callable, List, Optional, Tuple, TypeVar, Union
 
 import aiohttp
@@ -48,7 +51,7 @@ T = TypeVar("T")
 
 
 class HttpRequest:
-    """This model stores attributes related to ReportPortal HTTP requests."""
+    """This object stores attributes related to ReportPortal HTTP requests and makes them."""
 
     session_method: Callable
     url: Any
@@ -121,8 +124,8 @@ class HttpRequest:
     def make(self) -> Optional[RPResponse]:
         """Make HTTP request to the ReportPortal API.
 
-        The method catches any request preparation error to not fail reporting. Since we are reporting tool
-        and should not fail tests.
+        The method catches any request error to not fail reporting. Since we are reporting tool and should not fail
+        tests.
 
         :return: wrapped HTTP response or None in case of failure
         """
@@ -141,8 +144,45 @@ class HttpRequest:
             logger.warning("ReportPortal %s request failed", self.name, exc_info=exc)
 
 
+class ErrorPrintingHttpRequest(HttpRequest):
+    """This is specific request object which catches any request error and prints it to the "std.err".
+
+    The object is supposed to be used in logging methods only to prevent infinite recursion of logging, when logging
+    framework configured to log everything to ReportPortal. In this case if a request to ReportPortal fails, the
+    failure will be logged to ReportPortal once again and, for example, in case of endpoint configuration error, it
+    will also fail and will be logged again. So, the recursion will never end.
+
+    This class is used to prevent this situation. It catches any request error and prints it to the "std.err".
+    """
+
+    def make(self) -> Optional[RPResponse]:
+        """Make HTTP request to the ReportPortal API.
+
+        The method catches any request error and prints it to the "std.err".
+
+        :return: wrapped HTTP response or None in case of failure
+        """
+        # noinspection PyBroadException
+        try:
+            return RPResponse(
+                self.session_method(
+                    self.url,
+                    data=self.data,
+                    json=self.json,
+                    files=self.files,
+                    verify=self.verify_ssl,
+                    timeout=self.http_timeout,
+                )
+            )
+        except Exception:
+            print(
+                f"{datetime.now().isoformat()} - [ERROR] - ReportPortal request error:\n{traceback.format_exc()}",
+                file=sys.stderr,
+            )
+
+
 class AsyncHttpRequest(HttpRequest):
-    """This model stores attributes related to asynchronous ReportPortal HTTP requests."""
+    """This object stores attributes related to asynchronous ReportPortal HTTP requests and make them."""
 
     def __init__(
         self,
@@ -166,8 +206,8 @@ class AsyncHttpRequest(HttpRequest):
     async def make(self) -> Optional[AsyncRPResponse]:
         """Asynchronously make HTTP request to the ReportPortal API.
 
-        The method catches any request preparation error to not fail reporting. Since we are reporting tool
-        and should not fail tests.
+        The method catches any request error to not fail reporting. Since we are reporting tool and should not fail
+        tests.
 
         :return: wrapped HTTP response or None in case of failure
         """
@@ -180,6 +220,39 @@ class AsyncHttpRequest(HttpRequest):
             return AsyncRPResponse(await self.session_method(url, data=data, json=json))
         except (KeyError, IOError, ValueError, TypeError) as exc:
             logger.warning("ReportPortal %s request failed", self.name, exc_info=exc)
+
+
+class ErrorPrintingAsyncHttpRequest(AsyncHttpRequest):
+    """This is specific request object which catches any request error and prints it to the "std.err".
+
+    The object is supposed to be used in logging methods only to prevent infinite recursion of logging, when logging
+    framework configured to log everything to ReportPortal. In this case if a request to ReportPortal fails, the
+    failure will be logged to ReportPortal once again and, for example, in case of endpoint configuration error, it
+    will also fail and will be logged again. So, the recursion will never end.
+
+    This class is used to prevent this situation. It catches any request error and prints it to the "std.err".
+    """
+
+    async def make(self) -> Optional[AsyncRPResponse]:
+        """Asynchronously make HTTP request to the ReportPortal API.
+
+        The method catches any request error and prints it to the "std.err".
+
+        :return: wrapped HTTP response or None in case of failure
+        """
+        url = await await_if_necessary(self.url)
+        if not url:
+            return None
+        data = await await_if_necessary(self.data)
+        json = await await_if_necessary(self.json)
+        # noinspection PyBroadException
+        try:
+            return AsyncRPResponse(await self.session_method(url, data=data, json=json))
+        except Exception:
+            print(
+                f"{datetime.now().isoformat()} - [ERROR] - ReportPortal request error:\n{traceback.format_exc()}",
+                file=sys.stderr,
+            )
 
 
 class RPRequestBase(metaclass=AbstractBaseClass):

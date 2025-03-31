@@ -40,6 +40,7 @@ from reportportal_client._internal.static.abstract import AbstractBaseClass
 # noinspection PyProtectedMember
 from reportportal_client.core.rp_issues import Issue
 from reportportal_client.core.rp_requests import (
+    ErrorPrintingHttpRequest,
     HttpRequest,
     ItemFinishRequest,
     ItemStartRequest,
@@ -809,7 +810,7 @@ class RPClient(RP):
     def _log(self, batch: Optional[List[RPRequestLog]]) -> Optional[Tuple[str, ...]]:
         if batch:
             url = uri_join(self.base_url_v2, "log")
-            response = HttpRequest(
+            response = ErrorPrintingHttpRequest(
                 self.session.post,
                 url,
                 files=RPLogBatch(batch).payload,

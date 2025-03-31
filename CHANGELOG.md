@@ -1,6 +1,10 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- `ErrorPrintingHttpRequest` and `ErrorPrintingAsyncHttpRequest` classes to avoid recursion on ReportPortal logging, by @HardNorth
+### Removed
+- Any logging on log requests to ReportPortal, by @HardNorth
 
 ## [5.6.3]
 ### Added
