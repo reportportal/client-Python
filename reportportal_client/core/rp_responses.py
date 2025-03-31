@@ -36,7 +36,6 @@ def _iter_json_messages(json: Any) -> Generator[str, None, None]:
     data = json.get("responses", [json])
     for chunk in data:
         if "message" not in chunk:
-            logger.warning(f"Response chunk does not contain 'message' field: {str(chunk)}")
             continue
         message = chunk["message"]
         if message:
@@ -115,9 +114,7 @@ class RPResponse:
 
         :return: message as string or NOT_FOUND, or None if the response is not JSON
         """
-        if self.json is None:
-            return None
-        return self.json.get("message")
+        return _get_field("message", self.json)
 
     @property
     def messages(self) -> Optional[Tuple[str, ...]]:
@@ -181,10 +178,7 @@ class AsyncRPResponse:
 
         :return: message as string or NOT_FOUND, or None if the response is not JSON
         """
-        json = await self.json
-        if json is None:
-            return None
-        return _get_field("message", json)
+        return _get_field("message", await self.json)
 
     @property
     async def messages(self) -> Optional[Tuple[str, ...]]:

@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 ### Added
+- `ErrorPrintingHttpRequest` and `ErrorPrintingAsyncHttpRequest` classes to avoid recursion on ReportPortal logging, by @HardNorth
+### Removed
+- Any logging on log requests to ReportPortal, by @HardNorth
+
+## [5.6.3]
+### Added
 - All Requests now have their names, by @HardNorth
 ### Removed
 - `NOT_FOUND` constant, as it only causes infinite issues, by @HardNorth

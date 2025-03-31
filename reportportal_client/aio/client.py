@@ -61,6 +61,7 @@ from reportportal_client.core.rp_requests import (
     AsyncItemStartRequest,
     AsyncRPLogBatch,
     AsyncRPRequestLog,
+    ErrorPrintingAsyncHttpRequest,
     LaunchFinishRequest,
     LaunchStartRequest,
     RPFile,
@@ -568,7 +569,7 @@ class Client:
         """
         url = root_uri_join(self.base_url_v2, "log")
         if log_batch:
-            response = await AsyncHttpRequest(
+            response = await ErrorPrintingAsyncHttpRequest(
                 (await self.session()).post, url=url, data=AsyncRPLogBatch(log_batch).payload, name="log"
             ).make()
             if not response:
