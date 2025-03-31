@@ -145,20 +145,20 @@ class HttpRequest:
 
 
 class ErrorPrintingHttpRequest(HttpRequest):
-    """This is specific request object which catches any request error and prints it to the "std.err".
+    """This is specific request object which catches any request error and prints it to the "sys.stderr".
 
     The object is supposed to be used in logging methods only to prevent infinite recursion of logging, when logging
     framework configured to log everything to ReportPortal. In this case if a request to ReportPortal fails, the
     failure will be logged to ReportPortal once again and, for example, in case of endpoint configuration error, it
     will also fail and will be logged again. So, the recursion will never end.
 
-    This class is used to prevent this situation. It catches any request error and prints it to the "std.err".
+    This class is used to prevent this situation. It catches any request error and prints it to the "sys.stderr".
     """
 
     def make(self) -> Optional[RPResponse]:
         """Make HTTP request to the ReportPortal API.
 
-        The method catches any request error and prints it to the "std.err".
+        The method catches any request error and prints it to the "sys.stderr".
 
         :return: wrapped HTTP response or None in case of failure
         """
@@ -223,20 +223,20 @@ class AsyncHttpRequest(HttpRequest):
 
 
 class ErrorPrintingAsyncHttpRequest(AsyncHttpRequest):
-    """This is specific request object which catches any request error and prints it to the "std.err".
+    """This is specific request object which catches any request error and prints it to the "sys.stderr".
 
     The object is supposed to be used in logging methods only to prevent infinite recursion of logging, when logging
     framework configured to log everything to ReportPortal. In this case if a request to ReportPortal fails, the
     failure will be logged to ReportPortal once again and, for example, in case of endpoint configuration error, it
     will also fail and will be logged again. So, the recursion will never end.
 
-    This class is used to prevent this situation. It catches any request error and prints it to the "std.err".
+    This class is used to prevent this situation. It catches any request error and prints it to the "sys.stderr".
     """
 
     async def make(self) -> Optional[AsyncRPResponse]:
         """Asynchronously make HTTP request to the ReportPortal API.
 
-        The method catches any request error and prints it to the "std.err".
+        The method catches any request error and prints it to the "sys.stderr".
 
         :return: wrapped HTTP response or None in case of failure
         """
