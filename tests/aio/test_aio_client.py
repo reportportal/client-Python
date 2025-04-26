@@ -646,7 +646,7 @@ async def test_finish_launch(aio_client: Client):
     attributes = {"attribute_key": "attribute_value", "system": False}
 
     result = await aio_client.finish_launch(launch_uuid, end_time, status=status, attributes=attributes)
-    assert result == RESPONSE_MESSAGE
+    assert result is None
     session.put.assert_called_once()
     call_args = session.put.call_args_list[0]
     assert expected_uri == call_args[0][0]
@@ -671,7 +671,7 @@ async def test_finish_launch_default_values(aio_client: Client):
     end_time = str(1696921416000)
 
     result = await aio_client.finish_launch(launch_uuid, end_time)
-    assert result == RESPONSE_MESSAGE
+    assert result is None
     session.put.assert_called_once()
     call_args = session.put.call_args_list[0]
     assert expected_uri == call_args[0][0]
