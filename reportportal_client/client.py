@@ -772,7 +772,7 @@ class RPClient(RP):
                 return None
             logger.debug("finish_launch - ID: %s", self.__launch_uuid)
         self._log(self._log_batcher.flush())
-        return ""
+        return None
 
     def update_test_item(
         self, item_uuid: str, attributes: Optional[Union[list, dict]] = None, description: Optional[str] = None

@@ -446,7 +446,7 @@ class Client:
         if not response:
             return None
         logger.debug("finish_launch - ID: %s", await await_if_necessary(launch_uuid))
-        return ""
+        return None
 
     async def update_test_item(
         self,
