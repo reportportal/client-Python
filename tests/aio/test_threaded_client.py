@@ -12,6 +12,7 @@
 #  limitations under the License
 
 import pickle
+import time
 from unittest import mock
 
 # noinspection PyPackageRequirements
@@ -46,6 +47,7 @@ def test_clone():
     async_client = ThreadedRPClient(*args, **kwargs)
     task1 = async_client.create_task(__empty_string())
     task2 = async_client.create_task(__empty_string())
+    time.sleep(0.1)
     task1.blocking_result()
     task2.blocking_result()
     async_client._add_current_item(task1)
