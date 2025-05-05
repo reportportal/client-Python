@@ -445,10 +445,8 @@ class Client:
         ).make()
         if not response:
             return None
-        message = await response.message
         logger.debug("finish_launch - ID: %s", await await_if_necessary(launch_uuid))
-        logger.debug("response message: %s", message)
-        return message
+        return None
 
     async def update_test_item(
         self,

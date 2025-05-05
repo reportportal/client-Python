@@ -771,12 +771,8 @@ class RPClient(RP):
             if not response:
                 return None
             logger.debug("finish_launch - ID: %s", self.__launch_uuid)
-            logger.debug("response message: %s", response.message)
-            message = response.message
-        else:
-            message = ""
         self._log(self._log_batcher.flush())
-        return message
+        return None
 
     def update_test_item(
         self, item_uuid: str, attributes: Optional[Union[list, dict]] = None, description: Optional[str] = None
