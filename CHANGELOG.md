@@ -3,6 +3,8 @@
 ## [Unreleased]
 
 ## [5.6.5]
+### Removed
+- Getting message on launch finish, since there is no such field in this response, by @HardNorth
 
 ## [5.6.4]
 ### Added
