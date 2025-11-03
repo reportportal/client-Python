@@ -57,6 +57,7 @@ def _read_client_id():
     config = __read_config()
     if config.has_option(__NoSectionConfigParser.DEFAULT_SECTION, CLIENT_ID_PROPERTY):
         return config.get(__NoSectionConfigParser.DEFAULT_SECTION, CLIENT_ID_PROPERTY)
+    return None
 
 
 def _store_client_id(client_id):

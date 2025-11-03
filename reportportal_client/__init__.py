@@ -13,7 +13,6 @@
 
 """This package is the base package for ReportPortal client."""
 import typing
-import warnings
 
 import aenum
 
@@ -101,7 +100,7 @@ def create_client(
         return ThreadedRPClient(endpoint, project, api_key=api_key, **kwargs)
     if client_type is ClientType.ASYNC_BATCHED:
         return BatchedRPClient(endpoint, project, api_key=api_key, **kwargs)
-    warnings.warn(f"Unknown ReportPortal Client type requested: {client_type}", RuntimeWarning, stacklevel=2)
+    raise ValueError(f"Unknown ReportPortal Client type requested: {client_type}")
 
 
 __all__ = [
