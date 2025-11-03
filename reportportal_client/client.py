@@ -66,12 +66,13 @@ class OutputType(aenum.Enum):
 
     def get_output(self) -> Optional[TextIO]:
         """Return TextIO based on the current type."""
-        if self == OutputType.STDOUT:
-            return sys.stdout
         if self == OutputType.STDERR:
             return sys.stderr
+        else:
+            return sys.stdout
 
 
+# noinspection PyAbstractClass
 class RP(metaclass=AbstractBaseClass):
     """Common interface for ReportPortal clients.
 
@@ -804,18 +805,19 @@ class RPClient(RP):
         return response.message
 
     def _log(self, batch: Optional[List[RPRequestLog]]) -> Optional[Tuple[str, ...]]:
-        if batch:
-            url = uri_join(self.base_url_v2, "log")
-            response = ErrorPrintingHttpRequest(
-                self.session.post,
-                url,
-                files=RPLogBatch(batch).payload,
-                verify_ssl=self.verify_ssl,
-                http_timeout=self.http_timeout,
-                name="log",
-            ).make()
-            if response:
-                return response.messages
+        if not batch:
+            return None
+
+        url = uri_join(self.base_url_v2, "log")
+        response = ErrorPrintingHttpRequest(
+            self.session.post,
+            url,
+            files=RPLogBatch(batch).payload,
+            verify_ssl=self.verify_ssl,
+            http_timeout=self.http_timeout,
+            name="log",
+        ).make()
+        return response.messages if response else None
 
     def log(
         self,

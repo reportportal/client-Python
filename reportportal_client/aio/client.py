@@ -187,7 +187,7 @@ class Client:
             else:
                 ssl_config = ssl.create_default_context(ssl.Purpose.SERVER_AUTH, cafile=certifi.where())
 
-        connection_params = {"ssl": ssl_config, "limit": self.max_pool_size}
+        connection_params: Dict[str, Any] = {"ssl": ssl_config, "limit": self.max_pool_size}
         if self.keepalive_timeout:
             connection_params["keepalive_timeout"] = self.keepalive_timeout
         connector = aiohttp.TCPConnector(**connection_params)
@@ -196,7 +196,7 @@ class Client:
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
 
-        session_params = {"headers": headers, "connector": connector}
+        session_params: Dict[str, Any] = {"headers": headers, "connector": connector}
 
         if self.http_timeout:
             if type(self.http_timeout) is tuple:
@@ -565,14 +565,14 @@ class Client:
         :param log_batch: A list of log message objects.
         :return:          Completion message tuple of variable size (depending on request size).
         """
+        if not log_batch:
+            return None
+
         url = root_uri_join(self.base_url_v2, "log")
-        if log_batch:
-            response = await ErrorPrintingAsyncHttpRequest(
-                (await self.session()).post, url=url, data=AsyncRPLogBatch(log_batch).payload, name="log"
-            ).make()
-            if not response:
-                return None
-            return await response.messages
+        response = await ErrorPrintingAsyncHttpRequest(
+            (await self.session()).post, url=url, data=AsyncRPLogBatch(log_batch).payload, name="log"
+        ).make()
+        return await response.messages if response else None
 
     def clone(self) -> "Client":
         """Clone the client object, set current Item ID as cloned item ID.
@@ -1010,6 +1010,7 @@ class AsyncRPClient(RP):
         await self.__client.close()
 
 
+# noinspection PyAbstractClass
 class _RPClient(RP, metaclass=AbstractBaseClass):
     """Base class for different synchronous to asynchronous client implementations."""
 
@@ -1454,7 +1455,7 @@ class ThreadedRPClient(_RPClient):
 
     task_timeout: float
     shutdown_timeout: float
-    _task_list: BackgroundTaskList[Task[_T]]
+    _task_list: BackgroundTaskList[Task[Any]]
     _task_mutex: threading.RLock
     _loop: Optional[asyncio.AbstractEventLoop]
     _thread: Optional[threading.Thread]
@@ -1645,7 +1646,7 @@ class BatchedRPClient(_RPClient):
     trigger_interval: float
     _loop: asyncio.AbstractEventLoop
     _task_mutex: threading.RLock
-    _task_list: TriggerTaskBatcher[Task[_T]]
+    _task_list: TriggerTaskBatcher[Task[Any]]
     __last_run_time: float
 
     def __init_task_list(
