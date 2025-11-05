@@ -542,26 +542,24 @@ class TestApiTokenAuthSync:
 
         assert result == f"Bearer {api_token}"
 
-    def test_refresh_returns_token(self):
-        """Test that refresh() returns the API token."""
+    def test_refresh_returns_none(self):
+        """Test that refresh() returns None (API keys don't have refresh mechanism)."""
         api_token = "test_api_token_67890"
         auth = ApiKeyAuthSync(api_token)
         result = auth.refresh()
 
-        assert result == f"Bearer {api_token}"
+        assert result is None
 
     def test_multiple_calls_return_same_token(self):
-        """Test that multiple calls return the same token."""
+        """Test that multiple get() calls return the same token."""
         api_token = "test_api_token_stable"
         auth = ApiKeyAuthSync(api_token)
 
         result1 = auth.get()
         result2 = auth.get()
-        result3 = auth.refresh()
 
         assert result1 == f"Bearer {api_token}"
         assert result2 == f"Bearer {api_token}"
-        assert result3 == f"Bearer {api_token}"
 
 
 class TestApiTokenAuthAsync:
@@ -577,24 +575,22 @@ class TestApiTokenAuthAsync:
         assert result == f"Bearer {api_token}"
 
     @pytest.mark.asyncio
-    async def test_refresh_returns_token(self):
-        """Test that refresh() returns the API token."""
+    async def test_refresh_returns_none(self):
+        """Test that refresh() returns None (API keys don't have refresh mechanism)."""
         api_token = "test_api_token_async_67890"
         auth = ApiKeyAuthAsync(api_token)
         result = await auth.refresh()
 
-        assert result == f"Bearer {api_token}"
+        assert result is None
 
     @pytest.mark.asyncio
     async def test_multiple_calls_return_same_token(self):
-        """Test that multiple calls return the same token."""
+        """Test that multiple get() calls return the same token."""
         api_token = "test_api_token_async_stable"
         auth = ApiKeyAuthAsync(api_token)
 
         result1 = await auth.get()
         result2 = await auth.get()
-        result3 = await auth.refresh()
 
         assert result1 == f"Bearer {api_token}"
         assert result2 == f"Bearer {api_token}"
-        assert result3 == f"Bearer {api_token}"

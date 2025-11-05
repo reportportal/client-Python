@@ -31,6 +31,7 @@ import pytest
 
 # noinspection PyProtectedMember
 from reportportal_client._internal.aio.http import RetryingClientSession
+from reportportal_client._internal.services.auth import ApiKeyAuthAsync
 
 HTTP_TIMEOUT_TIME = 1.2
 
@@ -72,6 +73,21 @@ class ThrottlingHttpHandler(http.server.BaseHTTPRequestHandler):
         self.send_response(429, "Throttling")
         self.end_headers()
         self.wfile.write("Throttling\n\n".encode("utf-8"))
+        self.wfile.flush()
+
+
+class UnauthorizedHttpHandler(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        auth_header = self.headers.get("Authorization")
+        if auth_header == "Bearer test_api_key":
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write("{}\n\n".encode("utf-8"))
+        else:
+            self.send_response(401, "Unauthorized")
+            self.end_headers()
+            self.wfile.write("Unauthorized\n\n".encode("utf-8"))
         self.wfile.flush()
 
 
@@ -163,3 +179,93 @@ async def test_no_retry_on_not_retryable_error():
     assert result is None
     assert async_mock.call_count == 1
     assert total_time < 1
+
+
+@pytest.mark.asyncio
+async def test_auth_header_added_to_request():
+    """Test that auth header is added to requests when auth is configured."""
+    port = 8006
+    retry_number = 5
+    auth = ApiKeyAuthAsync("test_api_key")
+    timeout = aiohttp.ClientTimeout(connect=1.0, sock_read=1.0)
+    connector = aiohttp.TCPConnector(force_close=True)
+    session = RetryingClientSession(
+        f"http://localhost:{port}",
+        timeout=timeout,
+        max_retry_number=retry_number,
+        base_retry_delay=0.01,
+        auth=auth,
+        connector=connector,
+    )
+
+    with get_http_server(server_handler=UnauthorizedHttpHandler, server_address=("", port)):
+        async with session:
+            result = await session.get("/")
+            assert result.ok
+            assert result.status == 200
+
+
+@pytest.mark.asyncio
+async def test_auth_refresh_on_401():
+    """Test that 401 response triggers auth refresh."""
+    port = 8007
+    retry_number = 5
+
+    # Create a mock auth that fails first, then succeeds
+    auth = mock.AsyncMock()
+    auth.get = mock.AsyncMock(side_effect=["Bearer invalid_token", "Bearer test_api_key"])
+    auth.refresh = mock.AsyncMock(return_value="Bearer test_api_key")
+
+    timeout = aiohttp.ClientTimeout(connect=1.0, sock_read=1.0)
+    connector = aiohttp.TCPConnector(force_close=True)
+    session = RetryingClientSession(
+        f"http://localhost:{port}",
+        timeout=timeout,
+        max_retry_number=retry_number,
+        base_retry_delay=0.01,
+        auth=auth,
+        connector=connector,
+    )
+
+    with get_http_server(server_handler=UnauthorizedHttpHandler, server_address=("", port)):
+        async with session:
+            result = await session.get("/")
+            # First call to get() returns invalid token, which causes 401
+            # Then refresh() is called and returns valid token
+            # Request is retried with valid token and succeeds
+            assert result.ok
+            assert result.status == 200
+            assert auth.get.call_count == 1
+            assert auth.refresh.call_count == 1
+
+
+@pytest.mark.asyncio
+async def test_auth_refresh_only_once():
+    """Test that auth refresh is only performed once per request."""
+    port = 8008
+    retry_number = 5
+
+    # Create a mock auth that always fails
+    auth = mock.AsyncMock()
+    auth.get = mock.AsyncMock(return_value="Bearer invalid_token")
+    auth.refresh = mock.AsyncMock(return_value="Bearer still_invalid_token")
+
+    timeout = aiohttp.ClientTimeout(connect=1.0, sock_read=1.0)
+    connector = aiohttp.TCPConnector(force_close=True)
+    session = RetryingClientSession(
+        f"http://localhost:{port}",
+        timeout=timeout,
+        max_retry_number=retry_number,
+        base_retry_delay=0.01,
+        auth=auth,
+        connector=connector,
+    )
+
+    with get_http_server(server_handler=UnauthorizedHttpHandler, server_address=("", port)):
+        async with session:
+            result = await session.get("/")
+            # Auth refresh should only be attempted once
+            assert not result.ok
+            assert result.status == 401
+            assert auth.get.call_count == 1
+            assert auth.refresh.call_count == 1

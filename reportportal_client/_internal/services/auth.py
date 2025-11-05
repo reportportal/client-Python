@@ -29,9 +29,9 @@ logger = logging.getLogger(__name__)
 
 # noinspection PyAbstractClass
 class Auth(metaclass=AbstractBaseClass):
-    """Abstract base class for authentication.
+    """Abstract base class for synchronous authentication.
 
-    This class defines the interface for all authentication methods.
+    This class defines the interface for all synchronous authentication methods.
     """
 
     __metaclass__ = AbstractBaseClass
@@ -46,6 +46,32 @@ class Auth(metaclass=AbstractBaseClass):
 
     @abstractmethod
     def refresh(self) -> Optional[str]:
+        """Refresh the access token and return Authorization header value.
+
+        :return: Authorization header value or None if refresh failed.
+        """
+        raise NotImplementedError('"refresh" method is not implemented!')
+
+
+# noinspection PyAbstractClass
+class AuthAsync(metaclass=AbstractBaseClass):
+    """Abstract base class for asynchronous authentication.
+
+    This class defines the interface for all asynchronous authentication methods.
+    """
+
+    __metaclass__ = AbstractBaseClass
+
+    @abstractmethod
+    async def get(self) -> Optional[str]:
+        """Get valid Authorization header value.
+
+        :return: Authorization header value or None if authentication failed.
+        """
+        raise NotImplementedError('"get" method is not implemented!')
+
+    @abstractmethod
+    async def refresh(self) -> Optional[str]:
         """Refresh the access token and return Authorization header value.
 
         :return: Authorization header value or None if refresh failed.
@@ -86,7 +112,7 @@ class ApiKeyAuthSync(Auth):
         return None
 
 
-class ApiKeyAuthAsync(Auth):
+class ApiKeyAuthAsync(AuthAsync):
     """Asynchronous API key authentication.
 
     This class provides simple key-based authentication that always returns
@@ -120,14 +146,13 @@ class ApiKeyAuthAsync(Auth):
 
 
 # noinspection PyAbstractClass
-class OAuthPasswordGrant(Auth):
-    """Abstract base class for OAuth 2.0 password grant authentication.
+class OAuthPasswordGrant:
+    """Base class for OAuth 2.0 password grant authentication.
 
     This class provides common logic for obtaining and refreshing access tokens using
-    the OAuth 2.0 password grant flow.
+    the OAuth 2.0 password grant flow. This class should not be used directly, use
+    OAuthPasswordGrantSync or OAuthPasswordGrantAsync instead.
     """
-
-    __metaclass__ = AbstractBaseClass
 
     oauth_uri: str
     username: str
@@ -244,7 +269,7 @@ class OAuthPasswordGrant(Auth):
         return data
 
 
-class OAuthPasswordGrantSync(OAuthPasswordGrant):
+class OAuthPasswordGrantSync(OAuthPasswordGrant, Auth):
     """Synchronous implementation of OAuth 2.0 password grant authentication."""
 
     _session: Optional[requests.Session]
@@ -370,7 +395,7 @@ class OAuthPasswordGrantSync(OAuthPasswordGrant):
             self._session.close()
 
 
-class OAuthPasswordGrantAsync(OAuthPasswordGrant):
+class OAuthPasswordGrantAsync(OAuthPasswordGrant, AuthAsync):
     """Asynchronous implementation of OAuth 2.0 password grant authentication."""
 
     _session: Optional[aiohttp.ClientSession]
