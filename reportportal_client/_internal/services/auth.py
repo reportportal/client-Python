@@ -53,70 +53,70 @@ class Auth(metaclass=AbstractBaseClass):
         raise NotImplementedError('"refresh" method is not implemented!')
 
 
-class ApiTokenAuthSync(Auth):
-    """Synchronous API token authentication.
+class ApiKeyAuthSync(Auth):
+    """Synchronous API key authentication.
 
-    This class provides simple token-based authentication that always returns
-    the provided API token.
+    This class provides simple key-based authentication that always returns
+    the provided API key.
     """
 
-    api_token: str
+    api_key: str
 
-    def __init__(self, api_token: str) -> None:
-        """Initialize API token authentication.
+    def __init__(self, api_key: str) -> None:
+        """Initialize API key authentication.
 
-        :param api_token: API token for authentication.
+        :param api_key: API key for authentication.
         """
-        self.api_token = api_token
+        self.api_key = api_key
 
     def get(self) -> Optional[str]:
         """Get valid Authorization header value.
 
         :return: Authorization header value with Bearer token.
         """
-        return f"Bearer {self.api_token}"
+        return f"Bearer {self.api_key}"
 
     def refresh(self) -> Optional[str]:
-        """Refresh the access token and return Authorization header value.
+        """Refresh the access key and return Authorization header value.
 
-        For API tokens, this simply returns the token as there's no refresh mechanism.
+        For API keys, this simply returns the key as there's no refresh mechanism.
 
         :return: Authorization header value with Bearer token.
         """
-        return f"Bearer {self.api_token}"
+        return f"Bearer {self.api_key}"
 
 
-class ApiTokenAuthAsync(Auth):
-    """Asynchronous API token authentication.
+class ApiKeyAuthAsync(Auth):
+    """Asynchronous API key authentication.
 
-    This class provides simple token-based authentication that always returns
-    the provided API token.
+    This class provides simple key-based authentication that always returns
+    the provided API key.
     """
 
-    api_token: str
+    api_key: str
 
-    def __init__(self, api_token: str) -> None:
-        """Initialize API token authentication.
+    def __init__(self, api_key: str) -> None:
+        """Initialize API key authentication.
 
-        :param api_token: API token for authentication.
+        :param api_key: API key for authentication.
         """
-        self.api_token = api_token
+        self.api_key = api_key
 
     async def get(self) -> Optional[str]:
         """Get valid Authorization header value.
 
         :return: Authorization header value with Bearer token.
         """
-        return f"Bearer {self.api_token}"
+        return f"Bearer {self.api_key}"
 
     async def refresh(self) -> Optional[str]:
-        """Refresh the access token and return Authorization header value.
+        """Refresh the access key and return Authorization header value.
 
-        For API tokens, this simply returns the token as there's no refresh mechanism.
+        For API keys, this simply returns the key as there's no refresh mechanism.
 
         :return: Authorization header value with Bearer token.
         """
-        return f"Bearer {self.api_token}"
+        return f"Bearer {self.api_key}"
 
 
 # noinspection PyAbstractClass

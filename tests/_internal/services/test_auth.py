@@ -22,8 +22,8 @@ import pytest
 
 # noinspection PyProtectedMember
 from reportportal_client._internal.services.auth import (
-    ApiTokenAuthAsync,
-    ApiTokenAuthSync,
+    ApiKeyAuthAsync,
+    ApiKeyAuthSync,
     OAuthPasswordGrantAsync,
     OAuthPasswordGrantSync,
 )
@@ -537,7 +537,7 @@ class TestApiTokenAuthSync:
     def test_get_returns_token(self):
         """Test that get() returns the API token."""
         api_token = "test_api_token_12345"
-        auth = ApiTokenAuthSync(api_token)
+        auth = ApiKeyAuthSync(api_token)
         result = auth.get()
 
         assert result == f"Bearer {api_token}"
@@ -545,7 +545,7 @@ class TestApiTokenAuthSync:
     def test_refresh_returns_token(self):
         """Test that refresh() returns the API token."""
         api_token = "test_api_token_67890"
-        auth = ApiTokenAuthSync(api_token)
+        auth = ApiKeyAuthSync(api_token)
         result = auth.refresh()
 
         assert result == f"Bearer {api_token}"
@@ -553,7 +553,7 @@ class TestApiTokenAuthSync:
     def test_multiple_calls_return_same_token(self):
         """Test that multiple calls return the same token."""
         api_token = "test_api_token_stable"
-        auth = ApiTokenAuthSync(api_token)
+        auth = ApiKeyAuthSync(api_token)
 
         result1 = auth.get()
         result2 = auth.get()
@@ -571,7 +571,7 @@ class TestApiTokenAuthAsync:
     async def test_get_returns_token(self):
         """Test that get() returns the API token."""
         api_token = "test_api_token_async_12345"
-        auth = ApiTokenAuthAsync(api_token)
+        auth = ApiKeyAuthAsync(api_token)
         result = await auth.get()
 
         assert result == f"Bearer {api_token}"
@@ -580,7 +580,7 @@ class TestApiTokenAuthAsync:
     async def test_refresh_returns_token(self):
         """Test that refresh() returns the API token."""
         api_token = "test_api_token_async_67890"
-        auth = ApiTokenAuthAsync(api_token)
+        auth = ApiKeyAuthAsync(api_token)
         result = await auth.refresh()
 
         assert result == f"Bearer {api_token}"
@@ -589,7 +589,7 @@ class TestApiTokenAuthAsync:
     async def test_multiple_calls_return_same_token(self):
         """Test that multiple calls return the same token."""
         api_token = "test_api_token_async_stable"
-        auth = ApiTokenAuthAsync(api_token)
+        auth = ApiKeyAuthAsync(api_token)
 
         result1 = await auth.get()
         result2 = await auth.get()
