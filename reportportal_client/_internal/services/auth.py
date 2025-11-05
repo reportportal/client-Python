@@ -76,14 +76,14 @@ class ApiKeyAuthSync(Auth):
         """
         return f"Bearer {self.api_key}"
 
-    def refresh(self) -> Optional[str]:
+    def refresh(self) -> None:
         """Refresh the access key and return Authorization header value.
 
-        For API keys, this simply returns the key as there's no refresh mechanism.
+        For API keys, this simply returns None as there's no refresh mechanism.
 
-        :return: Authorization header value with Bearer token.
+        :return: None
         """
-        return f"Bearer {self.api_key}"
+        return None
 
 
 class ApiKeyAuthAsync(Auth):
@@ -109,14 +109,14 @@ class ApiKeyAuthAsync(Auth):
         """
         return f"Bearer {self.api_key}"
 
-    async def refresh(self) -> Optional[str]:
+    async def refresh(self) -> None:
         """Refresh the access key and return Authorization header value.
 
-        For API keys, this simply returns the key as there's no refresh mechanism.
+        For API keys, this simply returns None as there's no refresh mechanism.
 
-        :return: Authorization header value with Bearer token.
+        :return: None
         """
-        return f"Bearer {self.api_key}"
+        return None
 
 
 # noinspection PyAbstractClass
