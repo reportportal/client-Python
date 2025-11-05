@@ -31,6 +31,8 @@ import pytest
 
 # noinspection PyProtectedMember
 from reportportal_client._internal.aio.http import RetryingClientSession
+
+# noinspection PyProtectedMember
 from reportportal_client._internal.services.auth import ApiKeyAuthAsync
 
 HTTP_TIMEOUT_TIME = 1.2
@@ -93,12 +95,10 @@ class UnauthorizedHttpHandler(http.server.BaseHTTPRequestHandler):
 
 SERVER_PORT = 8000
 SERVER_ADDRESS = ("", SERVER_PORT)
-SERVER_CLASS = socketserver.TCPServer
-SERVER_HANDLER_CLASS = http.server.BaseHTTPRequestHandler
 
 
-def get_http_server(server_class=SERVER_CLASS, server_address=SERVER_ADDRESS, server_handler=SERVER_HANDLER_CLASS):
-    httpd = server_class(server_address, server_handler)
+def get_http_server(*, server_handler, server_address=SERVER_ADDRESS):
+    httpd = socketserver.TCPServer(server_address, server_handler)
     thread = threading.Thread(target=httpd.serve_forever, daemon=True)
     thread.start()
     return httpd

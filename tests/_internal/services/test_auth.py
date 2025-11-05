@@ -259,10 +259,12 @@ class TestOAuthPasswordGrantSync:
         assert result2 == f"Bearer {new_token}"
         assert oauth._access_token == new_token
 
-        # Verify it tried to use refresh token (since refresh clears the access token but refresh token is still available)
+        # Verify it tried to use refresh token (since refresh clears the access token but refresh token is still
+        # available)
         call_args = mock_session.post.call_args
         data = call_args[1]["data"]
-        # After refresh() clears the access token, it should try to use refresh_token grant since refresh token is still available
+        # After refresh() clears the access token, it should try to use refresh_token grant since refresh token is
+        # still available
         assert data["grant_type"] == "refresh_token"
         assert data["refresh_token"] == REFRESH_TOKEN
 
@@ -523,10 +525,12 @@ class TestOAuthPasswordGrantAsync:
         assert result2 == f"Bearer {new_token}"
         assert oauth._access_token == new_token
 
-        # Verify it tried to use refresh token (since refresh clears the access token but refresh token is still available)
+        # Verify it tried to use refresh token (since refresh clears the access token but refresh token is still
+        # available)
         call_args = mock_session.post.call_args
         data = call_args[1]["data"]
-        # After refresh() clears the access token, it should try to use refresh_token grant since refresh token is still available
+        # After refresh() clears the access token, it should try to use refresh_token grant since refresh token is
+        # still available
         assert data["grant_type"] == "refresh_token"
         assert data["refresh_token"] == REFRESH_TOKEN
 
