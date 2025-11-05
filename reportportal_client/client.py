@@ -1,15 +1,16 @@
-#  Copyright (c) 2023 EPAM Systems
+#  Copyright 2025 EPAM Systems
+#
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
 #  You may obtain a copy of the License at
 #
-#  https://www.apache.org/licenses/LICENSE-2.0
+#      https://www.apache.org/licenses/LICENSE-2.0
 #
 #  Unless required by applicable law or agreed to in writing, software
 #  distributed under the License is distributed on an "AS IS" BASIS,
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
-#  limitations under the License
+#  limitations under the License.
 
 """This module contains ReportPortal Client interface and synchronous implementation class."""
 
@@ -22,8 +23,10 @@ from os import getenv
 from typing import Any, Dict, List, Optional, TextIO, Tuple, Union
 
 import aenum
-import requests
 from requests.adapters import DEFAULT_RETRIES, HTTPAdapter, Retry
+
+# noinspection PyProtectedMember
+from reportportal_client._internal.http import ClientSession
 
 # noinspection PyProtectedMember
 from reportportal_client._internal.local import set_current
@@ -32,12 +35,14 @@ from reportportal_client._internal.local import set_current
 from reportportal_client._internal.logs.batcher import LogBatcher
 
 # noinspection PyProtectedMember
+from reportportal_client._internal.services.auth import ApiKeyAuthSync, Auth, OAuthPasswordGrantSync
+
+# noinspection PyProtectedMember
 from reportportal_client._internal.services.statistics import send_event
 
 # noinspection PyProtectedMember
 from reportportal_client._internal.static.abstract import AbstractBaseClass
 
-# noinspection PyProtectedMember
 from reportportal_client.core.rp_issues import Issue
 from reportportal_client.core.rp_requests import (
     ErrorPrintingHttpRequest,
@@ -388,12 +393,19 @@ class RPClient(RP):
     log_batch_size: int
     log_batch_payload_size: int
     __project: str
-    api_key: str
+    api_key: Optional[str]
+    oauth_uri: Optional[str]
+    oauth_username: Optional[str]
+    oauth_password: Optional[str]
+    oauth_client_id: Optional[str]
+    oauth_client_secret: Optional[str]
+    oauth_scope: Optional[str]
+    auth: Auth
     verify_ssl: Union[bool, str]
     retries: int
     max_pool_size: int
     http_timeout: Union[float, Tuple[float, float]]
-    session: requests.Session
+    session: ClientSession
     __step_reporter: StepReporter
     mode: str
     launch_uuid_print: Optional[bool]
@@ -441,19 +453,17 @@ class RPClient(RP):
             if self.retries
             else DEFAULT_RETRIES
         )
-        session = requests.Session()
+        session = ClientSession(auth=self.auth)
         session.mount("https://", HTTPAdapter(max_retries=retry_strategy, pool_maxsize=self.max_pool_size))
         # noinspection HttpUrlsUsage
         session.mount("http://", HTTPAdapter(max_retries=retry_strategy, pool_maxsize=self.max_pool_size))
-        if self.api_key:
-            session.headers["Authorization"] = "Bearer {0}".format(self.api_key)
         self.session = session
 
     def __init__(
         self,
         endpoint: str,
         project: str,
-        api_key: str = None,
+        api_key: Optional[str] = None,
         log_batch_size: int = 20,
         is_skipped_an_issue: bool = True,
         verify_ssl: Union[bool, str] = True,
@@ -467,6 +477,13 @@ class RPClient(RP):
         print_output: OutputType = OutputType.STDOUT,
         log_batcher: Optional[LogBatcher[RPRequestLog]] = None,
         truncate_attributes: bool = True,
+        # OAuth 2.0 Password Grant parameters
+        oauth_oauth_uri: Optional[str] = None,
+        oauth_username: Optional[str] = None,
+        oauth_password: Optional[str] = None,
+        oauth_client_id: Optional[str] = None,
+        oauth_client_secret: Optional[str] = None,
+        oauth_scope: Optional[str] = None,
         **kwargs: Any,
     ) -> None:
         """Initialize the class instance with arguments.
@@ -490,6 +507,12 @@ class RPClient(RP):
         :param print_output:           Set output stream for Launch UUID printing.
         :param log_batcher:            Use existing LogBatcher instance instead of creation of own one.
         :param truncate_attributes:    Truncate test item attributes to default maximum length.
+        :param oauth_oauth_uri:              OAuth 2.0 token endpoint URI (optional, for OAuth authentication).
+        :param oauth_username:               Username for OAuth 2.0 authentication (optional).
+        :param oauth_password:               Password for OAuth 2.0 authentication (optional).
+        :param oauth_client_id:              OAuth 2.0 client ID (optional).
+        :param oauth_client_secret:          OAuth 2.0 client secret (optional).
+        :param oauth_scope:                  OAuth 2.0 scope (optional).
         """
         set_current(self)
         self.api_v1, self.api_v2 = "v1", "v2"
@@ -526,24 +549,54 @@ class RPClient(RP):
         self.truncate_attributes = truncate_attributes
 
         self.api_key = api_key
-        if not self.api_key:
-            if "token" in kwargs:
-                warnings.warn(
-                    message="Argument `token` is deprecated since 5.3.5 and will be subject for removing in "
-                    "the next major version. Use `api_key` argument instead.",
-                    category=DeprecationWarning,
-                    stacklevel=2,
-                )
-                self.api_key = kwargs["token"]
+        # Handle deprecated token argument
+        if not self.api_key and "token" in kwargs:
+            warnings.warn(
+                message="Argument `token` is deprecated since 5.3.5 and will be subject for removing in "
+                "the next major version. Use `api_key` argument instead.",
+                category=DeprecationWarning,
+                stacklevel=2,
+            )
+            self.api_key = kwargs["token"]
 
-            if not self.api_key:
-                warnings.warn(
-                    message="Argument `api_key` is `None` or empty string, that is not supposed to happen "
-                    "because ReportPortal is usually requires an authorization key. Please check "
-                    "your code.",
-                    category=RuntimeWarning,
-                    stacklevel=2,
-                )
+        self.oauth_uri = oauth_oauth_uri
+        self.oauth_username = oauth_username
+        self.oauth_password = oauth_password
+        self.oauth_client_id = oauth_client_id
+        self.oauth_client_secret = oauth_client_secret
+        self.oauth_scope = oauth_scope
+
+        # Initialize authentication
+        oauth_params = [oauth_oauth_uri, oauth_username, oauth_password, oauth_client_id]
+        oauth_provided = all(oauth_params)
+
+        if oauth_provided:
+            # Use OAuth 2.0 Password Grant authentication
+            self.auth = OAuthPasswordGrantSync(
+                oauth_uri=oauth_oauth_uri,
+                username=oauth_username,
+                password=oauth_password,
+                client_id=oauth_client_id,
+                client_secret=oauth_client_secret,
+                scope=oauth_scope,
+            )
+        elif self.api_key:
+            self.auth = ApiKeyAuthSync(api_key)
+        else:
+            # Neither OAuth nor API key provided
+            raise ValueError(
+                "Authentication credentials are required. Please provide either:\n"
+                "1. OAuth 2.0 parameters: oauth_uri, username, password, and client_id\n"
+                "   (with optional client_secret and scope), or\n"
+                "2. api_key parameter for API key authentication.\n"
+                "\n"
+                "Example for OAuth:\n"
+                "  RPClient(endpoint='...', project='...', oauth_uri='https://example.com/oauth/token',\n"
+                "           username='user', password='pass', client_id='client_id')\n"
+                "\n"
+                "Example for API key:\n"
+                "  RPClient(endpoint='...', project='...', api_key='your_api_key')"
+            )
 
         self.__init_session()
 
@@ -967,6 +1020,12 @@ class RPClient(RP):
             log_batch_payload_size=self.log_batch_payload_size,
             mode=self.mode,
             log_batcher=self._log_batcher,
+            oauth_oauth_uri=self.oauth_uri,
+            oauth_username=self.oauth_username,
+            oauth_password=self.oauth_password,
+            oauth_client_id=self.oauth_client_id,
+            oauth_client_secret=self.oauth_client_secret,
+            oauth_scope=self.oauth_scope,
         )
         current_item = self.current_item()
         if current_item:
