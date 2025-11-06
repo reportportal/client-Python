@@ -64,6 +64,8 @@ class ClientSession:
         if result.status_code in AUTH_PROBLEM_STATUSES and self.__auth:
             refreshed_header = self.__auth.refresh()
             if refreshed_header:
+                # Close previous result if it's retried to release resources
+                result.close()
                 # Retry with new auth header
                 request_kwargs["headers"] = request_kwargs.get("headers", {}).copy()
                 request_kwargs["headers"]["Authorization"] = refreshed_header
