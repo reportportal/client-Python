@@ -14,6 +14,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License
 
+import asyncio
 import time
 from unittest import mock
 
@@ -326,7 +327,7 @@ class TestOAuthPasswordGrantAsync:
         assert mock_session.post.call_count == 1
 
         # Wait for token to expire
-        time.sleep(1)
+        await asyncio.sleep(1)
 
         # Second call - token expired, should refresh
         new_access_token = "new_access_token"

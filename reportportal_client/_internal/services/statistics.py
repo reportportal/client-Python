@@ -95,6 +95,7 @@ def send_event(
         )
     except requests.exceptions.RequestException as err:
         logger.debug("Failed to send data to Statistics service: %s", str(err))
+        return None
 
 
 async def async_send_event(
@@ -121,7 +122,7 @@ async def async_send_event(
                 ssl=ssl_context,
             )
         except aiohttp.ClientError as exc:
-            logger.debug("Failed to send data to Statistics service: connection error", exc)
+            logger.debug("Failed to send data to Statistics service: %s", str(exc))
             return None
         if not result.ok:
             logger.debug(f"Failed to send data to Statistics service: {result.reason}")

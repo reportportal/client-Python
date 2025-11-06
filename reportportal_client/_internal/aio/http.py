@@ -99,6 +99,9 @@ class RetryingClientSession:
 
         for i in range(self.__retry_number + 1):  # add one for the first attempt, which is not a retry
             retry_factor = None
+            if result is not None:
+                # Close previous result if it's retried to release resources
+                result.close()
             try:
                 result = await method(url, **kwargs)
             except Exception as exc:
@@ -207,6 +210,8 @@ class ClientSession:
         if result.status in AUTH_PROBLEM_STATUSES and self.__auth:
             refreshed_header = await self.__auth.refresh()
             if refreshed_header:
+                # Close previous result if it's retried to release resources
+                result.close()
                 # Retry with new auth header
                 request_kwargs["headers"] = request_kwargs.get("headers", {}).copy()
                 request_kwargs["headers"]["Authorization"] = refreshed_header
