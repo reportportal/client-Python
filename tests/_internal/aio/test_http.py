@@ -30,7 +30,7 @@ import aiohttp
 import pytest
 
 # noinspection PyProtectedMember
-from reportportal_client._internal.aio.http import RetryingClientSession
+from reportportal_client._internal.aio.http import ClientSession, RetryingClientSession
 
 # noinspection PyProtectedMember
 from reportportal_client._internal.services.auth import ApiKeyAuthAsync
@@ -121,7 +121,7 @@ async def execute_http_request(port, retry_number, server_class, timeout_seconds
     exception = None
     result = None
     with get_http_server(server_handler=server_class, server_address=("", port)):
-        with mock.patch("reportportal_client._internal.aio.http.ClientSession.get", async_mock):
+        with mock.patch("reportportal_client._internal.aio.http.AioHttpClientSession.get", async_mock):
             async with session:
                 start_time = time.time()
                 try:
@@ -189,14 +189,14 @@ async def test_auth_header_added_to_request():
     auth = ApiKeyAuthAsync("test_api_key")
     timeout = aiohttp.ClientTimeout(connect=1.0, sock_read=1.0)
     connector = aiohttp.TCPConnector(force_close=True)
-    session = RetryingClientSession(
+    wrapped_session = RetryingClientSession(
         f"http://localhost:{port}",
         timeout=timeout,
         max_retry_number=retry_number,
         base_retry_delay=0.01,
-        auth=auth,
         connector=connector,
     )
+    session = ClientSession(wrapped=wrapped_session, auth=auth)
 
     with get_http_server(server_handler=UnauthorizedHttpHandler, server_address=("", port)):
         async with session:
@@ -218,14 +218,14 @@ async def test_auth_refresh_on_401():
 
     timeout = aiohttp.ClientTimeout(connect=1.0, sock_read=1.0)
     connector = aiohttp.TCPConnector(force_close=True)
-    session = RetryingClientSession(
+    wrapped_session = RetryingClientSession(
         f"http://localhost:{port}",
         timeout=timeout,
         max_retry_number=retry_number,
         base_retry_delay=0.01,
-        auth=auth,
         connector=connector,
     )
+    session = ClientSession(wrapped=wrapped_session, auth=auth)
 
     with get_http_server(server_handler=UnauthorizedHttpHandler, server_address=("", port)):
         async with session:
@@ -252,14 +252,14 @@ async def test_auth_refresh_only_once():
 
     timeout = aiohttp.ClientTimeout(connect=1.0, sock_read=1.0)
     connector = aiohttp.TCPConnector(force_close=True)
-    session = RetryingClientSession(
+    wrapped_session = RetryingClientSession(
         f"http://localhost:{port}",
         timeout=timeout,
         max_retry_number=retry_number,
         base_retry_delay=0.01,
-        auth=auth,
         connector=connector,
     )
+    session = ClientSession(wrapped=wrapped_session, auth=auth)
 
     with get_http_server(server_handler=UnauthorizedHttpHandler, server_address=("", port)):
         async with session:
