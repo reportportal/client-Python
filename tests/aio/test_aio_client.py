@@ -137,6 +137,149 @@ def test_clone():
     )
 
 
+@mock.patch("reportportal_client.aio.client.warnings.warn")
+def test_deprecated_token_argument(warn):
+    """Test that deprecated token argument works and issues a warning."""
+    api_key = "api_key"
+    client = Client(endpoint="http://endpoint", project="project", token=api_key)
+
+    assert warn.call_count == 1
+    assert client.api_key == api_key
+
+
+@mock.patch("reportportal_client.aio.client.warnings.warn")
+def test_api_key_argument(warn):
+    """Test that normal api_key argument works without warning."""
+    api_key = "api_key"
+    client = Client(endpoint="http://endpoint", project="project", api_key=api_key)
+
+    assert warn.call_count == 0
+    assert client.api_key == api_key
+
+
+def test_empty_api_key_argument():
+    """Test that empty api_key raises ValueError."""
+    api_key = ""
+    with pytest.raises(ValueError) as exc_info:
+        Client(endpoint="http://endpoint", project="project", api_key=api_key)
+
+    assert "Authentication credentials are required" in str(exc_info.value)
+
+
+def test_oauth_authentication_parameters():
+    """Test that OAuth 2.0 authentication parameters work correctly."""
+    client = Client(
+        endpoint="http://endpoint",
+        project="project",
+        oauth_oauth_uri="https://example.com/oauth/token",
+        oauth_username="test_user",
+        oauth_password="test_password",
+        oauth_client_id="test_client_id",
+        oauth_client_secret="test_client_secret",
+        oauth_scope="read write",
+    )
+
+    assert client is not None
+    assert client.oauth_uri == "https://example.com/oauth/token"
+    assert client.oauth_username == "test_user"
+    assert client.oauth_password == "test_password"
+    assert client.oauth_client_id == "test_client_id"
+    assert client.oauth_client_secret == "test_client_secret"
+    assert client.oauth_scope == "read write"
+    assert client.api_key is None
+
+
+def test_oauth_authentication_without_optional_parameters():
+    """Test OAuth authentication with only required parameters."""
+    client = Client(
+        endpoint="http://endpoint",
+        project="project",
+        oauth_oauth_uri="https://example.com/oauth/token",
+        oauth_username="test_user",
+        oauth_password="test_password",
+        oauth_client_id="test_client_id",
+    )
+
+    assert client is not None
+    assert client.oauth_uri == "https://example.com/oauth/token"
+    assert client.oauth_username == "test_user"
+    assert client.oauth_password == "test_password"
+    assert client.oauth_client_id == "test_client_id"
+    assert client.oauth_client_secret is None
+    assert client.oauth_scope is None
+    assert client.api_key is None
+
+
+def test_no_authentication_parameters():
+    """Test that missing authentication parameters raises ValueError."""
+    with pytest.raises(ValueError) as exc_info:
+        Client(endpoint="http://endpoint", project="project")
+
+    assert "Authentication credentials are required" in str(exc_info.value)
+    assert "OAuth 2.0 parameters" in str(exc_info.value)
+    assert "api_key parameter" in str(exc_info.value)
+
+
+def test_partial_oauth_parameters():
+    """Test that missing authentication parameters raises ValueError."""
+    with pytest.raises(ValueError) as exc_info:
+        Client(
+            endpoint="http://endpoint",
+            project="project",
+            oauth_oauth_uri="https://example.com/oauth/token",
+            oauth_username="test_user",
+            oauth_password="test_password",
+        )
+
+    assert "Authentication credentials are required" in str(exc_info.value)
+    assert "OAuth 2.0 parameters" in str(exc_info.value)
+    assert "api_key parameter" in str(exc_info.value)
+
+
+def test_clone_with_oauth():
+    """Test cloning a client with OAuth authentication."""
+    args = ["http://endpoint", "project"]
+    kwargs = {
+        "oauth_oauth_uri": "https://example.com/oauth/token",
+        "oauth_username": "test_user",
+        "oauth_password": "test_password",
+        "oauth_client_id": "test_client_id",
+        "oauth_client_secret": "test_secret",
+        "oauth_scope": "read write",
+        "is_skipped_an_issue": False,
+        "verify_ssl": False,
+        "retries": 5,
+        "max_pool_size": 30,
+        "http_timeout": (30, 30),
+        "keepalive_timeout": 25,
+        "mode": "DEBUG",
+        "launch_uuid_print": True,
+        "print_output": OutputType.STDERR,
+    }
+    client = Client(*args, **kwargs)
+    cloned = client.clone()
+
+    assert cloned is not None and client is not cloned
+    assert cloned.endpoint == args[0] and cloned.project == args[1]
+    assert (
+        cloned.oauth_uri == kwargs["oauth_oauth_uri"]
+        and cloned.oauth_username == kwargs["oauth_username"]
+        and cloned.oauth_password == kwargs["oauth_password"]
+        and cloned.oauth_client_id == kwargs["oauth_client_id"]
+        and cloned.oauth_client_secret == kwargs["oauth_client_secret"]
+        and cloned.oauth_scope == kwargs["oauth_scope"]
+        and cloned.is_skipped_an_issue == kwargs["is_skipped_an_issue"]
+        and cloned.verify_ssl == kwargs["verify_ssl"]
+        and cloned.retries == kwargs["retries"]
+        and cloned.max_pool_size == kwargs["max_pool_size"]
+        and cloned.http_timeout == kwargs["http_timeout"]
+        and cloned.keepalive_timeout == kwargs["keepalive_timeout"]
+        and cloned.mode == kwargs["mode"]
+        and cloned.launch_uuid_print == kwargs["launch_uuid_print"]
+        and cloned.print_output == kwargs["print_output"]
+    )
+
+
 LAUNCH_ID = 333
 EXPECTED_DEFAULT_URL = f"http://endpoint/ui/#project/launches/all/{LAUNCH_ID}"
 EXPECTED_DEBUG_URL = f"http://endpoint/ui/#project/userdebug/all/{LAUNCH_ID}"

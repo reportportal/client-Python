@@ -372,6 +372,22 @@ def test_no_authentication_parameters():
     assert "api_key parameter" in str(exc_info.value)
 
 
+def test_partial_oauth_parameters():
+    """Test that missing authentication parameters raises ValueError."""
+    with pytest.raises(ValueError) as exc_info:
+        RPClient(
+            endpoint="http://endpoint",
+            project="project",
+            oauth_oauth_uri="https://example.com/oauth/token",
+            oauth_username="test_user",
+            oauth_password="test_password",
+        )
+
+    assert "Authentication credentials are required" in str(exc_info.value)
+    assert "OAuth 2.0 parameters" in str(exc_info.value)
+    assert "api_key parameter" in str(exc_info.value)
+
+
 def test_clone_with_oauth():
     """Test cloning a client with OAuth authentication."""
     args = ["http://endpoint", "project"]
