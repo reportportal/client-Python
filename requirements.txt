@@ -1,4 +1,5 @@
 aenum
+typing-extensions>=4.13.2
 requests>=2.32.3
 aiohttp>=3.10.11
 certifi>=2024.8.30

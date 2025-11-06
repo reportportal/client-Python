@@ -23,6 +23,9 @@ from reportportal_client.client import RPClient
 
 
 class DummyResponse:
+    def __init__(self):
+        self.status_code = 200
+
     # noinspection PyMethodMayBeStatic
     def json(self):
         return {

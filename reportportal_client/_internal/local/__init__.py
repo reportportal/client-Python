@@ -22,6 +22,7 @@ def current():
     """Return current ReportPortal client."""
     if hasattr(__INSTANCES, "current"):
         return __INSTANCES.current
+    return None
 
 
 def set_current(client):

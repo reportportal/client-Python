@@ -27,7 +27,7 @@ from aiohttp import ServerConnectionError
 from reportportal_client import OutputType
 
 # noinspection PyProtectedMember
-from reportportal_client._internal.aio.http import DEFAULT_RETRY_NUMBER, RetryingClientSession
+from reportportal_client._internal.aio.http import DEFAULT_RETRY_NUMBER, ClientSession, RetryingClientSession
 
 # noinspection PyProtectedMember
 from reportportal_client._internal.static.defines import NOT_SET
@@ -55,7 +55,7 @@ def test_client_pickling():
 
 
 @pytest.mark.parametrize(
-    "retry_num, expected_class, expected_param",
+    "retry_num, expected_wrapped_class, expected_param",
     [
         (1, RetryingClientSession, 1),
         (0, aiohttp.ClientSession, NOT_SET),
@@ -65,12 +65,17 @@ def test_client_pickling():
     ],
 )
 @pytest.mark.asyncio
-async def test_retries_param(retry_num, expected_class, expected_param):
+async def test_retries_param(retry_num, expected_wrapped_class, expected_param):
     client = Client(ENDPOINT, PROJECT, api_key=API_KEY, retries=retry_num)
     session = await client.session()
-    assert isinstance(session, expected_class)
+    # Session is now a ClientSession wrapper
+    assert isinstance(session, ClientSession)
+    # Check the wrapped session type
+    # noinspection PyProtectedMember
+    assert isinstance(session._client, expected_wrapped_class)
     if expected_param is not NOT_SET:
-        assert getattr(session, "_RetryingClientSession__retry_number") == expected_param
+        # noinspection PyProtectedMember
+        assert getattr(session._client, "_RetryingClientSession__retry_number") == expected_param
 
 
 @pytest.mark.parametrize(
@@ -86,13 +91,12 @@ async def test_timeout_param(mocked_session, timeout_param, expected_connect_par
     assert len(mocked_session.call_args_list) == 1
     args, kwargs = mocked_session.call_args_list[0]
     assert len(args) == 1 and args[0] == ENDPOINT
-    expected_kwargs_keys = ["headers", "connector"]
+    expected_kwargs_keys = ["connector"]
     if timeout_param:
         expected_kwargs_keys.append("timeout")
     for key in expected_kwargs_keys:
         assert key in kwargs
     assert len(expected_kwargs_keys) == len(kwargs)
-    assert kwargs["headers"] == {"Authorization": f"Bearer {API_KEY}"}
     assert kwargs["connector"] is not None
     if timeout_param:
         assert kwargs["timeout"] is not None
@@ -121,6 +125,149 @@ def test_clone():
     assert cloned.endpoint == args[0] and cloned.project == args[1]
     assert (
         cloned.api_key == kwargs["api_key"]
+        and cloned.is_skipped_an_issue == kwargs["is_skipped_an_issue"]
+        and cloned.verify_ssl == kwargs["verify_ssl"]
+        and cloned.retries == kwargs["retries"]
+        and cloned.max_pool_size == kwargs["max_pool_size"]
+        and cloned.http_timeout == kwargs["http_timeout"]
+        and cloned.keepalive_timeout == kwargs["keepalive_timeout"]
+        and cloned.mode == kwargs["mode"]
+        and cloned.launch_uuid_print == kwargs["launch_uuid_print"]
+        and cloned.print_output == kwargs["print_output"]
+    )
+
+
+@mock.patch("reportportal_client.aio.client.warnings.warn")
+def test_deprecated_token_argument(warn):
+    """Test that deprecated token argument works and issues a warning."""
+    api_key = "api_key"
+    client = Client(endpoint="http://endpoint", project="project", token=api_key)
+
+    assert warn.call_count == 1
+    assert client.api_key == api_key
+
+
+@mock.patch("reportportal_client.aio.client.warnings.warn")
+def test_api_key_argument(warn):
+    """Test that normal api_key argument works without warning."""
+    api_key = "api_key"
+    client = Client(endpoint="http://endpoint", project="project", api_key=api_key)
+
+    assert warn.call_count == 0
+    assert client.api_key == api_key
+
+
+def test_empty_api_key_argument():
+    """Test that empty api_key raises ValueError."""
+    api_key = ""
+    with pytest.raises(ValueError) as exc_info:
+        Client(endpoint="http://endpoint", project="project", api_key=api_key)
+
+    assert "Authentication credentials are required" in str(exc_info.value)
+
+
+def test_oauth_authentication_parameters():
+    """Test that OAuth 2.0 authentication parameters work correctly."""
+    client = Client(
+        endpoint="http://endpoint",
+        project="project",
+        oauth_uri="https://example.com/oauth/token",
+        oauth_username="test_user",
+        oauth_password="test_password",
+        oauth_client_id="test_client_id",
+        oauth_client_secret="test_client_secret",
+        oauth_scope="read write",
+    )
+
+    assert client is not None
+    assert client.oauth_uri == "https://example.com/oauth/token"
+    assert client.oauth_username == "test_user"
+    assert client.oauth_password == "test_password"
+    assert client.oauth_client_id == "test_client_id"
+    assert client.oauth_client_secret == "test_client_secret"
+    assert client.oauth_scope == "read write"
+    assert client.api_key is None
+
+
+def test_oauth_authentication_without_optional_parameters():
+    """Test OAuth authentication with only required parameters."""
+    client = Client(
+        endpoint="http://endpoint",
+        project="project",
+        oauth_uri="https://example.com/oauth/token",
+        oauth_username="test_user",
+        oauth_password="test_password",
+        oauth_client_id="test_client_id",
+    )
+
+    assert client is not None
+    assert client.oauth_uri == "https://example.com/oauth/token"
+    assert client.oauth_username == "test_user"
+    assert client.oauth_password == "test_password"
+    assert client.oauth_client_id == "test_client_id"
+    assert client.oauth_client_secret is None
+    assert client.oauth_scope is None
+    assert client.api_key is None
+
+
+def test_no_authentication_parameters():
+    """Test that missing authentication parameters raises ValueError."""
+    with pytest.raises(ValueError) as exc_info:
+        Client(endpoint="http://endpoint", project="project")
+
+    assert "Authentication credentials are required" in str(exc_info.value)
+    assert "OAuth 2.0 parameters" in str(exc_info.value)
+    assert "api_key parameter" in str(exc_info.value)
+
+
+def test_partial_oauth_parameters():
+    """Test that missing authentication parameters raises ValueError."""
+    with pytest.raises(ValueError) as exc_info:
+        Client(
+            endpoint="http://endpoint",
+            project="project",
+            oauth_uri="https://example.com/oauth/token",
+            oauth_username="test_user",
+            oauth_password="test_password",
+        )
+
+    assert "Authentication credentials are required" in str(exc_info.value)
+    assert "OAuth 2.0 parameters" in str(exc_info.value)
+    assert "api_key parameter" in str(exc_info.value)
+
+
+def test_clone_with_oauth():
+    """Test cloning a client with OAuth authentication."""
+    args = ["http://endpoint", "project"]
+    kwargs = {
+        "oauth_uri": "https://example.com/oauth/token",
+        "oauth_username": "test_user",
+        "oauth_password": "test_password",
+        "oauth_client_id": "test_client_id",
+        "oauth_client_secret": "test_secret",
+        "oauth_scope": "read write",
+        "is_skipped_an_issue": False,
+        "verify_ssl": False,
+        "retries": 5,
+        "max_pool_size": 30,
+        "http_timeout": (30, 30),
+        "keepalive_timeout": 25,
+        "mode": "DEBUG",
+        "launch_uuid_print": True,
+        "print_output": OutputType.STDERR,
+    }
+    client = Client(*args, **kwargs)
+    cloned = client.clone()
+
+    assert cloned is not None and client is not cloned
+    assert cloned.endpoint == args[0] and cloned.project == args[1]
+    assert (
+        cloned.oauth_uri == kwargs["oauth_uri"]
+        and cloned.oauth_username == kwargs["oauth_username"]
+        and cloned.oauth_password == kwargs["oauth_password"]
+        and cloned.oauth_client_id == kwargs["oauth_client_id"]
+        and cloned.oauth_client_secret == kwargs["oauth_client_secret"]
+        and cloned.oauth_scope == kwargs["oauth_scope"]
         and cloned.is_skipped_an_issue == kwargs["is_skipped_an_issue"]
         and cloned.verify_ssl == kwargs["verify_ssl"]
         and cloned.retries == kwargs["retries"]
@@ -770,3 +917,85 @@ async def test_attribute_truncation(aio_client: Client, method, mock_method, cal
     assert "attributes" in kwargs["json"]
     assert kwargs["json"]["attributes"]
     assert len(kwargs["json"]["attributes"][0]["value"]) == 128
+
+
+@pytest.mark.asyncio
+async def test_api_key_authorization_header():
+    """Test that API key authentication sets Authorization header correctly."""
+    api_key = "test_api_key_12345"
+    client = Client(endpoint=ENDPOINT, project=PROJECT, api_key=api_key)
+
+    # Get the session (which is ClientSession wrapper)
+    session = await client.session()
+
+    # Mock the underlying aiohttp.ClientSession within ClientSession
+    # noinspection PyProtectedMember
+    underlying_session_mock = mock.AsyncMock()
+
+    # Mock response with status attribute
+    response_mock = mock.Mock()
+    response_mock.status = 200
+    response_mock.json = mock.AsyncMock(return_value=RETURN_GET_JSON)
+    underlying_session_mock.get.return_value = response_mock
+
+    # noinspection PyProtectedMember
+    session._client = underlying_session_mock
+    client._skip_analytics = "1"
+
+    # Make a request
+    await client.get_project_settings()
+
+    # Verify the underlying session.get was called
+    underlying_session_mock.get.assert_called_once()
+    call_kwargs = underlying_session_mock.get.call_args_list[0][1]
+
+    # Verify Authorization header is set correctly
+    assert "headers" in call_kwargs
+    assert "Authorization" in call_kwargs["headers"]
+    assert call_kwargs["headers"]["Authorization"] == f"Bearer {api_key}"
+
+
+@pytest.mark.asyncio
+async def test_oauth_authorization_header():
+    """Test that OAuth authentication sets Authorization header correctly."""
+    client = Client(
+        endpoint=ENDPOINT,
+        project=PROJECT,
+        oauth_uri="https://example.com/oauth/token",
+        oauth_username="test_user",
+        oauth_password="test_password",
+        oauth_client_id="test_client_id",
+    )
+
+    # Get the session (which is ClientSession wrapper)
+    session = await client.session()
+
+    # Mock the underlying aiohttp.ClientSession within ClientSession
+    # noinspection PyProtectedMember
+    underlying_session_mock = mock.AsyncMock()
+
+    # Mock response with status attribute
+    response_mock = mock.Mock()
+    response_mock.status = 200
+    response_mock.json = mock.AsyncMock(return_value=RETURN_GET_JSON)
+    underlying_session_mock.get.return_value = response_mock
+
+    # noinspection PyProtectedMember
+    session._client = underlying_session_mock
+    client._skip_analytics = "1"
+
+    # Mock the Auth.get() method to return a test token
+    test_token = "test_oauth_token_xyz"
+    client.auth._access_token = test_token
+    with mock.patch.object(client.auth, "_is_token_expired", return_value=False):
+        # Make a request
+        await client.get_project_settings()
+
+    # Verify the underlying session.get was called
+    underlying_session_mock.get.assert_called_once()
+    call_kwargs = underlying_session_mock.get.call_args_list[0][1]
+
+    # Verify Authorization header is set correctly
+    assert "headers" in call_kwargs
+    assert "Authorization" in call_kwargs["headers"]
+    assert call_kwargs["headers"]["Authorization"] == f"Bearer {test_token}"
