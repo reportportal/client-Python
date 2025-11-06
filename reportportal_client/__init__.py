@@ -47,7 +47,7 @@ class _ClientOptions(TypedDict, total=False):
     project: str
     api_key: Optional[str]
     # OAuth 2.0 parameters
-    oauth_oauth_uri: Optional[str]
+    oauth_uri: Optional[str]
     oauth_username: Optional[str]
     oauth_password: Optional[str]
     oauth_client_id: Optional[str]
@@ -86,7 +86,7 @@ def create_client(
     :param endpoint:                Endpoint of the ReportPortal service.
     :param project:                 Project name to report to.
     :param api_key:                 Authorization API key.
-    :param oauth_oauth_uri:         OAuth 2.0 token endpoint URI (for OAuth authentication).
+    :param oauth_uri:               OAuth 2.0 token endpoint URI (for OAuth authentication).
     :param oauth_username:          Username for OAuth 2.0 authentication.
     :param oauth_password:          Password for OAuth 2.0 authentication.
     :param oauth_client_id:         OAuth 2.0 client ID.

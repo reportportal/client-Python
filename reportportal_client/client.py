@@ -477,7 +477,7 @@ class RPClient(RP):
         log_batcher: Optional[LogBatcher[RPRequestLog]] = None,
         truncate_attributes: bool = True,
         # OAuth 2.0 Password Grant parameters
-        oauth_oauth_uri: Optional[str] = None,
+        oauth_uri: Optional[str] = None,
         oauth_username: Optional[str] = None,
         oauth_password: Optional[str] = None,
         oauth_client_id: Optional[str] = None,
@@ -490,6 +490,12 @@ class RPClient(RP):
         :param endpoint:               Endpoint of the ReportPortal service.
         :param project:                Project name to report to.
         :param api_key:                Authorization API key.
+        :param oauth_uri:              OAuth 2.0 token endpoint URI (for OAuth authentication).
+        :param oauth_username:         Username for OAuth 2.0 authentication.
+        :param oauth_password:         Password for OAuth 2.0 authentication.
+        :param oauth_client_id:        OAuth 2.0 client ID.
+        :param oauth_client_secret:    OAuth 2.0 client secret (optional).
+        :param oauth_scope:            OAuth 2.0 scope (optional).
         :param log_batch_size:         Option to set the maximum number of logs that can be processed in one
                                        batch.
         :param is_skipped_an_issue:    Option to mark skipped tests as not 'To Investigate' items on the
@@ -506,12 +512,6 @@ class RPClient(RP):
         :param print_output:           Set output stream for Launch UUID printing.
         :param log_batcher:            Use existing LogBatcher instance instead of creation of own one.
         :param truncate_attributes:    Truncate test item attributes to default maximum length.
-        :param oauth_oauth_uri:              OAuth 2.0 token endpoint URI (optional, for OAuth authentication).
-        :param oauth_username:               Username for OAuth 2.0 authentication (optional).
-        :param oauth_password:               Password for OAuth 2.0 authentication (optional).
-        :param oauth_client_id:              OAuth 2.0 client ID (optional).
-        :param oauth_client_secret:          OAuth 2.0 client secret (optional).
-        :param oauth_scope:                  OAuth 2.0 scope (optional).
         """
         set_current(self)
         self.api_v1, self.api_v2 = "v1", "v2"
@@ -558,7 +558,7 @@ class RPClient(RP):
             )
             self.api_key = kwargs["token"]
 
-        self.oauth_uri = oauth_oauth_uri
+        self.oauth_uri = oauth_uri
         self.oauth_username = oauth_username
         self.oauth_password = oauth_password
         self.oauth_client_id = oauth_client_id
@@ -566,13 +566,13 @@ class RPClient(RP):
         self.oauth_scope = oauth_scope
 
         # Initialize authentication
-        oauth_params = [oauth_oauth_uri, oauth_username, oauth_password, oauth_client_id]
+        oauth_params = [oauth_uri, oauth_username, oauth_password, oauth_client_id]
         oauth_provided = all(oauth_params)
 
         if oauth_provided:
             # Use OAuth 2.0 Password Grant authentication
             self.auth = OAuthPasswordGrantSync(
-                oauth_uri=oauth_oauth_uri,
+                oauth_uri=oauth_uri,
                 username=oauth_username,
                 password=oauth_password,
                 client_id=oauth_client_id,
@@ -1019,7 +1019,7 @@ class RPClient(RP):
             log_batch_payload_size=self.log_batch_payload_size,
             mode=self.mode,
             log_batcher=self._log_batcher,
-            oauth_oauth_uri=self.oauth_uri,
+            oauth_uri=self.oauth_uri,
             oauth_username=self.oauth_username,
             oauth_password=self.oauth_password,
             oauth_client_id=self.oauth_client_id,

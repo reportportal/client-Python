@@ -171,7 +171,7 @@ def test_oauth_authentication_parameters():
     client = Client(
         endpoint="http://endpoint",
         project="project",
-        oauth_oauth_uri="https://example.com/oauth/token",
+        oauth_uri="https://example.com/oauth/token",
         oauth_username="test_user",
         oauth_password="test_password",
         oauth_client_id="test_client_id",
@@ -194,7 +194,7 @@ def test_oauth_authentication_without_optional_parameters():
     client = Client(
         endpoint="http://endpoint",
         project="project",
-        oauth_oauth_uri="https://example.com/oauth/token",
+        oauth_uri="https://example.com/oauth/token",
         oauth_username="test_user",
         oauth_password="test_password",
         oauth_client_id="test_client_id",
@@ -226,7 +226,7 @@ def test_partial_oauth_parameters():
         Client(
             endpoint="http://endpoint",
             project="project",
-            oauth_oauth_uri="https://example.com/oauth/token",
+            oauth_uri="https://example.com/oauth/token",
             oauth_username="test_user",
             oauth_password="test_password",
         )
@@ -961,7 +961,7 @@ async def test_oauth_authorization_header():
     client = Client(
         endpoint=ENDPOINT,
         project=PROJECT,
-        oauth_oauth_uri="https://example.com/oauth/token",
+        oauth_uri="https://example.com/oauth/token",
         oauth_username="test_user",
         oauth_password="test_password",
         oauth_client_id="test_client_id",

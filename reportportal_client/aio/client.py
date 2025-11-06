@@ -142,7 +142,7 @@ class Client:
         print_output: OutputType = OutputType.STDOUT,
         truncate_attributes: bool = True,
         # OAuth 2.0 Password Grant parameters
-        oauth_oauth_uri: Optional[str] = None,
+        oauth_uri: Optional[str] = None,
         oauth_username: Optional[str] = None,
         oauth_password: Optional[str] = None,
         oauth_client_id: Optional[str] = None,
@@ -155,6 +155,12 @@ class Client:
         :param endpoint:               Endpoint of the ReportPortal service.
         :param project:                Project name to report to.
         :param api_key:                Authorization API key.
+        :param oauth_uri:              OAuth 2.0 token endpoint URI (for OAuth authentication).
+        :param oauth_username:         Username for OAuth 2.0 authentication.
+        :param oauth_password:         Password for OAuth 2.0 authentication.
+        :param oauth_client_id:        OAuth 2.0 client ID.
+        :param oauth_client_secret:    OAuth 2.0 client secret (optional).
+        :param oauth_scope:            OAuth 2.0 scope (optional).
         :param is_skipped_an_issue:    Option to mark skipped tests as not 'To Investigate' items on the
                                        server side.
         :param verify_ssl:             Option to skip ssl verification.
@@ -167,12 +173,6 @@ class Client:
         :param launch_uuid_print:      Print Launch UUID into passed TextIO or by default to stdout.
         :param print_output:           Set output stream for Launch UUID printing.
         :param truncate_attributes:    Truncate test item attributes to default maximum length.
-        :param oauth_oauth_uri:        OAuth 2.0 token endpoint URI (optional, for OAuth authentication).
-        :param oauth_username:         Username for OAuth 2.0 authentication (optional).
-        :param oauth_password:         Password for OAuth 2.0 authentication (optional).
-        :param oauth_client_id:        OAuth 2.0 client ID (optional).
-        :param oauth_client_secret:    OAuth 2.0 client secret (optional).
-        :param oauth_scope:            OAuth 2.0 scope (optional).
         """
         self.api_v1, self.api_v2 = "v1", "v2"
         self.endpoint = endpoint
@@ -204,7 +204,7 @@ class Client:
             )
             self.api_key = kwargs["token"]
 
-        self.oauth_uri = oauth_oauth_uri
+        self.oauth_uri = oauth_uri
         self.oauth_username = oauth_username
         self.oauth_password = oauth_password
         self.oauth_client_id = oauth_client_id
@@ -212,13 +212,13 @@ class Client:
         self.oauth_scope = oauth_scope
 
         # Initialize authentication
-        oauth_params = [oauth_oauth_uri, oauth_username, oauth_password, oauth_client_id]
+        oauth_params = [oauth_uri, oauth_username, oauth_password, oauth_client_id]
         oauth_provided = all(oauth_params)
 
         if oauth_provided:
             # Use OAuth 2.0 Password Grant authentication
             self.auth = OAuthPasswordGrantAsync(
-                oauth_uri=oauth_oauth_uri,
+                oauth_uri=oauth_uri,
                 username=oauth_username,
                 password=oauth_password,
                 client_id=oauth_client_id,
@@ -663,7 +663,7 @@ class Client:
             mode=self.mode,
             launch_uuid_print=self.launch_uuid_print,
             print_output=self.print_output,
-            oauth_oauth_uri=self.oauth_uri,
+            oauth_uri=self.oauth_uri,
             oauth_username=self.oauth_username,
             oauth_password=self.oauth_password,
             oauth_client_id=self.oauth_client_id,
@@ -765,6 +765,12 @@ class AsyncRPClient(RP):
         :param endpoint:                Endpoint of the ReportPortal service.
         :param project:                 Project name to report to.
         :param api_key:                 Authorization API key.
+        :param oauth_uri:              OAuth 2.0 token endpoint URI (for OAuth authentication).
+        :param oauth_username:         Username for OAuth 2.0 authentication.
+        :param oauth_password:         Password for OAuth 2.0 authentication.
+        :param oauth_client_id:        OAuth 2.0 client ID.
+        :param oauth_client_secret:    OAuth 2.0 client secret (optional).
+        :param oauth_scope:            OAuth 2.0 scope (optional).
         :param is_skipped_an_issue:     Option to mark skipped tests as not 'To Investigate' items on the
                                         server side.
         :param verify_ssl:              Option to skip ssl verification.
@@ -1587,6 +1593,12 @@ class ThreadedRPClient(_RPClient):
         :param endpoint:                Endpoint of the ReportPortal service.
         :param project:                 Project name to report to.
         :param api_key:                 Authorization API key.
+        :param oauth_uri:              OAuth 2.0 token endpoint URI (for OAuth authentication).
+        :param oauth_username:         Username for OAuth 2.0 authentication.
+        :param oauth_password:         Password for OAuth 2.0 authentication.
+        :param oauth_client_id:        OAuth 2.0 client ID.
+        :param oauth_client_secret:    OAuth 2.0 client secret (optional).
+        :param oauth_scope:            OAuth 2.0 scope (optional).
         :param is_skipped_an_issue:     Option to mark skipped tests as not 'To Investigate' items on the
                                         server side.
         :param verify_ssl:              Option to skip ssl verification.
@@ -1769,6 +1781,12 @@ class BatchedRPClient(_RPClient):
         :param endpoint:                Endpoint of the ReportPortal service.
         :param project:                 Project name to report to.
         :param api_key:                 Authorization API key.
+        :param oauth_uri:              OAuth 2.0 token endpoint URI (for OAuth authentication).
+        :param oauth_username:         Username for OAuth 2.0 authentication.
+        :param oauth_password:         Password for OAuth 2.0 authentication.
+        :param oauth_client_id:        OAuth 2.0 client ID.
+        :param oauth_client_secret:    OAuth 2.0 client secret (optional).
+        :param oauth_scope:            OAuth 2.0 scope (optional).
         :param is_skipped_an_issue:     Option to mark skipped tests as not 'To Investigate' items on the
                                         server side.
         :param verify_ssl:              Option to skip ssl verification.
