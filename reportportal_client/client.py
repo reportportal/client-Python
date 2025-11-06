@@ -42,7 +42,6 @@ from reportportal_client._internal.services.statistics import send_event
 
 # noinspection PyProtectedMember
 from reportportal_client._internal.static.abstract import AbstractBaseClass
-
 from reportportal_client.core.rp_issues import Issue
 from reportportal_client.core.rp_requests import (
     ErrorPrintingHttpRequest,

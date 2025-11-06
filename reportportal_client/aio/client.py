@@ -29,9 +29,6 @@ import certifi
 from reportportal_client._internal.aio.http import ClientSession, RetryingClientSession
 
 # noinspection PyProtectedMember
-from reportportal_client._internal.services.auth import ApiKeyAuthAsync, AuthAsync, OAuthPasswordGrantAsync
-
-# noinspection PyProtectedMember
 from reportportal_client._internal.aio.tasks import (
     DEFAULT_TASK_TRIGGER_INTERVAL,
     DEFAULT_TASK_TRIGGER_NUM,
@@ -46,6 +43,9 @@ from reportportal_client._internal.local import set_current
 
 # noinspection PyProtectedMember
 from reportportal_client._internal.logs.batcher import LogBatcher
+
+# noinspection PyProtectedMember
+from reportportal_client._internal.services.auth import ApiKeyAuthAsync, AuthAsync, OAuthPasswordGrantAsync
 
 # noinspection PyProtectedMember
 from reportportal_client._internal.services.statistics import async_send_event

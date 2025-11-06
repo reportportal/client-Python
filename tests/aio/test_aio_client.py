@@ -27,7 +27,7 @@ from aiohttp import ServerConnectionError
 from reportportal_client import OutputType
 
 # noinspection PyProtectedMember
-from reportportal_client._internal.aio.http import ClientSession, DEFAULT_RETRY_NUMBER, RetryingClientSession
+from reportportal_client._internal.aio.http import DEFAULT_RETRY_NUMBER, ClientSession, RetryingClientSession
 
 # noinspection PyProtectedMember
 from reportportal_client._internal.static.defines import NOT_SET
