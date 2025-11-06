@@ -17,7 +17,8 @@
 from types import TracebackType
 from typing import Any, Callable, Optional, Type, Union
 
-import requests
+from requests import Response, Session
+from requests.adapters import BaseAdapter
 
 from reportportal_client._internal.services.auth import Auth
 
@@ -27,7 +28,7 @@ AUTH_PROBLEM_STATUSES: set = {401, 403}
 class ClientSession:
     """Class wraps requests.Session and adds authentication support."""
 
-    _client: requests.Session
+    _client: Session
     __auth: Optional[Auth]
 
     def __init__(
@@ -38,10 +39,10 @@ class ClientSession:
 
         :param auth: authentication instance to use for requests
         """
-        self._client = requests.Session()
+        self._client = Session()
         self.__auth = auth
 
-    def __request(self, method: Callable, url: Union[str, bytes], **kwargs: Any) -> requests.Response:
+    def __request(self, method: Callable, url: Union[str, bytes], **kwargs: Any) -> Response:
         """Make a request with authentication support.
 
         The method adds Authorization header if auth is configured and handles auth refresh
@@ -73,19 +74,19 @@ class ClientSession:
 
         return result
 
-    def get(self, url: str, **kwargs: Any) -> requests.Response:
+    def get(self, url: Union[str, bytes], **kwargs: Any) -> Response:
         """Perform HTTP GET request."""
         return self.__request(self._client.get, url, **kwargs)
 
-    def post(self, url: str, **kwargs: Any) -> requests.Response:
+    def post(self, url: Union[str, bytes], **kwargs: Any) -> Response:
         """Perform HTTP POST request."""
         return self.__request(self._client.post, url, **kwargs)
 
-    def put(self, url: str, **kwargs: Any) -> requests.Response:
+    def put(self, url: Union[str, bytes], **kwargs: Any) -> Response:
         """Perform HTTP PUT request."""
         return self.__request(self._client.put, url, **kwargs)
 
-    def mount(self, prefix: str, adapter: requests.adapters.BaseAdapter) -> None:
+    def mount(self, prefix: str, adapter: BaseAdapter) -> None:
         """Mount an adapter to a specific URL prefix.
 
         :param prefix: URL prefix (e.g., 'http://', 'https://')

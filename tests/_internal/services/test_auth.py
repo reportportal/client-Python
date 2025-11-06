@@ -426,7 +426,7 @@ class TestOAuthPasswordGrantAsync:
         assert result1 == f"Bearer {ACCESS_TOKEN}"
 
         # Wait for token to expire
-        time.sleep(1)
+        await asyncio.sleep(1)
 
         # Simulate refresh failure and password grant success
         refresh_response = mock.AsyncMock()
@@ -468,7 +468,7 @@ class TestOAuthPasswordGrantAsync:
         assert result1 == f"Bearer {ACCESS_TOKEN}"
 
         # Wait for token to expire
-        time.sleep(1)
+        await asyncio.sleep(1)
 
         # Simulate refresh failure with 403 and password grant success
         refresh_response = mock.AsyncMock()
@@ -520,7 +520,7 @@ class TestOAuthPasswordGrantAsync:
         mock_session.post.return_value = refreshed_response
 
         # Wait to avoid throttling
-        time.sleep(1)
+        await asyncio.sleep(1)
 
         result2 = await oauth.refresh()
         assert result2 == f"Bearer {new_token}"
