@@ -27,7 +27,7 @@ from aiohttp import ServerConnectionError
 from reportportal_client import OutputType
 
 # noinspection PyProtectedMember
-from reportportal_client._internal.aio.http import DEFAULT_RETRY_NUMBER, RetryingClientSession
+from reportportal_client._internal.aio.http import ClientSession, DEFAULT_RETRY_NUMBER, RetryingClientSession
 
 # noinspection PyProtectedMember
 from reportportal_client._internal.static.defines import NOT_SET
@@ -55,7 +55,7 @@ def test_client_pickling():
 
 
 @pytest.mark.parametrize(
-    "retry_num, expected_class, expected_param",
+    "retry_num, expected_wrapped_class, expected_param",
     [
         (1, RetryingClientSession, 1),
         (0, aiohttp.ClientSession, NOT_SET),
@@ -65,12 +65,17 @@ def test_client_pickling():
     ],
 )
 @pytest.mark.asyncio
-async def test_retries_param(retry_num, expected_class, expected_param):
+async def test_retries_param(retry_num, expected_wrapped_class, expected_param):
     client = Client(ENDPOINT, PROJECT, api_key=API_KEY, retries=retry_num)
     session = await client.session()
-    assert isinstance(session, expected_class)
+    # Session is now a ClientSession wrapper
+    assert isinstance(session, ClientSession)
+    # Check the wrapped session type
+    # noinspection PyProtectedMember
+    assert isinstance(session._client, expected_wrapped_class)
     if expected_param is not NOT_SET:
-        assert getattr(session, "_RetryingClientSession__retry_number") == expected_param
+        # noinspection PyProtectedMember
+        assert getattr(session._client, "_RetryingClientSession__retry_number") == expected_param
 
 
 @pytest.mark.parametrize(
@@ -86,13 +91,12 @@ async def test_timeout_param(mocked_session, timeout_param, expected_connect_par
     assert len(mocked_session.call_args_list) == 1
     args, kwargs = mocked_session.call_args_list[0]
     assert len(args) == 1 and args[0] == ENDPOINT
-    expected_kwargs_keys = ["headers", "connector"]
+    expected_kwargs_keys = ["connector"]
     if timeout_param:
         expected_kwargs_keys.append("timeout")
     for key in expected_kwargs_keys:
         assert key in kwargs
     assert len(expected_kwargs_keys) == len(kwargs)
-    assert kwargs["headers"] == {"Authorization": f"Bearer {API_KEY}"}
     assert kwargs["connector"] is not None
     if timeout_param:
         assert kwargs["timeout"] is not None

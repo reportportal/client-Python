@@ -26,7 +26,10 @@ import aiohttp
 import certifi
 
 # noinspection PyProtectedMember
-from reportportal_client._internal.aio.http import RetryingClientSession
+from reportportal_client._internal.aio.http import ClientSession, RetryingClientSession
+
+# noinspection PyProtectedMember
+from reportportal_client._internal.services.auth import ApiKeyAuthAsync, AuthAsync, OAuthPasswordGrantAsync
 
 # noinspection PyProtectedMember
 from reportportal_client._internal.aio.tasks import (
@@ -101,7 +104,14 @@ class Client:
     endpoint: str
     is_skipped_an_issue: bool
     project: str
-    api_key: str
+    api_key: Optional[str]
+    oauth_uri: Optional[str]
+    oauth_username: Optional[str]
+    oauth_password: Optional[str]
+    oauth_client_id: Optional[str]
+    oauth_client_secret: Optional[str]
+    oauth_scope: Optional[str]
+    auth: AuthAsync
     verify_ssl: Union[bool, str]
     retries: Optional[int]
     max_pool_size: int
@@ -112,7 +122,7 @@ class Client:
     print_output: OutputType
     truncate_attributes: bool
     _skip_analytics: str
-    _session: Optional[RetryingClientSession]
+    _session: Optional[ClientSession]
     __stat_task: Optional[asyncio.Task]
 
     def __init__(
@@ -120,7 +130,7 @@ class Client:
         endpoint: str,
         project: str,
         *,
-        api_key: str = None,
+        api_key: Optional[str] = None,
         is_skipped_an_issue: bool = True,
         verify_ssl: Union[bool, str] = True,
         retries: int = NOT_SET,
@@ -131,7 +141,14 @@ class Client:
         launch_uuid_print: bool = False,
         print_output: OutputType = OutputType.STDOUT,
         truncate_attributes: bool = True,
-        **_: Any,
+        # OAuth 2.0 Password Grant parameters
+        oauth_oauth_uri: Optional[str] = None,
+        oauth_username: Optional[str] = None,
+        oauth_password: Optional[str] = None,
+        oauth_client_id: Optional[str] = None,
+        oauth_client_secret: Optional[str] = None,
+        oauth_scope: Optional[str] = None,
+        **kwargs: Any,
     ) -> None:
         """Initialize the class instance with arguments.
 
@@ -150,6 +167,12 @@ class Client:
         :param launch_uuid_print:      Print Launch UUID into passed TextIO or by default to stdout.
         :param print_output:           Set output stream for Launch UUID printing.
         :param truncate_attributes:    Truncate test item attributes to default maximum length.
+        :param oauth_oauth_uri:        OAuth 2.0 token endpoint URI (optional, for OAuth authentication).
+        :param oauth_username:         Username for OAuth 2.0 authentication (optional).
+        :param oauth_password:         Password for OAuth 2.0 authentication (optional).
+        :param oauth_client_id:        OAuth 2.0 client ID (optional).
+        :param oauth_client_secret:    OAuth 2.0 client secret (optional).
+        :param oauth_scope:            OAuth 2.0 scope (optional).
         """
         self.api_v1, self.api_v2 = "v1", "v2"
         self.endpoint = endpoint
@@ -168,13 +191,62 @@ class Client:
         self.print_output = print_output
         self._session = None
         self.__stat_task = None
-        self.api_key = api_key
         self.truncate_attributes = truncate_attributes
 
-    async def session(self) -> RetryingClientSession:
-        """Return aiohttp.ClientSession class instance, initialize it if necessary.
+        self.api_key = api_key
+        # Handle deprecated token argument
+        if not self.api_key and "token" in kwargs:
+            warnings.warn(
+                message="Argument `token` is deprecated since 5.3.5 and will be subject for removing in "
+                "the next major version. Use `api_key` argument instead.",
+                category=DeprecationWarning,
+                stacklevel=2,
+            )
+            self.api_key = kwargs["token"]
 
-        :return: aiohttp.ClientSession instance.
+        self.oauth_uri = oauth_oauth_uri
+        self.oauth_username = oauth_username
+        self.oauth_password = oauth_password
+        self.oauth_client_id = oauth_client_id
+        self.oauth_client_secret = oauth_client_secret
+        self.oauth_scope = oauth_scope
+
+        # Initialize authentication
+        oauth_params = [oauth_oauth_uri, oauth_username, oauth_password, oauth_client_id]
+        oauth_provided = all(oauth_params)
+
+        if oauth_provided:
+            # Use OAuth 2.0 Password Grant authentication
+            self.auth = OAuthPasswordGrantAsync(
+                oauth_uri=oauth_oauth_uri,
+                username=oauth_username,
+                password=oauth_password,
+                client_id=oauth_client_id,
+                client_secret=oauth_client_secret,
+                scope=oauth_scope,
+            )
+        elif self.api_key:
+            self.auth = ApiKeyAuthAsync(api_key)
+        else:
+            # Neither OAuth nor API key provided
+            raise ValueError(
+                "Authentication credentials are required. Please provide either:\n"
+                "1. OAuth 2.0 parameters: oauth_uri, username, password, and client_id\n"
+                "   (with optional client_secret and scope), or\n"
+                "2. api_key parameter for API key authentication.\n"
+                "\n"
+                "Example for OAuth:\n"
+                "  Client(endpoint='...', project='...', oauth_oauth_uri='https://example.com/oauth/token',\n"
+                "         oauth_username='user', oauth_password='pass', oauth_client_id='client_id')\n"
+                "\n"
+                "Example for API key:\n"
+                "  Client(endpoint='...', project='...', api_key='your_api_key')"
+            )
+
+    async def session(self) -> ClientSession:
+        """Return ClientSession class instance, initialize it if necessary.
+
+        :return: ClientSession instance.
         """
         if self._session:
             return self._session
@@ -192,11 +264,7 @@ class Client:
             connection_params["keepalive_timeout"] = self.keepalive_timeout
         connector = aiohttp.TCPConnector(**connection_params)
 
-        headers = {}
-        if self.api_key:
-            headers["Authorization"] = f"Bearer {self.api_key}"
-
-        session_params: Dict[str, Any] = {"headers": headers, "connector": connector}
+        session_params: Dict[str, Any] = {"connector": connector}
 
         if self.http_timeout:
             if type(self.http_timeout) is tuple:
@@ -212,10 +280,12 @@ class Client:
             session_params["max_retry_number"] = self.retries
 
         if use_retries:
-            self._session = RetryingClientSession(self.endpoint, **session_params)
+            wrapped_session = RetryingClientSession(self.endpoint, **session_params)
         else:
             # noinspection PyTypeChecker
-            self._session = aiohttp.ClientSession(self.endpoint, **session_params)
+            wrapped_session = aiohttp.ClientSession(self.endpoint, **session_params)
+
+        self._session = ClientSession(wrapped=wrapped_session, auth=self.auth)
         return self._session
 
     async def close(self) -> None:
@@ -593,6 +663,12 @@ class Client:
             mode=self.mode,
             launch_uuid_print=self.launch_uuid_print,
             print_output=self.print_output,
+            oauth_oauth_uri=self.oauth_uri,
+            oauth_username=self.oauth_username,
+            oauth_password=self.oauth_password,
+            oauth_client_id=self.oauth_client_id,
+            oauth_client_secret=self.oauth_client_secret,
+            oauth_scope=self.oauth_scope,
         )
         return cloned
 
