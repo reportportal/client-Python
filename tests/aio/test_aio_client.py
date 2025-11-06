@@ -985,8 +985,9 @@ async def test_oauth_authorization_header():
     client._skip_analytics = "1"
 
     # Mock the Auth.get() method to return a test token
-    test_token = "Bearer test_oauth_token_xyz"
-    with mock.patch.object(client.auth, "get", return_value=test_token):
+    test_token = "test_oauth_token_xyz"
+    client.auth._access_token = test_token
+    with mock.patch.object(client.auth, "_is_token_expired", return_value=False):
         # Make a request
         await client.get_project_settings()
 
@@ -997,4 +998,4 @@ async def test_oauth_authorization_header():
     # Verify Authorization header is set correctly
     assert "headers" in call_kwargs
     assert "Authorization" in call_kwargs["headers"]
-    assert call_kwargs["headers"]["Authorization"] == test_token
+    assert call_kwargs["headers"]["Authorization"] == f"Bearer {test_token}"
