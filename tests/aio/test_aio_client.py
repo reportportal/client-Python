@@ -917,3 +917,84 @@ async def test_attribute_truncation(aio_client: Client, method, mock_method, cal
     assert "attributes" in kwargs["json"]
     assert kwargs["json"]["attributes"]
     assert len(kwargs["json"]["attributes"][0]["value"]) == 128
+
+
+@pytest.mark.asyncio
+async def test_api_key_authorization_header():
+    """Test that API key authentication sets Authorization header correctly."""
+    api_key = "test_api_key_12345"
+    client = Client(endpoint=ENDPOINT, project=PROJECT, api_key=api_key)
+
+    # Get the session (which is ClientSession wrapper)
+    session = await client.session()
+
+    # Mock the underlying aiohttp.ClientSession within ClientSession
+    # noinspection PyProtectedMember
+    underlying_session_mock = mock.AsyncMock()
+
+    # Mock response with status attribute
+    response_mock = mock.Mock()
+    response_mock.status = 200
+    response_mock.json = mock.AsyncMock(return_value=RETURN_GET_JSON)
+    underlying_session_mock.get.return_value = response_mock
+
+    # noinspection PyProtectedMember
+    session._client = underlying_session_mock
+    client._skip_analytics = "1"
+
+    # Make a request
+    await client.get_project_settings()
+
+    # Verify the underlying session.get was called
+    underlying_session_mock.get.assert_called_once()
+    call_kwargs = underlying_session_mock.get.call_args_list[0][1]
+
+    # Verify Authorization header is set correctly
+    assert "headers" in call_kwargs
+    assert "Authorization" in call_kwargs["headers"]
+    assert call_kwargs["headers"]["Authorization"] == f"Bearer {api_key}"
+
+
+@pytest.mark.asyncio
+async def test_oauth_authorization_header():
+    """Test that OAuth authentication sets Authorization header correctly."""
+    client = Client(
+        endpoint=ENDPOINT,
+        project=PROJECT,
+        oauth_oauth_uri="https://example.com/oauth/token",
+        oauth_username="test_user",
+        oauth_password="test_password",
+        oauth_client_id="test_client_id",
+    )
+
+    # Get the session (which is ClientSession wrapper)
+    session = await client.session()
+
+    # Mock the underlying aiohttp.ClientSession within ClientSession
+    # noinspection PyProtectedMember
+    underlying_session_mock = mock.AsyncMock()
+
+    # Mock response with status attribute
+    response_mock = mock.Mock()
+    response_mock.status = 200
+    response_mock.json = mock.AsyncMock(return_value=RETURN_GET_JSON)
+    underlying_session_mock.get.return_value = response_mock
+
+    # noinspection PyProtectedMember
+    session._client = underlying_session_mock
+    client._skip_analytics = "1"
+
+    # Mock the Auth.get() method to return a test token
+    test_token = "Bearer test_oauth_token_xyz"
+    with mock.patch.object(client.auth, "get", return_value=test_token):
+        # Make a request
+        await client.get_project_settings()
+
+    # Verify the underlying session.get was called
+    underlying_session_mock.get.assert_called_once()
+    call_kwargs = underlying_session_mock.get.call_args_list[0][1]
+
+    # Verify Authorization header is set correctly
+    assert "headers" in call_kwargs
+    assert "Authorization" in call_kwargs["headers"]
+    assert call_kwargs["headers"]["Authorization"] == test_token

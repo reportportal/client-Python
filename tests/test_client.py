@@ -434,3 +434,68 @@ def test_clone_with_oauth():
         and cloned.mode == kwargs["mode"]
     )
     assert cloned._item_stack.qsize() == 1 and client.current_item() == cloned.current_item()
+
+
+def test_api_key_authorization_header():
+    """Test that API key authentication sets Authorization header correctly."""
+    api_key = "test_api_key_12345"
+    client = RPClient(endpoint="http://endpoint", project="project", api_key=api_key)
+
+    # Mock the underlying requests.Session within ClientSession
+    # noinspection PyProtectedMember
+    underlying_session_mock = mock.Mock()
+    underlying_session_mock.get.return_value = DummyResponse()
+    underlying_session_mock.post.return_value = DummyResponse()
+    underlying_session_mock.put.return_value = DummyResponse()
+    # noinspection PyProtectedMember
+    client.session._client = underlying_session_mock
+    client._skip_analytics = "1"
+
+    # Make a request
+    client.get_project_settings()
+
+    # Verify the underlying session.get was called
+    underlying_session_mock.get.assert_called_once()
+    call_kwargs = underlying_session_mock.get.call_args_list[0][1]
+
+    # Verify Authorization header is set correctly
+    assert "headers" in call_kwargs
+    assert "Authorization" in call_kwargs["headers"]
+    assert call_kwargs["headers"]["Authorization"] == f"Bearer {api_key}"
+
+
+def test_oauth_authorization_header():
+    """Test that OAuth authentication sets Authorization header correctly."""
+    client = RPClient(
+        endpoint="http://endpoint",
+        project="project",
+        oauth_oauth_uri="https://example.com/oauth/token",
+        oauth_username="test_user",
+        oauth_password="test_password",
+        oauth_client_id="test_client_id",
+    )
+
+    # Mock the underlying requests.Session within ClientSession
+    # noinspection PyProtectedMember
+    underlying_session_mock = mock.Mock()
+    underlying_session_mock.get.return_value = DummyResponse()
+    underlying_session_mock.post.return_value = DummyResponse()
+    underlying_session_mock.put.return_value = DummyResponse()
+    # noinspection PyProtectedMember
+    client.session._client = underlying_session_mock
+    client._skip_analytics = "1"
+
+    # Mock the Auth.get() method to return a test token
+    test_token = "Bearer test_oauth_token_xyz"
+    with mock.patch.object(client.auth, "get", return_value=test_token):
+        # Make a request
+        client.get_project_settings()
+
+    # Verify the underlying session.get was called
+    underlying_session_mock.get.assert_called_once()
+    call_kwargs = underlying_session_mock.get.call_args_list[0][1]
+
+    # Verify Authorization header is set correctly
+    assert "headers" in call_kwargs
+    assert "Authorization" in call_kwargs["headers"]
+    assert call_kwargs["headers"]["Authorization"] == test_token
