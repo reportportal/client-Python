@@ -240,7 +240,7 @@ def test_clone_with_oauth():
     """Test cloning a client with OAuth authentication."""
     args = ["http://endpoint", "project"]
     kwargs = {
-        "oauth_oauth_uri": "https://example.com/oauth/token",
+        "oauth_uri": "https://example.com/oauth/token",
         "oauth_username": "test_user",
         "oauth_password": "test_password",
         "oauth_client_id": "test_client_id",
@@ -262,7 +262,7 @@ def test_clone_with_oauth():
     assert cloned is not None and client is not cloned
     assert cloned.endpoint == args[0] and cloned.project == args[1]
     assert (
-        cloned.oauth_uri == kwargs["oauth_oauth_uri"]
+        cloned.oauth_uri == kwargs["oauth_uri"]
         and cloned.oauth_username == kwargs["oauth_username"]
         and cloned.oauth_password == kwargs["oauth_password"]
         and cloned.oauth_client_id == kwargs["oauth_client_id"]
