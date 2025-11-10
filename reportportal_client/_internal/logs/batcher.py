@@ -50,7 +50,7 @@ class LogBatcher(Generic[T_co]):
         self._batch = []
         self._payload_size = 0
 
-    def _append(self, size: int, log_req: T_co) -> Optional[List[T_co]]:
+    def _append(self, size: int, log_req: RPRequestLog) -> Optional[List[RPRequestLog]]:
         with self._lock:
             if self._payload_size + size >= self.payload_limit:
                 if len(self._batch) > 0:
@@ -60,11 +60,13 @@ class LogBatcher(Generic[T_co]):
                     return batch
             self._batch.append(log_req)
             self._payload_size += size
-            if len(self._batch) >= self.entry_num:
-                batch = self._batch
-                self._batch = []
-                self._payload_size = 0
-                return batch
+            if len(self._batch) < self.entry_num:
+                return None
+
+            batch = self._batch
+            self._batch = []
+            self._payload_size = 0
+            return batch
 
     def append(self, log_req: RPRequestLog) -> Optional[List[RPRequestLog]]:
         """Add a log request object to internal batch and return the batch if it's full.
@@ -87,12 +89,15 @@ class LogBatcher(Generic[T_co]):
 
         :return: a batch or None
         """
+        if len(self._batch) <= 0:
+            return None
         with self._lock:
-            if len(self._batch) > 0:
-                batch = self._batch
-                self._batch = []
-                self._payload_size = 0
-                return batch
+            if len(self._batch) <= 0:
+                return None
+            batch = self._batch
+            self._batch = []
+            self._payload_size = 0
+            return batch
 
     def __getstate__(self) -> Dict[str, Any]:
         """Control object pickling and return object fields as Dictionary.

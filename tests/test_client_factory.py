@@ -27,5 +27,5 @@ from reportportal_client import AsyncRPClient, BatchedRPClient, ClientType, RPCl
     ],
 )
 def test_client_factory_types(requested_type: ClientType, expected_type):
-    result = create_client(requested_type, "http://endpoint", "default_personal")
+    result = create_client(requested_type, "http://endpoint", "default_personal", api_key="test_api_key")
     assert isinstance(result, expected_type)

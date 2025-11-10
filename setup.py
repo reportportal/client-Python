@@ -4,7 +4,7 @@ import os
 
 from setuptools import find_packages, setup
 
-__version__ = "5.6.5"
+__version__ = "5.6.6"
 
 TYPE_STUBS = ["*.pyi"]
 
@@ -36,7 +36,7 @@ setup(
     author_email="support@reportportal.io",
     url="https://github.com/reportportal/client-Python",
     download_url=("https://github.com/reportportal/client-Python/" "tarball/%s" % __version__),
-    license="Apache 2.0.",
+    license="Apache-2.0",
     keywords=["testing", "reporting", "reportportal", "client"],
     classifiers=[
         "Programming Language :: Python :: 3.8",

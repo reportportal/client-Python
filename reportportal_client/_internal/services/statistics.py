@@ -73,7 +73,9 @@ def _get_payload(event_name: str, agent_name: Optional[str], agent_version: Opti
     return {"client_id": get_client_id(), "events": [{"name": event_name, "params": request_params}]}
 
 
-def send_event(event_name: str, agent_name: Optional[str], agent_version: Optional[str]) -> requests.Response:
+def send_event(
+    event_name: str, agent_name: Optional[str], agent_version: Optional[str]
+) -> Optional[requests.Response]:
     """Send an event to statistics service.
 
      Use client and agent versions with their names.
@@ -93,6 +95,7 @@ def send_event(event_name: str, agent_name: Optional[str], agent_version: Option
         )
     except requests.exceptions.RequestException as err:
         logger.debug("Failed to send data to Statistics service: %s", str(err))
+        return None
 
 
 async def async_send_event(
@@ -119,8 +122,8 @@ async def async_send_event(
                 ssl=ssl_context,
             )
         except aiohttp.ClientError as exc:
-            logger.debug("Failed to send data to Statistics service: connection error", exc)
-            return
+            logger.debug("Failed to send data to Statistics service: %s", str(exc))
+            return None
         if not result.ok:
             logger.debug(f"Failed to send data to Statistics service: {result.reason}")
         return result

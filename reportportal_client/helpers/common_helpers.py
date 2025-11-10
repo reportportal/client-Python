@@ -68,7 +68,7 @@ PATTERN_MATCHES_EMPTY_STRING: re.Pattern = re.compile("^$")
 class LifoQueue(Generic[_T]):
     """Primitive thread-safe Last-in-first-out queue implementation."""
 
-    _lock: threading.Lock()
+    _lock: threading.Lock
     __items: List[_T]
 
     def __init__(self):
@@ -98,9 +98,13 @@ class LifoQueue(Generic[_T]):
 
         :return: The last element in the queue.
         """
+        if len(self.__items) <= 0:
+            return None
+
         with self._lock:
             if len(self.__items) > 0:
                 return self.__items[-1]
+        return None
 
     def qsize(self):
         """Return the queue size."""
@@ -149,7 +153,7 @@ def dict_to_payload(dictionary: Optional[dict]) -> Optional[List[dict]]:
     hidden = my_dictionary.pop("system", None)
     result = []
     for key, value in sorted(my_dictionary.items()):
-        attribute = {"key": str(key), "value": str(value)}
+        attribute: Dict[str, Any] = {"key": str(key), "value": str(value)}
         if hidden is not None:
             attribute["system"] = hidden
         result.append(attribute)

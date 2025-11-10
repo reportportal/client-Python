@@ -177,20 +177,24 @@ class TriggerTaskBatcher(Generic[_T]):
         :return: a batch or None
         """
         self.__task_list.append(value)
-        if self.__ready_to_run():
-            tasks = self.__task_list
-            self.__task_list = []
-            return tasks
+        if not self.__ready_to_run():
+            return None
+
+        tasks = self.__task_list
+        self.__task_list = []
+        return tasks
 
     def flush(self) -> Optional[List[_T]]:
         """Immediately return everything what's left in the internal batch.
 
         :return: a batch or None
         """
-        if len(self.__task_list) > 0:
-            tasks = self.__task_list
-            self.__task_list = []
-            return tasks
+        if len(self.__task_list) <= 0:
+            return None
+
+        tasks = self.__task_list
+        self.__task_list = []
+        return tasks
 
 
 class BackgroundTaskList(Generic[_T]):
@@ -224,7 +228,9 @@ class BackgroundTaskList(Generic[_T]):
         :return: a batch or None
         """
         self.__remove_finished()
-        if len(self.__task_list) > 0:
-            tasks = self.__task_list
-            self.__task_list = []
-            return tasks
+        if len(self.__task_list) <= 0:
+            return None
+
+        tasks = self.__task_list
+        self.__task_list = []
+        return tasks
