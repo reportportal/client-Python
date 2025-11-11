@@ -155,7 +155,7 @@ def test_clone():
         and cloned.launch_uuid == kwargs["launch_id"]
         and cloned.launch_id == kwargs["launch_id"]
         and cloned.http_timeout == kwargs["http_timeout"]
-        and cloned.log_batch_payload_size == kwargs["log_batch_payload_size"]
+        and cloned.log_batch_payload_limit == kwargs["log_batch_payload_size"]
         and cloned.mode == kwargs["mode"]
     )
     assert cloned._item_stack.qsize() == 1 and client.current_item() == cloned.current_item()
@@ -430,7 +430,7 @@ def test_clone_with_oauth():
         and cloned.launch_uuid == kwargs["launch_id"]
         and cloned.launch_id == kwargs["launch_id"]
         and cloned.http_timeout == kwargs["http_timeout"]
-        and cloned.log_batch_payload_size == kwargs["log_batch_payload_size"]
+        and cloned.log_batch_payload_limit == kwargs["log_batch_payload_size"]
         and cloned.mode == kwargs["mode"]
     )
     assert cloned._item_stack.qsize() == 1 and client.current_item() == cloned.current_item()
