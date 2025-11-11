@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.6.7]
 ### Changed
 - `log_batch_payload_size` was renamed to `log_batch_payload_limit` as it was originally supposed, by @HardNorth
 
