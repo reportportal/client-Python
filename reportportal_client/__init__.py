@@ -14,6 +14,7 @@
 """This package is the base package for ReportPortal client."""
 
 import sys
+import warnings
 from typing import Optional, Tuple, TypedDict, Union
 
 # noinspection PyUnreachableCode
@@ -120,14 +121,25 @@ def create_client(
                                     execution.
     :return: ReportPortal Client instance.
     """
+    my_kwargs = kwargs.copy()
+    if "log_batch_payload_size" in my_kwargs:
+        warnings.warn(
+            message="Your agent is using `log_batch_payload_size` property which was introduced by mistake. "
+            "The real property name is `log_batch_payload_limit`. Please consider Agent version update.",
+            category=DeprecationWarning,
+            stacklevel=2,
+        )
+        if "log_batch_payload_limit" not in my_kwargs:
+            my_kwargs["log_batch_payload_limit"] = my_kwargs.pop("log_batch_payload_size")
+
     if client_type is ClientType.SYNC:
-        return RPClient(endpoint, project, **kwargs)
+        return RPClient(endpoint, project, **my_kwargs)
     if client_type is ClientType.ASYNC:
-        return AsyncRPClient(endpoint, project, **kwargs)
+        return AsyncRPClient(endpoint, project, **my_kwargs)
     if client_type is ClientType.ASYNC_THREAD:
-        return ThreadedRPClient(endpoint, project, **kwargs)
+        return ThreadedRPClient(endpoint, project, **my_kwargs)
     if client_type is ClientType.ASYNC_BATCHED:
-        return BatchedRPClient(endpoint, project, **kwargs)
+        return BatchedRPClient(endpoint, project, **my_kwargs)
     raise ValueError(f"Unknown ReportPortal Client type requested: {client_type}")
 
 

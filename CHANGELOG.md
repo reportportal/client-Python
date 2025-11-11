@@ -1,6 +1,10 @@
 # Changelog
 
 ## [Unreleased]
+### Changed
+- `log_batch_payload_size` was renamed to `log_batch_payload_limit` as it was originally supposed, by @HardNorth
+
+## [5.6.6]
 ### Added
 - OAuth 2.0 Password Grant authentication, by @HardNorth
 

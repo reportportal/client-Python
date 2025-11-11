@@ -29,3 +29,29 @@ from reportportal_client import AsyncRPClient, BatchedRPClient, ClientType, RPCl
 def test_client_factory_types(requested_type: ClientType, expected_type):
     result = create_client(requested_type, "http://endpoint", "default_personal", api_key="test_api_key")
     assert isinstance(result, expected_type)
+
+
+@pytest.mark.parametrize(
+    "client_type",
+    [
+        ClientType.SYNC,
+        ClientType.ASYNC,
+        ClientType.ASYNC_THREAD,
+        ClientType.ASYNC_BATCHED,
+    ],
+)
+def test_client_factory_payload_size_warning(client_type: ClientType):
+    payload_size = 123
+    with pytest.warns(DeprecationWarning) as warnings:
+        # noinspection PyArgumentList
+        client = create_client(
+            client_type,
+            "http://endpoint",
+            "default_personal",
+            api_key="test_api_key",
+            log_batch_payload_size=payload_size,
+        )
+        assert "Your agent is using `log_batch_payload_size` property" in warnings[0].message.args[0]
+
+    # noinspection PyUnresolvedReferences
+    assert client.log_batch_payload_limit == payload_size
