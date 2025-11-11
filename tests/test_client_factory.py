@@ -31,12 +31,21 @@ def test_client_factory_types(requested_type: ClientType, expected_type):
     assert isinstance(result, expected_type)
 
 
-def test_client_factory_payload_size_warning():
+@pytest.mark.parametrize(
+    "client_type",
+    [
+        ClientType.SYNC,
+        ClientType.ASYNC,
+        ClientType.ASYNC_THREAD,
+        ClientType.ASYNC_BATCHED,
+    ],
+)
+def test_client_factory_payload_size_warning(client_type: ClientType):
     payload_size = 123
     with pytest.warns(DeprecationWarning) as warnings:
         # noinspection PyArgumentList
         client = create_client(
-            ClientType.SYNC,
+            client_type,
             "http://endpoint",
             "default_personal",
             api_key="test_api_key",
