@@ -5,6 +5,7 @@
 - Official `Python 3.14` support, by @HardNorth
 ### Removed
 - `Python 3.7` support, by @HardNorth
+- Deprecated `log_manager.py` module, by @HardNorth
 
 ## [5.6.7]
 ### Changed
