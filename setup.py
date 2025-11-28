@@ -4,7 +4,7 @@ import os
 
 from setuptools import find_packages, setup
 
-__version__ = "5.6.8"
+__version__ = "5.7.0"
 
 TYPE_STUBS = ["*.pyi"]
 
