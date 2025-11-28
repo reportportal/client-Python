@@ -1,11 +1,11 @@
 """A set of utility methods for reporting to ReportPortal."""
 
 from itertools import zip_longest
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 MARKDOWN_MODE = "!!!MARKDOWN_MODE!!!"
 NEW_LINE = "\n"
-ONE_SPACE = "\xA0"
+ONE_SPACE = "\xa0"
 TABLE_INDENT = ONE_SPACE * 4
 TABLE_COLUMN_SEPARATOR = "|"
 TABLE_ROW_SEPARATOR = "-"
@@ -36,7 +36,7 @@ def as_code(language: Optional[str], script: Optional[str]) -> str:
     return as_markdown(f"```{lang}\n{script}\n```")
 
 
-def calculate_col_sizes(table: List[List[str]]) -> List[int]:
+def calculate_col_sizes(table: list[list[str]]) -> list[int]:
     """Calculate maximum width for each column in the table.
 
     :param table: Table data as list of rows
@@ -52,7 +52,7 @@ def calculate_col_sizes(table: List[List[str]]) -> List[int]:
     return [max(len(str(cell)) for cell in col if cell is not None) for col in cols]
 
 
-def calculate_table_size(col_sizes: List[int]) -> int:
+def calculate_table_size(col_sizes: list[int]) -> int:
     """Calculate total table width including separators and padding.
 
     :param col_sizes: List of column widths
@@ -66,7 +66,7 @@ def calculate_table_size(col_sizes: List[int]) -> int:
     return col_table_size
 
 
-def transpose_table(table: List[List[Any]]) -> List[List[Any]]:
+def transpose_table(table: list[list[Any]]) -> list[list[Any]]:
     """Transpose table rows into columns.
 
     :param table: Table data as list of rows
@@ -82,7 +82,7 @@ def transpose_table(table: List[List[Any]]) -> List[List[Any]]:
     return [list(filter(None, col)) for col in transposed]
 
 
-def adjust_col_sizes(col_sizes: List[int], max_table_size: int) -> List[int]:
+def adjust_col_sizes(col_sizes: list[int], max_table_size: int) -> list[int]:
     """Adjust column sizes to fit maximum table width.
 
     :param col_sizes: List of column widths
@@ -109,7 +109,7 @@ def adjust_col_sizes(col_sizes: List[int], max_table_size: int) -> List[int]:
     return [size for size, _ in sorted(cols_by_size, key=lambda x: x[1])]
 
 
-def format_data_table(table: List[List[str]], max_table_size: int = MAX_TABLE_SIZE) -> str:
+def format_data_table(table: list[list[str]], max_table_size: int = MAX_TABLE_SIZE) -> str:
     """Convert a table represented as List of Lists to a formatted table string.
 
     :param table: Table data as list of rows
@@ -160,7 +160,7 @@ def format_data_table(table: List[List[str]], max_table_size: int = MAX_TABLE_SI
     return "\n".join(result)
 
 
-def format_data_table_dict(table: Dict[str, str]) -> str:
+def format_data_table_dict(table: dict[str, str]) -> str:
     """Convert a table represented as Map to a formatted table string.
 
     :param table: Table data as dictionary

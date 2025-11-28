@@ -20,7 +20,7 @@ import threading
 import time as datetime
 import warnings
 from os import getenv
-from typing import Any, Coroutine, Dict, List, Optional, Tuple, TypeVar, Union
+from typing import Any, Coroutine, Optional, TypeVar, Union
 
 import aiohttp
 import certifi
@@ -115,7 +115,7 @@ class Client:
     verify_ssl: Union[bool, str]
     retries: Optional[int]
     max_pool_size: int
-    http_timeout: Optional[Union[float, Tuple[float, float]]]
+    http_timeout: Optional[Union[float, tuple[float, float]]]
     keepalive_timeout: Optional[float]
     mode: str
     launch_uuid_print: bool
@@ -135,7 +135,7 @@ class Client:
         verify_ssl: Union[bool, str] = True,
         retries: int = NOT_SET,
         max_pool_size: int = 50,
-        http_timeout: Optional[Union[float, Tuple[float, float]]] = (10, 10),
+        http_timeout: Optional[Union[float, tuple[float, float]]] = (10, 10),
         keepalive_timeout: Optional[float] = None,
         mode: str = "DEFAULT",
         launch_uuid_print: bool = False,
@@ -259,12 +259,12 @@ class Client:
             else:
                 ssl_config = ssl.create_default_context(ssl.Purpose.SERVER_AUTH, cafile=certifi.where())
 
-        connection_params: Dict[str, Any] = {"ssl": ssl_config, "limit": self.max_pool_size}
+        connection_params: dict[str, Any] = {"ssl": ssl_config, "limit": self.max_pool_size}
         if self.keepalive_timeout:
             connection_params["keepalive_timeout"] = self.keepalive_timeout
         connector = aiohttp.TCPConnector(**connection_params)
 
-        session_params: Dict[str, Any] = {"connector": connector}
+        session_params: dict[str, Any] = {"connector": connector}
 
         if self.http_timeout:
             if type(self.http_timeout) is tuple:
@@ -366,7 +366,7 @@ class Client:
         *,
         parent_item_id: Optional[Union[str, Task[str]]] = None,
         description: Optional[str] = None,
-        attributes: Optional[Union[List[dict], dict]] = None,
+        attributes: Optional[Union[list[dict], dict]] = None,
         parameters: Optional[dict] = None,
         code_ref: Optional[str] = None,
         test_case_id: Optional[str] = None,
@@ -629,7 +629,7 @@ class Client:
         response = await AsyncHttpRequest((await self.session()).get, url=url, name="get_project_settings").make()
         return await response.json if response else None
 
-    async def log_batch(self, log_batch: Optional[List[AsyncRPRequestLog]]) -> Optional[Tuple[str, ...]]:
+    async def log_batch(self, log_batch: Optional[list[AsyncRPRequestLog]]) -> Optional[tuple[str, ...]]:
         """Send batch logging message to the ReportPortal.
 
         :param log_batch: A list of log message objects.
@@ -672,7 +672,7 @@ class Client:
         )
         return cloned
 
-    def __getstate__(self) -> Dict[str, Any]:
+    def __getstate__(self) -> dict[str, Any]:
         """Control object pickling and return object fields as Dictionary.
 
         :return: object state dictionary
@@ -683,7 +683,7 @@ class Client:
         del state["_session"]
         return state
 
-    def __setstate__(self, state: Dict[str, Any]) -> None:
+    def __setstate__(self, state: dict[str, Any]) -> None:
         """Control object pickling, receives object state as Dictionary.
 
         :param dict state: object state dictionary
@@ -847,7 +847,7 @@ class AsyncRPClient(RP):
         start_time: str,
         item_type: str,
         description: Optional[str] = None,
-        attributes: Optional[List[dict]] = None,
+        attributes: Optional[list[dict]] = None,
         parameters: Optional[dict] = None,
         parent_item_id: Optional[str] = None,
         has_stats: bool = True,
@@ -1047,7 +1047,7 @@ class AsyncRPClient(RP):
         level: Optional[Union[int, str]] = None,
         attachment: Optional[dict] = None,
         item_id: Optional[str] = None,
-    ) -> Optional[Tuple[str, ...]]:
+    ) -> Optional[tuple[str, ...]]:
         """Send Log message to the ReportPortal and attach it to a Test Item or Launch.
 
         This method stores Log messages in internal batch and sent it when batch is full, so not every method
@@ -1293,7 +1293,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
         start_time: str,
         item_type: str,
         description: Optional[str] = None,
-        attributes: Optional[List[dict]] = None,
+        attributes: Optional[list[dict]] = None,
         parameters: Optional[dict] = None,
         parent_item_id: Optional[Task[str]] = None,
         has_stats: bool = True,
@@ -1485,10 +1485,10 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
         result_task = self.create_task(result_coro)
         return result_task
 
-    async def _log_batch(self, log_rq: Optional[List[AsyncRPRequestLog]]) -> Optional[Tuple[str, ...]]:
+    async def _log_batch(self, log_rq: Optional[list[AsyncRPRequestLog]]) -> Optional[tuple[str, ...]]:
         return await self.__client.log_batch(log_rq)
 
-    async def _log(self, log_rq: AsyncRPRequestLog) -> Optional[Tuple[str, ...]]:
+    async def _log(self, log_rq: AsyncRPRequestLog) -> Optional[tuple[str, ...]]:
         return await self._log_batch(await self._log_batcher.append_async(log_rq))
 
     def log(
@@ -1498,7 +1498,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
         level: Optional[Union[int, str]] = None,
         attachment: Optional[dict] = None,
         item_id: Optional[Task[str]] = None,
-    ) -> Task[Optional[Tuple[str, ...]]]:
+    ) -> Task[Optional[tuple[str, ...]]]:
         """Send Log message to the ReportPortal and attach it to a Test Item or Launch.
 
         This method stores Log messages in internal batch and sent it when batch is full, so not every method
@@ -1697,7 +1697,7 @@ class ThreadedRPClient(_RPClient):
             cloned._add_current_item(current_item)
         return cloned
 
-    def __getstate__(self) -> Dict[str, Any]:
+    def __getstate__(self) -> dict[str, Any]:
         """Control object pickling and return object fields as Dictionary.
 
         :return: object state dictionary
@@ -1710,7 +1710,7 @@ class ThreadedRPClient(_RPClient):
         del state["_thread"]
         return state
 
-    def __setstate__(self, state: Dict[str, Any]) -> None:
+    def __setstate__(self, state: dict[str, Any]) -> None:
         """Control object pickling, receives object state as Dictionary.
 
         :param dict state: object state dictionary
@@ -1889,7 +1889,7 @@ class BatchedRPClient(_RPClient):
             cloned._add_current_item(current_item)
         return cloned
 
-    def __getstate__(self) -> Dict[str, Any]:
+    def __getstate__(self) -> dict[str, Any]:
         """Control object pickling and return object fields as Dictionary.
 
         :return: object state dictionary
@@ -1901,7 +1901,7 @@ class BatchedRPClient(_RPClient):
         del state["_loop"]
         return state
 
-    def __setstate__(self, state: Dict[str, Any]) -> None:
+    def __setstate__(self, state: dict[str, Any]) -> None:
         """Control object pickling, receives object state as Dictionary.
 
         :param dict state: object state dictionary

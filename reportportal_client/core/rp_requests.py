@@ -24,7 +24,7 @@ import sys
 import traceback
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Callable, List, Optional, Tuple, TypeVar, Union
+from typing import Any, Callable, Optional, TypeVar, Union
 
 import aiohttp
 
@@ -59,7 +59,7 @@ class HttpRequest:
     data: Optional[Any]
     json: Optional[Any]
     verify_ssl: Optional[Union[bool, str]]
-    http_timeout: Union[float, Tuple[float, float]]
+    http_timeout: Union[float, tuple[float, float]]
     name: Optional[str]
     _priority: Priority
 
@@ -71,7 +71,7 @@ class HttpRequest:
         json: Optional[Any] = None,
         files: Optional[Any] = None,
         verify_ssl: Optional[Union[bool, str]] = None,
-        http_timeout: Union[float, Tuple[float, float]] = (10, 10),
+        http_timeout: Union[float, tuple[float, float]] = (10, 10),
         name: Optional[str] = None,
     ) -> None:
         """Initialize an instance of the request with attributes.
@@ -589,10 +589,10 @@ class RPLogBatch(RPRequestBase):
     """
 
     default_content: str
-    log_reqs: List[Union[RPRequestLog, AsyncRPRequestLog]]
+    log_reqs: list[Union[RPRequestLog, AsyncRPRequestLog]]
     priority: Priority
 
-    def __init__(self, log_reqs: List[Union[RPRequestLog, AsyncRPRequestLog]]) -> None:
+    def __init__(self, log_reqs: list[Union[RPRequestLog, AsyncRPRequestLog]]) -> None:
         """Initialize instance attributes.
 
         :param log_reqs:
@@ -602,11 +602,11 @@ class RPLogBatch(RPRequestBase):
         self.log_reqs = log_reqs
         self.priority = LOW_PRIORITY
 
-    def __get_file(self, rp_file) -> Tuple[str, tuple]:
+    def __get_file(self, rp_file) -> tuple[str, tuple]:
         """Form a tuple for the single file."""
         return "file", (rp_file.name, rp_file.content, rp_file.content_type or self.default_content)
 
-    def _get_files(self) -> List[Tuple[str, tuple]]:
+    def _get_files(self) -> list[tuple[str, tuple]]:
         """Get list of files for the JSON body."""
         files = []
         for req in self.log_reqs:
@@ -614,7 +614,7 @@ class RPLogBatch(RPRequestBase):
                 files.append(self.__get_file(req.file))
         return files
 
-    def __get_request_part(self) -> List[Tuple[str, tuple]]:
+    def __get_request_part(self) -> list[tuple[str, tuple]]:
         body = [
             (
                 "json_request_part",
@@ -624,7 +624,7 @@ class RPLogBatch(RPRequestBase):
         return body
 
     @property
-    def payload(self) -> List[Tuple[str, tuple]]:
+    def payload(self) -> list[tuple[str, tuple]]:
         r"""Get HTTP payload for the request.
 
         Example:
@@ -657,7 +657,7 @@ class AsyncRPLogBatch(RPLogBatch):
         """Initialize an instance of the request with attributes."""
         super.__init__(*args, **kwargs)
 
-    async def __get_request_part(self) -> List[dict]:
+    async def __get_request_part(self) -> list[dict]:
         coroutines = [log.payload for log in self.log_reqs]
         return list(await asyncio.gather(*coroutines))
 

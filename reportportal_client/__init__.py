@@ -15,7 +15,7 @@
 
 import sys
 import warnings
-from typing import Optional, Tuple, TypedDict, Union
+from typing import Optional, TypedDict, Union
 
 # noinspection PyUnreachableCode
 if sys.version_info >= (3, 11):
@@ -60,7 +60,7 @@ class _ClientOptions(TypedDict, total=False):
     verify_ssl: Union[bool, str]
     retries: int
     max_pool_size: int
-    http_timeout: Union[float, Tuple[float, float]]
+    http_timeout: Union[float, tuple[float, float]]
     mode: str
     launch_uuid_print: bool
     print_output: OutputType

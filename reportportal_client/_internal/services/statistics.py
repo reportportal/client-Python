@@ -16,7 +16,7 @@
 import logging
 import ssl
 from platform import python_version
-from typing import Optional, Tuple
+from typing import Optional
 
 import aiohttp
 import certifi
@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 ID, KEY = CLIENT_INFO.split(":")
 
 
-def _get_client_info() -> Tuple[str, str]:
+def _get_client_info() -> tuple[str, str]:
     """Get name of the client and its version.
 
     :return: ('reportportal-client', '5.0.4')

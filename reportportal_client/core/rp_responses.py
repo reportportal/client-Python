@@ -19,7 +19,7 @@ https://github.com/reportportal/documentation/blob/master/src/md/src/DevGuides/r
 """
 
 import logging
-from typing import Any, Generator, Mapping, Optional, Tuple, Union
+from typing import Any, Generator, Mapping, Optional, Union
 
 from aiohttp import ClientError, ClientResponse
 from requests import Response
@@ -117,7 +117,7 @@ class RPResponse:
         return _get_field("message", self.json)
 
     @property
-    def messages(self) -> Optional[Tuple[str, ...]]:
+    def messages(self) -> Optional[tuple[str, ...]]:
         """Get list of messages received in the response.
 
         :return: a variable size tuple of strings or NOT_FOUND, or None if the response is not JSON
@@ -181,7 +181,7 @@ class AsyncRPResponse:
         return _get_field("message", await self.json)
 
     @property
-    async def messages(self) -> Optional[Tuple[str, ...]]:
+    async def messages(self) -> Optional[tuple[str, ...]]:
         """Get list of messages received in the response.
 
         :return: a variable size tuple of strings or NOT_FOUND, or None if the response is not JSON

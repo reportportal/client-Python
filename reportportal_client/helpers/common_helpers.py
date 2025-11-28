@@ -24,7 +24,7 @@ import unicodedata
 import uuid
 from platform import machine, processor, system
 from types import MappingProxyType
-from typing import Any, Callable, Dict, Generic, Iterable, List, Optional, Tuple, TypeVar, Union
+from typing import Any, Callable, Generic, Iterable, Optional, TypeVar, Union
 
 from reportportal_client.core.rp_file import RPFile
 
@@ -69,7 +69,7 @@ class LifoQueue(Generic[_T]):
     """Primitive thread-safe Last-in-first-out queue implementation."""
 
     _lock: threading.Lock
-    __items: List[_T]
+    __items: list[_T]
 
     def __init__(self):
         """Initialize the queue instance."""
@@ -111,7 +111,7 @@ class LifoQueue(Generic[_T]):
         with self._lock:
             return len(self.__items)
 
-    def __getstate__(self) -> Dict[str, Any]:
+    def __getstate__(self) -> dict[str, Any]:
         """Control object pickling and return object fields as Dictionary.
 
         :return: object state dictionary
@@ -122,7 +122,7 @@ class LifoQueue(Generic[_T]):
         del state["_lock"]
         return state
 
-    def __setstate__(self, state: Dict[str, Any]) -> None:
+    def __setstate__(self, state: dict[str, Any]) -> None:
         """Control object pickling, receives object state as Dictionary.
 
         :param dict state: object state dictionary
@@ -136,7 +136,7 @@ def generate_uuid() -> str:
     return str(uuid.uuid4())
 
 
-def dict_to_payload(dictionary: Optional[dict]) -> Optional[List[dict]]:
+def dict_to_payload(dictionary: Optional[dict]) -> Optional[list[dict]]:
     """Convert incoming dictionary to the list of dictionaries.
 
     This function transforms the given dictionary of tags/attributes into
@@ -153,14 +153,14 @@ def dict_to_payload(dictionary: Optional[dict]) -> Optional[List[dict]]:
     hidden = my_dictionary.pop("system", None)
     result = []
     for key, value in sorted(my_dictionary.items()):
-        attribute: Dict[str, Any] = {"key": str(key), "value": str(value)}
+        attribute: dict[str, Any] = {"key": str(key), "value": str(value)}
         if hidden is not None:
             attribute["system"] = hidden
         result.append(attribute)
     return result
 
 
-def gen_attributes(rp_attributes: Iterable[str]) -> List[Dict[str, str]]:
+def gen_attributes(rp_attributes: Iterable[str]) -> list[dict[str, str]]:
     """Generate list of attributes for the API request.
 
     Example of input list:
@@ -186,7 +186,7 @@ def gen_attributes(rp_attributes: Iterable[str]) -> List[Dict[str, str]]:
     return attributes
 
 
-def get_launch_sys_attrs() -> Dict[str, str]:
+def get_launch_sys_attrs() -> dict[str, str]:
     """Generate attributes for the launch containing system information.
 
     :return: dict {'os': 'Windows',
@@ -201,7 +201,7 @@ def get_launch_sys_attrs() -> Dict[str, str]:
     }
 
 
-def get_package_parameters(package_name: str, parameters: List[str] = None) -> List[Optional[str]]:
+def get_package_parameters(package_name: str, parameters: list[str] = None) -> list[Optional[str]]:
     """Get parameters of the given package.
 
     :param package_name: Name of the package.
@@ -244,7 +244,7 @@ def truncate_attribute_string(text: str) -> str:
     return text
 
 
-def verify_value_length(attributes: Optional[Union[List[dict], dict]]) -> Optional[List[dict]]:
+def verify_value_length(attributes: Optional[Union[list[dict], dict]]) -> Optional[list[dict]]:
     """Verify length of the attribute value.
 
     The length of the attribute value should have size from '1' to '128'.
@@ -312,7 +312,7 @@ def root_uri_join(*uri_parts: str) -> str:
     return "/" + uri_join(*uri_parts)
 
 
-def get_function_params(func: Callable, args: tuple, kwargs: Dict[str, Any]) -> Dict[str, Any]:
+def get_function_params(func: Callable, args: tuple, kwargs: dict[str, Any]) -> dict[str, Any]:
     """Extract argument names from the function and combine them with values.
 
     :param func: the function to get arg names
@@ -383,7 +383,7 @@ def calculate_file_part_size(file: Optional[RPFile]) -> int:
     return size
 
 
-def agent_name_version(attributes: Optional[Union[list, dict]] = None) -> Tuple[Optional[str], Optional[str]]:
+def agent_name_version(attributes: Optional[Union[list, dict]] = None) -> tuple[Optional[str], Optional[str]]:
     """Extract Agent name and version from given Launch attributes.
 
     :param attributes: Launch attributes as they provided to Start Launch call
@@ -429,7 +429,7 @@ def is_binary(iterable: Union[bytes, bytearray, str]) -> bool:
     return False
 
 
-def guess_content_type_from_bytes(data: Union[bytes, bytearray, List[int]]) -> str:
+def guess_content_type_from_bytes(data: Union[bytes, bytearray, list[int]]) -> str:
     """Guess content type from bytes.
 
     :param data: bytes or bytearray

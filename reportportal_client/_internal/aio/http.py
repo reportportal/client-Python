@@ -24,7 +24,7 @@
 import asyncio
 import sys
 from types import TracebackType
-from typing import Any, Callable, Coroutine, Optional, Type, Union
+from typing import Any, Callable, Coroutine, Optional, Union
 
 from aenum import Enum
 from aiohttp import ClientResponse, ClientResponseError
@@ -160,7 +160,7 @@ class RetryingClientSession:
 
     async def __aexit__(
         self,
-        exc_type: Optional[Type[BaseException]],
+        exc_type: Optional[type[BaseException]],
         exc_val: Optional[BaseException],
         exc_tb: Optional[TracebackType],
     ) -> None:
@@ -241,7 +241,7 @@ class ClientSession:
 
     async def __aexit__(
         self,
-        exc_type: Optional[Type[BaseException]],
+        exc_type: Optional[type[BaseException]],
         exc_val: Optional[BaseException],
         exc_tb: Optional[TracebackType],
     ) -> None:

@@ -11,7 +11,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License
 
-from typing import Any, Dict, Optional, Text
+from typing import Any, Optional, Text
 
 class RPFile:
     content: Any = ...
@@ -20,4 +20,4 @@ class RPFile:
 
     def __init__(self, name: Optional[Text], content: Any, content_type: Optional[Text]) -> None: ...
     @property
-    def payload(self) -> Dict: ...
+    def payload(self) -> dict: ...

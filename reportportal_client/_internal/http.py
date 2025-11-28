@@ -15,7 +15,7 @@
 """This module designed to help with synchronous HTTP request/response handling."""
 
 from types import TracebackType
-from typing import Any, Callable, Optional, Type, Union
+from typing import Any, Callable, Optional, Union
 
 from requests import Response, Session
 from requests.adapters import BaseAdapter
@@ -104,7 +104,7 @@ class ClientSession:
 
     def __exit__(
         self,
-        exc_type: Optional[Type[BaseException]],
+        exc_type: Optional[type[BaseException]],
         exc_val: Optional[BaseException],
         exc_tb: Optional[TracebackType],
     ) -> None:
