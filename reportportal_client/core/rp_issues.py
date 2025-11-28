@@ -39,11 +39,25 @@ order to add an issue to the test result:
 }
 """
 
+from typing import Any, Optional
+
 
 class Issue:
     """This class represents an issue that can be attached to test result."""
 
-    def __init__(self, issue_type, comment=None, auto_analyzed=False, ignore_analyzer=True):
+    _external_issues: list
+    auto_analyzed: bool
+    comment: Optional[str]
+    ignore_analyzer: bool
+    issue_type: str
+
+    def __init__(
+        self,
+        issue_type: str,
+        comment: Optional[str] = None,
+        auto_analyzed: bool = False,
+        ignore_analyzer: bool = True,
+    ) -> None:
         """Initialize instance attributes.
 
         :param issue_type:      Issue type locator. Allowable values: "pb***",
@@ -61,12 +75,12 @@ class Issue:
         self.ignore_analyzer = ignore_analyzer
         self.issue_type = issue_type
 
-    def external_issue_add(self, issue):
+    def external_issue_add(self, issue: "ExternalIssue") -> None:
         """Add external system issue to the issue."""
         self._external_issues.append(issue.payload)
 
     @property
-    def payload(self):
+    def payload(self) -> dict[str, Optional[Any]]:
         """Form the correct dictionary for the issue."""
         return {
             "autoAnalyzed": self.auto_analyzed,
@@ -80,7 +94,20 @@ class Issue:
 class ExternalIssue:
     """This class represents external(BTS) system issue."""
 
-    def __init__(self, bts_url=None, bts_project=None, submit_date=None, ticket_id=None, url=None):
+    bts_url: Optional[str]
+    bts_project: Optional[str]
+    submit_date: Optional[str]
+    ticket_id: Optional[str]
+    url: Optional[str]
+
+    def __init__(
+        self,
+        bts_url: Optional[str] = None,
+        bts_project: Optional[str] = None,
+        submit_date: Optional[str] = None,
+        ticket_id: Optional[str] = None,
+        url: Optional[str] = None,
+    ) -> None:
         """Initialize instance attributes.
 
         :param bts_url:     Bug tracker system URL
@@ -96,7 +123,7 @@ class ExternalIssue:
         self.url = url
 
     @property
-    def payload(self):
+    def payload(self) -> dict[str, Optional[str]]:
         """Form the correct dictionary for the BTS issue."""
         return {
             "btsUrl": self.bts_url,

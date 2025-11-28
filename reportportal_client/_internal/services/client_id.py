@@ -17,6 +17,7 @@ import configparser
 import io
 import logging
 import os
+from typing import Iterable, Optional, Union
 from uuid import uuid4
 
 from .constants import CLIENT_ID_PROPERTY, RP_FOLDER_PATH, RP_PROPERTIES_FILE_PATH
@@ -32,7 +33,7 @@ class __NoSectionConfigParser(configparser.ConfigParser):
         content = "[" + self.DEFAULT_SECTION + "]\n" + fp.read()
         return io.StringIO(content)
 
-    def read(self, filenames, encoding=None):
+    def read(self, filenames: Union[Iterable[str], str], source: Optional[str] = None) -> None:
         if isinstance(filenames, str):
             filenames = [filenames]
         for filename in filenames:
@@ -40,27 +41,27 @@ class __NoSectionConfigParser(configparser.ConfigParser):
                 preprocessed_fp = self.__preprocess_file(fp)
                 self.read_file(preprocessed_fp, filename)
 
-    def write(self, fp, space_around_delimiters=True):
+    def write(self, fp, space_around_delimiters: bool = True) -> None:
         for key, value in self.items(self.DEFAULT_SECTION):
             delimiter = " = " if space_around_delimiters else "="
             fp.write("{}{}{}\n".format(key, delimiter, value))
 
 
-def __read_config():
+def __read_config() -> configparser.ConfigParser:
     config = __NoSectionConfigParser()
     if os.path.exists(RP_PROPERTIES_FILE_PATH):
         config.read(RP_PROPERTIES_FILE_PATH)
     return config
 
 
-def _read_client_id():
+def _read_client_id() -> Optional[str]:
     config = __read_config()
     if config.has_option(__NoSectionConfigParser.DEFAULT_SECTION, CLIENT_ID_PROPERTY):
         return config.get(__NoSectionConfigParser.DEFAULT_SECTION, CLIENT_ID_PROPERTY)
     return None
 
 
-def _store_client_id(client_id):
+def _store_client_id(client_id: str) -> None:
     config = __read_config()
     if not os.path.exists(RP_FOLDER_PATH):
         os.makedirs(RP_FOLDER_PATH)
@@ -69,7 +70,7 @@ def _store_client_id(client_id):
         config.write(fp)
 
 
-def get_client_id():
+def get_client_id() -> str:
     """Return unique client ID of the instance, generate new if not exists."""
     client_id = None
     try:

@@ -14,12 +14,24 @@
 """This module contains classes representing RP file object."""
 
 import uuid
+from typing import Any, Optional
 
 
 class RPFile(object):
     """Class representation for a file that will be attached to the log."""
 
-    def __init__(self, name=None, content=None, content_type=None, data=None, mime=None):
+    content: Optional[Any]
+    content_type: str
+    name: str
+
+    def __init__(
+        self,
+        name: Optional[str] = None,
+        content: Optional[Any] = None,
+        content_type: Optional[str] = None,
+        data: Optional[Any] = None,
+        mime: Optional[str] = None,
+    ) -> None:
         """Initialize instance attributes.
 
         :param name:         File name
@@ -33,6 +45,6 @@ class RPFile(object):
         self.name = name if name and name.strip() else str(uuid.uuid4())
 
     @property
-    def payload(self):
+    def payload(self) -> dict:
         """Get HTTP payload for the request."""
         return {"content": self.content, "contentType": self.content_type, "name": self.name}

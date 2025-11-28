@@ -17,7 +17,7 @@ import base64
 import os
 
 
-def _decode_string(text):
+def _decode_string(text: str) -> str:
     """Decode value of the given string.
 
     :param text: Encoded string
@@ -28,8 +28,8 @@ def _decode_string(text):
     return message_bytes.decode("ascii")
 
 
-CLIENT_INFO = _decode_string("Ry1XUDU3UlNHOFhMOm5Ib3dqRjJQUVotNDFJbzBPcDRoZlE=")
-ENDPOINT = "https://www.google-analytics.com/mp/collect"
-CLIENT_ID_PROPERTY = "client.id"
-RP_FOLDER_PATH = os.path.join(os.path.expanduser("~"), ".rp")
-RP_PROPERTIES_FILE_PATH = os.path.join(RP_FOLDER_PATH, "rp.properties")
+CLIENT_INFO: str = _decode_string("Ry1XUDU3UlNHOFhMOm5Ib3dqRjJQUVotNDFJbzBPcDRoZlE=")
+ENDPOINT: str = "https://www.google-analytics.com/mp/collect"
+CLIENT_ID_PROPERTY: str = "client.id"
+RP_FOLDER_PATH: str = os.path.join(os.path.expanduser("~"), ".rp")
+RP_PROPERTIES_FILE_PATH: str = os.path.join(RP_FOLDER_PATH, "rp.properties")
