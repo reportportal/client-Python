@@ -45,6 +45,6 @@ class RPFile(object):
         self.name = name if name and name.strip() else str(uuid.uuid4())
 
     @property
-    def payload(self) -> dict:
+    def payload(self) -> dict[str, Any]:
         """Get HTTP payload for the request."""
         return {"content": self.content, "contentType": self.content_type, "name": self.name}
