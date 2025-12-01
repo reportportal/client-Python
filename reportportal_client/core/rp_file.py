@@ -21,7 +21,7 @@ class RPFile(object):
     """Class representation for a file that will be attached to the log."""
 
     content: Optional[Any]
-    content_type: str
+    content_type: Optional[str]
     name: str
 
     def __init__(

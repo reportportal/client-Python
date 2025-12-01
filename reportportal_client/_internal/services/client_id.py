@@ -17,7 +17,7 @@ import configparser
 import io
 import logging
 import os
-from typing import Iterable, Optional, Union
+from typing import Iterable, Optional
 from uuid import uuid4
 
 from .constants import CLIENT_ID_PROPERTY, RP_FOLDER_PATH, RP_PROPERTIES_FILE_PATH
@@ -33,13 +33,13 @@ class __NoSectionConfigParser(configparser.ConfigParser):
         content = "[" + self.DEFAULT_SECTION + "]\n" + fp.read()
         return io.StringIO(content)
 
-    def read(self, filenames: Union[Iterable[str], str], source: Optional[str] = None) -> None:
+    def read_file(self, filenames: Iterable[str], source: Optional[str] = None) -> None:
         if isinstance(filenames, str):
             filenames = [filenames]
         for filename in filenames:
             with open(filename, "r") as fp:
                 preprocessed_fp = self.__preprocess_file(fp)
-                self.read_file(preprocessed_fp, filename)
+            super().read_file(preprocessed_fp, filename)
 
     def write(self, fp, space_around_delimiters: bool = True) -> None:
         for key, value in self.items(self.DEFAULT_SECTION):
@@ -50,7 +50,7 @@ class __NoSectionConfigParser(configparser.ConfigParser):
 def __read_config() -> configparser.ConfigParser:
     config = __NoSectionConfigParser()
     if os.path.exists(RP_PROPERTIES_FILE_PATH):
-        config.read(RP_PROPERTIES_FILE_PATH)
+        config.read_file(RP_PROPERTIES_FILE_PATH)
     return config
 
 

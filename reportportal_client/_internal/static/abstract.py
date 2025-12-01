@@ -36,7 +36,7 @@ class AbstractBaseClass(_ABCMeta):
     i = Implementation() -> success
     """
 
-    _abc_registry = set()
+    _abc_registry: set[str] = set()
 
     def __call__(cls, *args, **kwargs):
         """Disable instantiation for the interface classes."""
