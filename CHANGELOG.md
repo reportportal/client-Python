@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.7.0]
 ### Added
 - Official `Python 3.14` support, by @HardNorth
 - Custom log level support in `RPLogHandler` class, by @HardNorth
