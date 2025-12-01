@@ -16,20 +16,33 @@
 import logging
 import sys
 import threading
+from typing import TYPE_CHECKING, Any, Optional, Union
 from urllib.parse import urlparse
 
 # noinspection PyProtectedMember
 from reportportal_client._internal.local import current, set_current
 from reportportal_client.helpers import TYPICAL_MULTIPART_FOOTER_LENGTH, timestamp
 
+if TYPE_CHECKING:
+    from reportportal_client.client import RP
+
+LOG_LEVEL_MAPPING: dict[int, str] = {
+    logging.NOTSET: "TRACE",
+    logging.DEBUG: "DEBUG",
+    logging.INFO: "INFO",
+    logging.WARNING: "WARN",
+    logging.ERROR: "ERROR",
+    logging.CRITICAL: "ERROR",
+}
+
 MAX_LOG_BATCH_SIZE: int = 20
 MAX_LOG_BATCH_PAYLOAD_SIZE: int = int((64 * 1024 * 1024) * 0.98) - TYPICAL_MULTIPART_FOOTER_LENGTH
 
 
-class RPLogger(logging.getLoggerClass()):
+class RPLogger(logging.getLoggerClass()):  # type: ignore
     """RPLogger class for low-level logging in tests."""
 
-    def __init__(self, name, level=0):
+    def __init__(self, name: str, level: int = 0) -> None:
         """
         Initialize RPLogger instance.
 
@@ -38,7 +51,17 @@ class RPLogger(logging.getLoggerClass()):
         """
         super(RPLogger, self).__init__(name, level=level)
 
-    def _log(self, level, msg, args, exc_info=None, extra=None, stack_info=False, attachment=None, **kwargs):
+    def _log(
+        self,
+        level: int,
+        msg: Any,
+        args: tuple,
+        exc_info: Optional[Union[bool, tuple]] = None,
+        extra: Optional[dict] = None,
+        stack_info: bool = False,
+        attachment: Optional[dict] = None,
+        **kwargs: Any,
+    ) -> None:
         """
         Low-level logging routine which creates a LogRecord and then calls.
 
@@ -82,24 +105,21 @@ class RPLogHandler(logging.Handler):
     """RPLogHandler class for logging tests."""
 
     # Map loglevel codes from `logging` module to ReportPortal text names:
-    _loglevel_map = {
-        logging.NOTSET: "TRACE",
-        logging.DEBUG: "DEBUG",
-        logging.INFO: "INFO",
-        logging.WARNING: "WARN",
-        logging.ERROR: "ERROR",
-        logging.CRITICAL: "ERROR",
-    }
-    _sorted_levelnos = sorted(_loglevel_map.keys(), reverse=True)
+    _loglevel_map: dict[int, str]
+    _sorted_levelnos: list[int]
+    filter_client_logs: bool
+    ignored_record_names: tuple[str, ...]
+    endpoint: Optional[str]
+    rp_client: Optional["RP"]
 
     def __init__(
         self,
-        level=logging.NOTSET,
-        filter_client_logs=False,
-        endpoint=None,
-        ignored_record_names=tuple("reportportal_client"),
-        rp_client=None,
-    ):
+        level: int = logging.NOTSET,
+        filter_client_logs: bool = False,
+        endpoint: Optional[str] = None,
+        ignored_record_names: tuple = tuple("reportportal_client"),
+        rp_client: Optional["RP"] = None,
+    ) -> None:
         """
         Initialize RPLogHandler instance.
 
@@ -112,12 +132,14 @@ class RPLogHandler(logging.Handler):
                                      (with startswith method)
         """
         super(RPLogHandler, self).__init__(level)
+        self._loglevel_map = LOG_LEVEL_MAPPING.copy()
+        self._sorted_levelnos = sorted(self._loglevel_map.keys(), reverse=True)
         self.filter_client_logs = filter_client_logs
         self.ignored_record_names = ignored_record_names
         self.endpoint = endpoint
         self.rp_client = rp_client
 
-    def filter(self, record):
+    def filter(self, record: logging.LogRecord) -> bool:
         """Filter specific records to avoid sending those to RP.
 
         :param record: A log record to be filtered
@@ -131,23 +153,20 @@ class RPLogHandler(logging.Handler):
         if record.name.startswith("urllib3.connectionpool"):
             # Filter the reportportal_client requests instance
             # urllib3 usage
-            hostname = urlparse(self.endpoint).hostname
-            if hostname:
-                if hasattr(hostname, "decode") and callable(hostname.decode):
-                    if hostname.decode("utf-8") in self.format(record):
-                        return False
-                else:
-                    if str(hostname) in self.format(record):
+            if self.endpoint:
+                hostname = urlparse(self.endpoint).hostname
+                if hostname:
+                    if hostname in self.format(record):
                         return False
         return True
 
-    def _get_rp_log_level(self, levelno):
+    def _get_rp_log_level(self, levelno: int) -> str:
         return next(
             (self._loglevel_map[level] for level in self._sorted_levelnos if levelno >= level),
             self._loglevel_map[logging.NOTSET],
         )
 
-    def emit(self, record):
+    def emit(self, record: logging.LogRecord) -> None:
         """
         Emit function.
 
