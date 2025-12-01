@@ -26,7 +26,7 @@ import sys
 from types import TracebackType
 from typing import Any, Callable, Coroutine, Optional, Union
 
-from aenum import Enum
+from aenum import Enum  # type: ignore
 from aiohttp import ClientResponse, ClientResponseError
 from aiohttp import ClientSession as AioHttpClientSession
 from aiohttp import ServerConnectionError
@@ -77,18 +77,18 @@ class RetryingClientSession:
         self.__retry_number = max_retry_number
         self.__retry_delay = base_retry_delay
 
-    async def __nothing(self):
+    async def __nothing(self) -> None:
         pass
 
-    def __sleep(self, retry_num: int, retry_factor: int) -> Coroutine:
-        if retry_num > 0:  # don't wait at the first retry attempt
+    def __sleep(self, retry_num: int, retry_factor: Optional[int]) -> Coroutine:
+        if retry_num > 0 and retry_factor is not None:  # don't wait at the first retry attempt
             delay = (((retry_factor * self.__retry_delay) * 1000) ** retry_num) / 1000
             return asyncio.sleep(delay)
         else:
             return self.__nothing()
 
     async def __request(
-        self, method: Callable[[Any, dict[str, Any]], Coroutine[Any, Any, ClientResponse]], url, **kwargs: Any
+        self, method: Callable[..., Coroutine[Any, Any, ClientResponse]], url: str, **kwargs: Any
     ) -> ClientResponse:
         """Make a request and retry if necessary.
 
@@ -100,7 +100,7 @@ class RetryingClientSession:
         exceptions = []
 
         for i in range(self.__retry_number + 1):  # add one for the first attempt, which is not a retry
-            retry_factor = None
+            retry_factor: Optional[int] = None
             if result is not None:
                 # Release previous result to return connection to pool
                 result.release()
@@ -138,6 +138,8 @@ class RetryingClientSession:
                     raise exceptions[-1]
             else:
                 raise exceptions[0]
+        if result is None:
+            raise IOError("Request failed without exceptions")
         return result
 
     def get(self, url: str, *, allow_redirects: bool = True, **kwargs: Any) -> Coroutine[Any, Any, ClientResponse]:
