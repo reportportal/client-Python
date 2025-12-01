@@ -76,7 +76,7 @@ def test_emit_simple(mocked_handle):
 
 
 @mock.patch("reportportal_client.logs.logging.Logger.handle")
-def test_emit_custom_level(mocked_handle):
+def test_emit_int_warn_level(mocked_handle):
     test_message = "test message"
     RPLogger("test_logger").log(30, test_message)
     record = mocked_handle.call_args[0][0]
@@ -89,6 +89,60 @@ def test_emit_custom_level(mocked_handle):
     assert mock_client.log.call_count == 1
     call_args, call_kwargs = mock_client.log.call_args
     assert call_kwargs["level"] == "WARN"
+
+
+@mock.patch("reportportal_client.logs.logging.Logger.handle")
+def test_emit_custom_int_warn_level(mocked_handle):
+    test_message = "test message"
+    RPLogger("test_logger").log(35, test_message)
+    record = mocked_handle.call_args[0][0]
+
+    mock_client = mock.Mock()
+    set_current(mock_client)
+
+    log_handler = RPLogHandler()
+    log_handler.emit(record)
+    assert mock_client.log.call_count == 1
+    call_args, call_kwargs = mock_client.log.call_args
+    assert call_kwargs["level"] == "WARN"
+
+
+@mock.patch("reportportal_client.logs.logging.Logger.handle")
+def test_emit_custom_int_custom_level(mocked_handle):
+    test_message = "test message"
+    custom_level_id = 35
+    custom_level = "BIG_WARN"
+    RPLogger("test_logger").log(custom_level_id, test_message)
+    record = mocked_handle.call_args[0][0]
+
+    mock_client = mock.Mock()
+    set_current(mock_client)
+
+    custom_levels = {custom_level_id: custom_level}
+    log_handler = RPLogHandler(custom_levels=custom_levels)
+    log_handler.emit(record)
+    assert mock_client.log.call_count == 1
+    call_args, call_kwargs = mock_client.log.call_args
+    assert call_kwargs["level"] == custom_level
+
+
+@mock.patch("reportportal_client.logs.logging.Logger.handle")
+def test_emit_custom_int_custom_level_override(mocked_handle):
+    test_message = "test message"
+    custom_level_id = 30
+    custom_level = "BIG_WARN"
+    RPLogger("test_logger").log(custom_level_id, test_message)
+    record = mocked_handle.call_args[0][0]
+
+    mock_client = mock.Mock()
+    set_current(mock_client)
+
+    custom_levels = {custom_level_id: custom_level}
+    log_handler = RPLogHandler(custom_levels=custom_levels)
+    log_handler.emit(record)
+    assert mock_client.log.call_count == 1
+    call_args, call_kwargs = mock_client.log.call_args
+    assert call_kwargs["level"] == custom_level
 
 
 @mock.patch("reportportal_client.logs.logging.Logger.handle")

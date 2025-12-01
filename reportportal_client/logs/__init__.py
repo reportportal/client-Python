@@ -119,6 +119,7 @@ class RPLogHandler(logging.Handler):
         endpoint: Optional[str] = None,
         ignored_record_names: tuple = tuple("reportportal_client"),
         rp_client: Optional["RP"] = None,
+        custom_levels: Optional[dict[int, str]] = None,
     ) -> None:
         """
         Initialize RPLogHandler instance.
@@ -133,6 +134,8 @@ class RPLogHandler(logging.Handler):
         """
         super(RPLogHandler, self).__init__(level)
         self._loglevel_map = LOG_LEVEL_MAPPING.copy()
+        if custom_levels:
+            self._loglevel_map.update(custom_levels)
         self._sorted_levelnos = sorted(self._loglevel_map.keys(), reverse=True)
         self.filter_client_logs = filter_client_logs
         self.ignored_record_names = ignored_record_names
