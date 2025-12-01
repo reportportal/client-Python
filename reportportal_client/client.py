@@ -387,7 +387,7 @@ class RPClient(RP):
     base_url_v2: str
     __endpoint: str
     is_skipped_an_issue: bool
-    __launch_uuid: str
+    __launch_uuid: Optional[str]
     use_own_launch: bool
     log_batch_size: int
     log_batch_payload_limit: int
@@ -468,7 +468,7 @@ class RPClient(RP):
         verify_ssl: Union[bool, str] = True,
         retries: int = None,
         max_pool_size: int = 50,
-        launch_uuid: str = None,
+        launch_uuid: Optional[str] = None,
         http_timeout: Union[float, tuple[float, float]] = (10, 10),
         log_batch_payload_limit: int = MAX_LOG_BATCH_PAYLOAD_SIZE,
         mode: str = "DEFAULT",
@@ -522,7 +522,7 @@ class RPClient(RP):
         self.is_skipped_an_issue = is_skipped_an_issue
         self.__launch_uuid = launch_uuid
         if not self.__launch_uuid:
-            launch_id = kwargs.get("launch_id")
+            launch_id = kwargs.get("launch_id")  # type: ignore
             if launch_id:
                 warnings.warn(
                     message="`launch_id` property is deprecated since 5.5.0 and will be subject for removing"
