@@ -87,21 +87,23 @@ class RetryingClientSession:
         else:
             return self.__nothing()
 
-    async def __request(self, method: Callable, url, **kwargs: Any) -> ClientResponse:
+    async def __request(
+        self, method: Callable[[Any, dict[str, Any]], Coroutine[Any, Any, ClientResponse]], url, **kwargs: Any
+    ) -> ClientResponse:
         """Make a request and retry if necessary.
 
         The method retries requests depending on error class and retry number. For no-retry errors, such as
         400 Bad Request it just returns result, for cases where it's reasonable to retry it does it in
         exponential manner.
         """
-        result = None
+        result: Optional[ClientResponse] = None
         exceptions = []
 
         for i in range(self.__retry_number + 1):  # add one for the first attempt, which is not a retry
             retry_factor = None
             if result is not None:
                 # Release previous result to return connection to pool
-                await result.release()
+                result.release()
             try:
                 result = await method(url, **kwargs)
             except Exception as exc:
@@ -150,7 +152,7 @@ class RetryingClientSession:
         """Perform HTTP PUT request."""
         return self.__request(self._client.put, url, data=data, **kwargs)
 
-    def close(self) -> Coroutine:
+    def close(self) -> Coroutine[None, None, None]:
         """Gracefully close internal aiohttp.ClientSession class instance."""
         return self._client.close()
 
