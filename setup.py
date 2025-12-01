@@ -4,7 +4,7 @@ import os
 
 from setuptools import find_packages, setup
 
-__version__ = "5.6.7"
+__version__ = "5.7.0"
 
 TYPE_STUBS = ["*.pyi"]
 
@@ -39,12 +39,12 @@ setup(
     license="Apache-2.0",
     keywords=["testing", "reporting", "reportportal", "client"],
     classifiers=[
-        "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
         "Programming Language :: Python :: 3.13",
+        "Programming Language :: Python :: 3.14",
     ],
     install_requires=read_file("requirements.txt").splitlines(),
 )

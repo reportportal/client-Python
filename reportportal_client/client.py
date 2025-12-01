@@ -20,7 +20,7 @@ import sys
 import warnings
 from abc import abstractmethod
 from os import getenv
-from typing import Any, Dict, List, Optional, TextIO, Tuple, Union
+from typing import Any, Optional, TextIO, Union
 
 import aenum
 from requests.adapters import DEFAULT_RETRIES, HTTPAdapter, Retry
@@ -167,7 +167,7 @@ class RP(metaclass=AbstractBaseClass):
         start_time: str,
         item_type: str,
         description: Optional[str] = None,
-        attributes: Optional[Union[List[dict], dict]] = None,
+        attributes: Optional[Union[list[dict], dict]] = None,
         parameters: Optional[dict] = None,
         parent_item_id: Optional[str] = None,
         has_stats: Optional[bool] = True,
@@ -316,7 +316,7 @@ class RP(metaclass=AbstractBaseClass):
         level: Optional[Union[int, str]] = None,
         attachment: Optional[dict] = None,
         item_id: Optional[str] = None,
-    ) -> Optional[Tuple[str, ...]]:
+    ) -> Optional[tuple[str, ...]]:
         """Send Log message to the ReportPortal and attach it to a Test Item or Launch.
 
         This method stores Log messages in internal batch and sent it when batch is full, so not every method
@@ -387,7 +387,7 @@ class RPClient(RP):
     base_url_v2: str
     __endpoint: str
     is_skipped_an_issue: bool
-    __launch_uuid: str
+    __launch_uuid: Optional[str]
     use_own_launch: bool
     log_batch_size: int
     log_batch_payload_limit: int
@@ -403,7 +403,7 @@ class RPClient(RP):
     verify_ssl: Union[bool, str]
     retries: int
     max_pool_size: int
-    http_timeout: Union[float, Tuple[float, float]]
+    http_timeout: Union[float, tuple[float, float]]
     session: ClientSession
     __step_reporter: StepReporter
     mode: str
@@ -468,8 +468,8 @@ class RPClient(RP):
         verify_ssl: Union[bool, str] = True,
         retries: int = None,
         max_pool_size: int = 50,
-        launch_uuid: str = None,
-        http_timeout: Union[float, Tuple[float, float]] = (10, 10),
+        launch_uuid: Optional[str] = None,
+        http_timeout: Union[float, tuple[float, float]] = (10, 10),
         log_batch_payload_limit: int = MAX_LOG_BATCH_PAYLOAD_SIZE,
         mode: str = "DEFAULT",
         launch_uuid_print: bool = False,
@@ -522,7 +522,7 @@ class RPClient(RP):
         self.is_skipped_an_issue = is_skipped_an_issue
         self.__launch_uuid = launch_uuid
         if not self.__launch_uuid:
-            launch_id = kwargs.get("launch_id")
+            launch_id = kwargs.get("launch_id")  # type: ignore
             if launch_id:
                 warnings.warn(
                     message="`launch_id` property is deprecated since 5.5.0 and will be subject for removing"
@@ -658,7 +658,7 @@ class RPClient(RP):
         start_time: str,
         item_type: str,
         description: Optional[str] = None,
-        attributes: Optional[Union[List[dict], dict]] = None,
+        attributes: Optional[Union[list[dict], dict]] = None,
         parameters: Optional[dict] = None,
         parent_item_id: Optional[str] = None,
         has_stats: bool = True,
@@ -856,7 +856,7 @@ class RPClient(RP):
         logger.debug("update_test_item - Item: %s", item_id)
         return response.message
 
-    def _log(self, batch: Optional[List[RPRequestLog]]) -> Optional[Tuple[str, ...]]:
+    def _log(self, batch: Optional[list[RPRequestLog]]) -> Optional[tuple[str, ...]]:
         if not batch:
             return None
 
@@ -878,7 +878,7 @@ class RPClient(RP):
         level: Optional[Union[int, str]] = None,
         attachment: Optional[dict] = None,
         item_id: Optional[str] = None,
-    ) -> Optional[Tuple[str, ...]]:
+    ) -> Optional[tuple[str, ...]]:
         """Send Log message to the ReportPortal and attach it to a Test Item or Launch.
 
         This method stores Log messages in internal batch and sent it when batch is full, so not every method
@@ -1036,7 +1036,7 @@ class RPClient(RP):
         self._log(self._log_batcher.flush())
         self.session.close()
 
-    def __getstate__(self) -> Dict[str, Any]:
+    def __getstate__(self) -> dict[str, Any]:
         """Control object pickling and return object fields as Dictionary.
 
         :return: object state dictionary
@@ -1047,7 +1047,7 @@ class RPClient(RP):
         del state["session"]
         return state
 
-    def __setstate__(self, state: Dict[str, Any]) -> None:
+    def __setstate__(self, state: dict[str, Any]) -> None:
         """Control object pickling, receives object state as Dictionary.
 
         :param dict state: object state dictionary

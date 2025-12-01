@@ -15,7 +15,7 @@
 
 import sys
 import warnings
-from typing import Optional, Tuple, TypedDict, Union
+from typing import Optional, TypedDict, Union
 
 # noinspection PyUnreachableCode
 if sys.version_info >= (3, 11):
@@ -23,7 +23,7 @@ if sys.version_info >= (3, 11):
 else:
     from typing_extensions import Unpack
 
-import aenum
+import aenum  # type: ignore
 
 # noinspection PyProtectedMember
 from reportportal_client._internal.local import current, set_current
@@ -43,9 +43,6 @@ class ClientType(aenum.Enum):
 
 
 class _ClientOptions(TypedDict, total=False):
-    client_type: ClientType
-    endpoint: str
-    project: str
     api_key: Optional[str]
     # OAuth 2.0 parameters
     oauth_uri: Optional[str]
@@ -60,7 +57,7 @@ class _ClientOptions(TypedDict, total=False):
     verify_ssl: Union[bool, str]
     retries: int
     max_pool_size: int
-    http_timeout: Union[float, Tuple[float, float]]
+    http_timeout: Union[float, tuple[float, float]]
     mode: str
     launch_uuid_print: bool
     print_output: OutputType
@@ -122,15 +119,16 @@ def create_client(
     :return: ReportPortal Client instance.
     """
     my_kwargs = kwargs.copy()
-    if "log_batch_payload_size" in my_kwargs:
+    if "log_batch_payload_size" in my_kwargs:  # type: ignore
         warnings.warn(
             message="Your agent is using `log_batch_payload_size` property which was introduced by mistake. "
             "The real property name is `log_batch_payload_limit`. Please consider Agent version update.",
             category=DeprecationWarning,
             stacklevel=2,
         )
+        payload_size = my_kwargs.pop("log_batch_payload_size")  # type: ignore
         if "log_batch_payload_limit" not in my_kwargs:
-            my_kwargs["log_batch_payload_limit"] = my_kwargs.pop("log_batch_payload_size")
+            my_kwargs["log_batch_payload_limit"] = payload_size
 
     if client_type is ClientType.SYNC:
         return RPClient(endpoint, project, **my_kwargs)

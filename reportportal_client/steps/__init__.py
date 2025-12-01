@@ -43,7 +43,7 @@ Usage with 'with' keyword:
 
 """
 from functools import wraps
-from typing import Any, Callable, Dict, Optional, Type, TypeVar, Union
+from typing import Any, Callable, Optional, TypeVar, Union
 
 import reportportal_client as rp
 
@@ -88,7 +88,7 @@ class StepReporter:
         self.client = rp_client
 
     def start_nested_step(
-        self, name: str, start_time: str, parameters: Optional[Dict[str, Any]] = None, **_: Dict[str, Any]
+        self, name: str, start_time: str, parameters: Optional[dict[str, Any]] = None, **_: dict[str, Any]
     ) -> Union[Optional[str], Task[Optional[str]]]:
         """Start Nested Step on ReportPortal.
 
@@ -104,7 +104,7 @@ class StepReporter:
         )
 
     def finish_nested_step(
-        self, item_id: str, end_time: str, status: str = None, **_: Dict[str, Any]
+        self, item_id: str, end_time: str, status: str = None, **_: dict[str, Any]
     ) -> Union[Optional[str], Task[Optional[str]]]:
         """Finish a Nested Step on ReportPortal.
 
@@ -119,12 +119,12 @@ class Step(Callable[[_Param], _Return]):
     """Step context handling class."""
 
     name: str
-    params: Dict
+    params: dict
     status: str
     client: Optional["rp.RP"]
     __item_id: Union[Optional[str], Task[Optional[str]]]
 
-    def __init__(self, name: str, params: Dict, status: str, rp_client: Optional["rp.RP"]) -> None:
+    def __init__(self, name: str, params: dict, status: str, rp_client: Optional["rp.RP"]) -> None:
         """Initialize required attributes.
 
         :param name:      Nested Step name
@@ -153,7 +153,7 @@ class Step(Callable[[_Param], _Return]):
             param_str = "Parameters: " + "; ".join(param_list)
             rp_client.log(timestamp(), param_str, level="INFO", item_id=self.__item_id)
 
-    def __exit__(self, exc_type: Type[BaseException], exc_val, exc_tb) -> None:
+    def __exit__(self, exc_type: type[BaseException], exc_val, exc_tb) -> None:
         """Exit the runtime context related to this object."""
         # Cannot call local.current() early since it will be initialized before client put something in there
         rp_client = self.client or current()
@@ -188,7 +188,7 @@ class Step(Callable[[_Param], _Return]):
 
 def step(
     name_source: Union[Callable[[_Param], _Return], str],
-    params: Optional[Dict] = None,
+    params: Optional[dict] = None,
     status: str = "PASSED",
     rp_client: Optional["rp.RP"] = None,
 ) -> Callable[[_Param], _Return]:
