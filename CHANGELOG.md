@@ -3,6 +3,7 @@
 ## [Unreleased]
 ### Added
 - Official `Python 3.14` support, by @HardNorth
+- Custom log level support in `RPLogHandler` class, by @HardNorth
 ### Removed
 - `Python 3.7` support, by @HardNorth
 - Deprecated `log_manager.py` module, by @HardNorth
