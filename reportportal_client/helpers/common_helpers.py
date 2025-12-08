@@ -497,9 +497,9 @@ def to_bool(value: Optional[Any]) -> Optional[bool]:
     """
     if value is None:
         return None
-    if value in {"TRUE", "True", "true", "1", "Y", "y", 1, True}:
+    if value in {"TRUE", "True", "true", "1", "Y", "y", True}:
         return True
-    if value in {"FALSE", "False", "false", "0", "N", "n", 0, False}:
+    if value in {"FALSE", "False", "false", "0", "N", "n", False}:
         return False
     raise ValueError(f"Invalid boolean value {value}.")
 
