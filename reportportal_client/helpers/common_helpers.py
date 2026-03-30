@@ -549,3 +549,39 @@ def caseless_equal(left: str, right: str) -> bool:
     :return: True if strings are equal ignoring case, False otherwise
     """
     return normalize_caseless(left) == normalize_caseless(right)
+
+
+# System/Data Controls
+NUL = 0x00  # Null
+SOH = 0x01  # Start of Heading
+STX = 0x02  # Start of Text
+ETX = 0x03  # End of Text
+EOT = 0x04  # End of Transmission
+ENQ = 0x05  # Enquiry
+ACK = 0x06  # Acknowledge
+NAK = 0x15  # Negative Acknowledge
+SYN = 0x16  # Synchronous Idle
+ETB = 0x17  # End of Trans. Block
+
+# Legacy Device Controls
+BEL = 0x07  # Bell/Beep
+DC1 = 0x11  # Device Control 1 (XON)
+DC2 = 0x12  # Device Control 2
+DC3 = 0x13  # Device Control 3 (XOFF)
+DC4 = 0x14  # Device Control 4
+CAN = 0x18  # Cancel
+EM = 0x19  # End of Medium
+SUB = 0x1A  # Substitute
+ESC = 0x1B  # Escape
+
+PURELY_BINARY_CODES = {NUL, SOH, STX, ETX, EOT, ENQ, ACK, NAK, SYN, ETB, BEL, DC1, DC2, DC3, DC4, CAN, EM, SUB, ESC}
+
+REPLACEMENT = chr(0xFFFD)
+CLEANUP_TABLE = str.maketrans({code: REPLACEMENT for code in PURELY_BINARY_CODES})
+
+
+def clean_binary_characters(text: str) -> str:
+    """The function cleans a string from binary characters, replaces them with a question mark inside a diamond."""
+    if not text:
+        return ""
+    return text.translate(CLEANUP_TABLE)
