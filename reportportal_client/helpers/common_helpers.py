@@ -587,7 +587,7 @@ CLEANUP_TABLE = str.maketrans({code: REPLACEMENT for code in PURELY_BINARY_CODES
 
 
 def clean_binary_characters(text: str) -> str:
-    """Cleans a string from binary characters, replaces them with a question mark inside a diamond."""
+    """Clean a string from binary characters, replace them with a question mark inside a diamond."""
     if not text:
         return ""
     return text.translate(CLEANUP_TABLE)
