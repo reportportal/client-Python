@@ -24,7 +24,7 @@ import unicodedata
 import uuid
 from platform import machine, processor, system
 from types import MappingProxyType
-from typing import Any, Callable, Generic, Iterable, Optional, TypeVar, Union
+from typing import Any, Callable, Generic, Iterable, Optional, Sized, TypeVar, Union
 
 from reportportal_client.core.rp_file import RPFile
 
@@ -260,7 +260,10 @@ def verify_value_length(attributes: Optional[Union[list[dict], dict]]) -> Option
 
     my_attributes = attributes
     if isinstance(my_attributes, dict):
-        my_attributes = dict_to_payload(my_attributes)
+        converted_attributes = dict_to_payload(my_attributes)
+        if converted_attributes is None:
+            return None
+        my_attributes = converted_attributes
 
     result = []
     for pair in my_attributes:
@@ -312,7 +315,7 @@ def root_uri_join(*uri_parts: str) -> str:
     return "/" + uri_join(*uri_parts)
 
 
-def get_function_params(func: Callable, args: tuple, kwargs: dict[str, Any]) -> dict[str, Any]:
+def get_function_params(func: Callable, args: tuple, kwargs: dict[str, Any]) -> Optional[dict[str, Any]]:
     """Extract argument names from the function and combine them with values.
 
     :param func: the function to get arg names
@@ -379,7 +382,9 @@ def calculate_file_part_size(file: Optional[RPFile]) -> int:
     if file is None:
         return 0
     size = len(TYPICAL_FILE_PART_HEADER.format(file.name, file.content_type))
-    size += len(file.content)
+    content = file.content
+    if isinstance(content, Sized):
+        size += len(content)
     return size
 
 
@@ -435,9 +440,10 @@ def guess_content_type_from_bytes(data: Union[bytes, bytearray, list[int]]) -> s
     :param data: bytes or bytearray
     :return: content type
     """
-    my_data = data
     if isinstance(data, list):
-        my_data = bytes(my_data)
+        my_data: Union[bytes, bytearray] = bytes(data)
+    else:
+        my_data = data
 
     if len(my_data) >= BYTES_TO_READ_FOR_DETECTION:
         my_data = my_data[:BYTES_TO_READ_FOR_DETECTION]
