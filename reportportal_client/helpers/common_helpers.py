@@ -32,7 +32,7 @@ try:
     # noinspection PyPackageRequirements
     import simplejson as json
 except ImportError:
-    import json
+    import json  # type: ignore
 
 logger: logging.Logger = logging.getLogger(__name__)
 _T = TypeVar("_T")
@@ -93,7 +93,7 @@ class LifoQueue(Generic[_T]):
                 self.__items = self.__items[:-1]
         return result
 
-    def last(self) -> _T:
+    def last(self) -> Optional[_T]:
         """Return the last element from the queue, but does not remove it.
 
         :return: The last element in the queue.
@@ -186,7 +186,7 @@ def gen_attributes(rp_attributes: Iterable[str]) -> list[dict[str, str]]:
     return attributes
 
 
-def get_launch_sys_attrs() -> dict[str, str]:
+def get_launch_sys_attrs() -> dict[str, Any]:
     """Generate attributes for the launch containing system information.
 
     :return: dict {'os': 'Windows',
@@ -201,14 +201,14 @@ def get_launch_sys_attrs() -> dict[str, str]:
     }
 
 
-def get_package_parameters(package_name: str, parameters: list[str] = None) -> list[Optional[str]]:
+def get_package_parameters(package_name: str, parameters: Optional[list[str]] = None) -> list[Optional[str]]:
     """Get parameters of the given package.
 
     :param package_name: Name of the package.
     :param parameters:   Wanted parameters.
     :return:             Parameter List.
     """
-    result = []
+    result: list[Optional[str]] = []
     if not parameters:
         return result
 
