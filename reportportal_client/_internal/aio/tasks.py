@@ -21,10 +21,20 @@ from typing import Any, Coroutine, Generator, Generic, Optional, TypeVar, Union
 
 from reportportal_client.aio.tasks import BlockingOperationError, Task
 
+if sys.version_info >= (3, 10):
+    from typing import TypeAlias
+else:
+    from typing_extensions import TypeAlias
+
 _T = TypeVar("_T")
 
 DEFAULT_TASK_TRIGGER_NUM: int = 10
 DEFAULT_TASK_TRIGGER_INTERVAL: float = 1.0
+
+if sys.version_info >= (3, 12):
+    _TaskCompatibleCoro: TypeAlias = Coroutine[Any, Any, Any]
+else:
+    _TaskCompatibleCoro: TypeAlias = Union[Generator[Optional[Future[object]], None, Any], Coroutine[Any, Any, Any]]
 
 
 class BatchedTask(Generic[_T], Task[_T]):
@@ -34,7 +44,7 @@ class BatchedTask(Generic[_T], Task[_T]):
 
     def __init__(
         self,
-        coro: Union[Generator[Optional[Future[object]], None, Any], Coroutine[Any, Any, Any]],
+        coro: _TaskCompatibleCoro,
         *,
         loop: asyncio.AbstractEventLoop,
         name: Optional[str] = None,
@@ -68,7 +78,7 @@ class ThreadedTask(Generic[_T], Task[_T]):
 
     def __init__(
         self,
-        coro: Union[Generator[Optional[Future[object]], None, Any], Coroutine[Any, Any, Any]],
+        coro: _TaskCompatibleCoro,
         wait_timeout: float,
         *,
         loop: asyncio.AbstractEventLoop,
