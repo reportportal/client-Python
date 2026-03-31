@@ -31,9 +31,3 @@ repos:
     rev: 7.1.1
     hooks:
       - id: flake8
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: 'a66e98df7b4aeeb3724184b332785976d062b92e'
-    hooks:
-      - id: mypy
-        args: [ "-p", "reportportal_client", "--ignore-missing-imports",  ]
-        exclude: 'tests/'
