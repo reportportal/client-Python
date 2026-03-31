@@ -17,7 +17,7 @@ import asyncio
 import sys
 import time
 from asyncio import Future
-from typing import Any, Awaitable, Coroutine, Generator, Generic, Optional, TypeVar, Union
+from typing import Any, Coroutine, Generator, Generic, Optional, TypeVar, Union
 
 from reportportal_client.aio.tasks import BlockingOperationError, Task
 
@@ -34,7 +34,7 @@ class BatchedTask(Generic[_T], Task[_T]):
 
     def __init__(
         self,
-        coro: Union[Generator[Future, None, _T], Awaitable[_T]],
+        coro: Generator[Future[object] | None, None, Any] | Coroutine[Any, Any, Any],
         *,
         loop: asyncio.AbstractEventLoop,
         name: Optional[str] = None,
@@ -68,7 +68,7 @@ class ThreadedTask(Generic[_T], Task[_T]):
 
     def __init__(
         self,
-        coro: Union[Generator[Future, None, _T], Awaitable[_T]],
+        coro: Generator[Future[object] | None, None, Any] | Coroutine[Any, Any, Any],
         wait_timeout: float,
         *,
         loop: asyncio.AbstractEventLoop,

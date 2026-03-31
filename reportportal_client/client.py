@@ -315,7 +315,7 @@ class RP(metaclass=AbstractBaseClass):
         message: str,
         level: Optional[Union[int, str]] = None,
         attachment: Optional[dict] = None,
-        item_id: Optional[str] = None,
+        item_id: Optional[Any] = None,
     ) -> Optional[tuple[str, ...]]:
         """Send Log message to the ReportPortal and attach it to a Test Item or Launch.
 
@@ -401,7 +401,7 @@ class RPClient(RP):
     oauth_scope: Optional[str]
     auth: Auth
     verify_ssl: Union[bool, str]
-    retries: int
+    retries: Optional[int]
     max_pool_size: int
     http_timeout: Union[float, tuple[float, float]]
     session: ClientSession
@@ -410,7 +410,7 @@ class RPClient(RP):
     launch_uuid_print: Optional[bool]
     print_output: OutputType
     truncate_attributes: bool
-    _skip_analytics: str
+    _skip_analytics: Optional[str]
     _item_stack: LifoQueue
     _log_batcher: LogBatcher[RPRequestLog]
 
@@ -466,7 +466,7 @@ class RPClient(RP):
         log_batch_size: int = 20,
         is_skipped_an_issue: bool = True,
         verify_ssl: Union[bool, str] = True,
-        retries: int = None,
+        retries: Optional[int] = None,
         max_pool_size: int = 50,
         launch_uuid: Optional[str] = None,
         http_timeout: Union[float, tuple[float, float]] = (10, 10),
@@ -571,16 +571,19 @@ class RPClient(RP):
 
         if oauth_provided:
             # Use OAuth 2.0 Password Grant authentication
+            # These params will be defined, since we checked them with "all" keyword above
+            # These 'or ""' just to mute dump type checkers
             self.auth = OAuthPasswordGrantSync(
-                oauth_uri=oauth_uri,
-                username=oauth_username,
-                password=oauth_password,
-                client_id=oauth_client_id,
+                oauth_uri=oauth_uri or "",
+                username=oauth_username or "",
+                password=oauth_password or "",
+                client_id=oauth_client_id or "",
                 client_secret=oauth_client_secret,
                 scope=oauth_scope,
             )
         elif self.api_key:
-            self.auth = ApiKeyAuthSync(api_key)
+            # Use API key authentication
+            self.auth = ApiKeyAuthSync(self.api_key)
         else:
             # Neither OAuth nor API key provided
             raise ValueError(
@@ -661,9 +664,9 @@ class RPClient(RP):
         attributes: Optional[Union[list[dict], dict]] = None,
         parameters: Optional[dict] = None,
         parent_item_id: Optional[str] = None,
-        has_stats: bool = True,
+        has_stats: Optional[bool] = True,
         code_ref: Optional[str] = None,
-        retry: bool = False,
+        retry: Optional[bool] = False,
         test_case_id: Optional[str] = None,
         retry_of: Optional[str] = None,
         uuid: Optional[str] = None,
@@ -730,7 +733,7 @@ class RPClient(RP):
 
     def finish_test_item(
         self,
-        item_id: str,
+        item_id: Any,
         end_time: str,
         status: Optional[str] = None,
         issue: Optional[Issue] = None,
@@ -828,7 +831,10 @@ class RPClient(RP):
         return None
 
     def update_test_item(
-        self, item_uuid: str, attributes: Optional[Union[list, dict]] = None, description: Optional[str] = None
+        self,
+        item_uuid: Optional[str],
+        attributes: Optional[Union[list, dict]] = None,
+        description: Optional[str] = None,
     ) -> Optional[str]:
         """Update existing Test Item at the ReportPortal.
 
@@ -837,11 +843,16 @@ class RPClient(RP):
         :param description: Test Item description.
         :return:            Response message or None.
         """
+        if not item_uuid:
+            logger.warning("Attempt to update non-existent item")
+            return None
         data = {
             "description": description,
             "attributes": verify_value_length(attributes) if self.truncate_attributes else attributes,
         }
         item_id = self.get_item_id_by_uuid(item_uuid)
+        if not item_id:
+            return None
         url = uri_join(self.base_url_v1, "item", item_id, "update")
         response = HttpRequest(
             self.session.put,
@@ -877,7 +888,7 @@ class RPClient(RP):
         message: str,
         level: Optional[Union[int, str]] = None,
         attachment: Optional[dict] = None,
-        item_id: Optional[str] = None,
+        item_id: Optional[Any] = None,
     ) -> Optional[tuple[str, ...]]:
         """Send Log message to the ReportPortal and attach it to a Test Item or Launch.
 
@@ -892,7 +903,7 @@ class RPClient(RP):
         :return:           Response message Tuple if Log message batch was sent or None.
         """
         rp_file = RPFile(**attachment) if attachment else None
-        rp_log = RPRequestLog(self.__launch_uuid, time, rp_file, item_id, level, message)
+        rp_log = RPRequestLog(self.__launch_uuid, time, rp_file, item_id, str(level), message)
         return self._log(self._log_batcher.append(rp_log))
 
     def get_item_id_by_uuid(self, item_uuid: str) -> Optional[str]:
@@ -914,7 +925,10 @@ class RPClient(RP):
         """
         if self.launch_uuid is None:
             return {}
-        url = uri_join(self.base_url_v1, "launch", "uuid", self.__launch_uuid)
+        launch_uuid = self.__launch_uuid
+        if launch_uuid is None:
+            return {}
+        url = uri_join(self.base_url_v1, "launch", "uuid", launch_uuid)
         logger.debug("get_launch_info - ID: %s", self.__launch_uuid)
         response = HttpRequest(
             self.session.get,

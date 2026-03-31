@@ -104,7 +104,11 @@ class StepReporter:
         )
 
     def finish_nested_step(
-        self, item_id: str, end_time: str, status: str = None, **_: dict[str, Any]
+        self,
+        item_id: Union[str, Task[Optional[str]]],
+        end_time: str,
+        status: Optional[str] = None,
+        **_: dict[str, Any],
     ) -> Union[Optional[str], Task[Optional[str]]]:
         """Finish a Nested Step on ReportPortal.
 
@@ -112,19 +116,19 @@ class StepReporter:
         :param end_time: Nested Step finish time
         :param status:   Nested Step finish status
         """
-        return self.client.finish_test_item(item_id, end_time, status=status)
+        return self.client.finish_test_item(item_id, end_time, status=status)  # type: ignore
 
 
-class Step(Callable[[_Param], _Return]):
+class Step:
     """Step context handling class."""
 
     name: str
-    params: dict
+    params: Optional[dict]
     status: str
     client: Optional["rp.RP"]
     __item_id: Union[Optional[str], Task[Optional[str]]]
 
-    def __init__(self, name: str, params: dict, status: str, rp_client: Optional["rp.RP"]) -> None:
+    def __init__(self, name: str, params: Optional[dict], status: str, rp_client: Optional["rp.RP"]) -> None:
         """Initialize required attributes.
 
         :param name:      Nested Step name

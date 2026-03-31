@@ -18,13 +18,15 @@ can be found by the following link:
 https://github.com/reportportal/documentation/blob/master/src/md/src/DevGuides/reporting.md
 """
 
+# mypy: disable_error_code=override
+
 import asyncio
 import logging
 import sys
 import traceback
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Callable, Optional, TypeVar, Union
+from typing import Any, Awaitable, Callable, Optional, TypeVar, Union, cast
 
 import aiohttp
 
@@ -42,9 +44,9 @@ from reportportal_client.helpers import await_if_necessary, dict_to_payload
 
 try:
     # noinspection PyPackageRequirements
-    import simplejson as json_converter
+    import simplejson as _json_converter
 except ImportError:
-    import json as json_converter
+    import json as _json_converter  # type: ignore[no-redef]
 
 logger = logging.getLogger(__name__)
 T = TypeVar("T")
@@ -95,7 +97,7 @@ class HttpRequest:
         self.verify_ssl = verify_ssl
         self.http_timeout = http_timeout
         self.name = name
-        self._priority = DEFAULT_PRIORITY
+        self._priority = cast(Priority, DEFAULT_PRIORITY)
 
     def __lt__(self, other: "HttpRequest") -> bool:
         """Priority protocol for the PriorityQueue.
@@ -121,7 +123,7 @@ class HttpRequest:
         """
         self._priority = value
 
-    def make(self) -> Optional[RPResponse]:
+    def make(self) -> Any:
         """Make HTTP request to the ReportPortal API.
 
         The method catches any request error to not fail reporting. Since we are reporting tool and should not fail
@@ -142,6 +144,7 @@ class HttpRequest:
             )
         except (KeyError, IOError, ValueError, TypeError) as exc:
             logger.warning("ReportPortal %s request failed", self.name, exc_info=exc)
+            return None
 
 
 class ErrorPrintingHttpRequest(HttpRequest):
@@ -179,6 +182,7 @@ class ErrorPrintingHttpRequest(HttpRequest):
                 f"{datetime.now().isoformat()} - [ERROR] - ReportPortal request error:\n{traceback.format_exc()}",
                 file=sys.stderr,
             )
+            return None
 
 
 class AsyncHttpRequest(HttpRequest):
@@ -220,6 +224,7 @@ class AsyncHttpRequest(HttpRequest):
             return AsyncRPResponse(await self.session_method(url, data=data, json=json))
         except (KeyError, IOError, ValueError, TypeError) as exc:
             logger.warning("ReportPortal %s request failed", self.name, exc_info=exc)
+            return None
 
 
 class ErrorPrintingAsyncHttpRequest(AsyncHttpRequest):
@@ -253,6 +258,7 @@ class ErrorPrintingAsyncHttpRequest(AsyncHttpRequest):
                 f"{datetime.now().isoformat()} - [ERROR] - ReportPortal request error:\n{traceback.format_exc()}",
                 file=sys.stderr,
             )
+            return None
 
 
 class RPRequestBase(metaclass=AbstractBaseClass):
@@ -265,7 +271,7 @@ class RPRequestBase(metaclass=AbstractBaseClass):
 
     @property
     @abstractmethod
-    def payload(self) -> dict:
+    def payload(self) -> Any:
         """Abstract interface for getting HTTP request payload.
 
         :return: JSON representation in the form of a Dictionary
@@ -286,8 +292,8 @@ class LaunchStartRequest(RPRequestBase):
     description: Optional[str] = None
     mode: str = "default"
     rerun: bool = False
-    rerun_of: str = None
-    uuid: str = None
+    rerun_of: Optional[str] = None
+    uuid: Optional[str] = None
 
     @property
     def payload(self) -> dict:
@@ -456,15 +462,13 @@ class ItemFinishRequest(RPRequestBase):
             attributes = dict_to_payload(kwargs["attributes"])
         request["attributes"] = attributes
 
-        issue_payload = None
-        if (
-            kwargs.get("issue") is None
-            and (kwargs.get("status") is not None and kwargs.get("status").lower() == "skipped")
-            and not kwargs.get("is_skipped_an_issue")
-        ):
+        issue_payload: Any = None
+        status = kwargs.get("status")
+        issue = kwargs.get("issue")
+        if issue is None and (status is not None and status.lower() == "skipped") and not kwargs.get("is_skipped_an_issue"):
             issue_payload = {"issue_type": "NOT_ISSUE"}
-        elif kwargs.get("issue") is not None:
-            issue_payload = kwargs.get("issue").payload
+        elif issue is not None:
+            issue_payload = cast(Issue, issue).payload
         request["issue"] = issue_payload
         return request
 
@@ -541,7 +545,7 @@ class RPRequestLog(RPRequestBase):
         return size
 
     @property
-    def multipart_size(self) -> int:
+    def multipart_size(self) -> Any:
         """Calculate request size how it would be transfer in Multipart HTTP.
 
         :return: estimate request size
@@ -600,7 +604,7 @@ class RPLogBatch(RPRequestBase):
         super().__init__()
         self.default_content = "application/octet-stream"
         self.log_reqs = log_reqs
-        self.priority = LOW_PRIORITY
+        self.priority = cast(Priority, LOW_PRIORITY)
 
     def __get_file(self, rp_file) -> tuple[str, tuple]:
         """Form a tuple for the single file."""
@@ -618,7 +622,7 @@ class RPLogBatch(RPRequestBase):
         body = [
             (
                 "json_request_part",
-                (None, json_converter.dumps([log.payload for log in self.log_reqs]), "application/json"),
+                (None, _json_converter.dumps([log.payload for log in self.log_reqs]), "application/json"),
             )
         ]
         return body
@@ -658,7 +662,7 @@ class AsyncRPLogBatch(RPLogBatch):
         super.__init__(*args, **kwargs)
 
     async def __get_request_part(self) -> list[dict]:
-        coroutines = [log.payload for log in self.log_reqs]
+        coroutines = [cast(Awaitable[dict], log.payload) for log in self.log_reqs]
         return list(await asyncio.gather(*coroutines))
 
     @property

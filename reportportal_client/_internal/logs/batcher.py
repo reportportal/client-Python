@@ -22,10 +22,10 @@ from reportportal_client.logs import MAX_LOG_BATCH_PAYLOAD_SIZE, MAX_LOG_BATCH_S
 
 logger = logging.getLogger(__name__)
 
-T_co = TypeVar("T_co", bound="RPRequestLog", covariant=True)
+LogRequestType = TypeVar("LogRequestType", bound=RPRequestLog)
 
 
-class LogBatcher(Generic[T_co]):
+class LogBatcher(Generic[LogRequestType]):
     """Log packaging class to automate compiling separate Log entries into log batches.
 
     The class accepts the maximum number of log entries in desired batches and maximum batch size to conform
@@ -35,7 +35,7 @@ class LogBatcher(Generic[T_co]):
     entry_num: int
     payload_limit: int
     _lock: threading.Lock
-    _batch: list[T_co]
+    _batch: list[LogRequestType]
     _payload_size: int
 
     def __init__(self, entry_num=MAX_LOG_BATCH_SIZE, payload_limit=MAX_LOG_BATCH_PAYLOAD_SIZE) -> None:
@@ -50,7 +50,7 @@ class LogBatcher(Generic[T_co]):
         self._batch = []
         self._payload_size = 0
 
-    def _append(self, size: int, log_req: RPRequestLog) -> Optional[list[RPRequestLog]]:
+    def _append(self, size: int, log_req: LogRequestType) -> Optional[list[LogRequestType]]:
         with self._lock:
             if self._payload_size + size >= self.payload_limit:
                 if len(self._batch) > 0:
@@ -74,7 +74,7 @@ class LogBatcher(Generic[T_co]):
         :param   log_req: log request object
         :return: a batch or None
         """
-        return self._append(log_req.multipart_size, log_req)
+        return self._append(log_req.multipart_size, log_req)  # type: ignore
 
     async def append_async(self, log_req: AsyncRPRequestLog) -> Optional[list[AsyncRPRequestLog]]:
         """Add a log request object to internal batch and return the batch if it's full.
@@ -82,9 +82,9 @@ class LogBatcher(Generic[T_co]):
         :param   log_req: log request object
         :return: a batch or None
         """
-        return self._append(await log_req.multipart_size, log_req)
+        return self._append(await log_req.multipart_size, log_req)  # type: ignore
 
-    def flush(self) -> Optional[list[T_co]]:
+    def flush(self) -> Optional[list[LogRequestType]]:
         """Immediately return everything what's left in the internal batch.
 
         :return: a batch or None

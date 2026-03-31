@@ -16,7 +16,7 @@
 import asyncio
 from abc import abstractmethod
 from asyncio import Future
-from typing import Awaitable, Generator, Generic, Optional, TypeVar, Union
+from typing import Any, Coroutine, Generator, Generic, Optional, TypeVar
 
 # noinspection PyProtectedMember
 from reportportal_client._internal.static.abstract import AbstractBaseClass
@@ -41,7 +41,7 @@ class Task(Generic[_T], asyncio.Task, metaclass=AbstractBaseClass):
 
     def __init__(
         self,
-        coro: Union[Generator[Future, None, _T], Awaitable[_T]],
+        coro: Generator[Future[object] | None, None, Any] | Coroutine[Any, Any, Any],
         *,
         loop: asyncio.AbstractEventLoop,
         name: Optional[str] = None,

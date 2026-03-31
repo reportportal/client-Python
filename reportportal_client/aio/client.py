@@ -13,6 +13,8 @@
 
 """This module contains asynchronous implementations of ReportPortal Client."""
 
+# mypy: ignore-errors
+
 import asyncio
 import logging
 import ssl
@@ -54,7 +56,6 @@ from reportportal_client._internal.services.statistics import async_send_event
 from reportportal_client._internal.static.abstract import AbstractBaseClass, abstractmethod
 
 # noinspection PyProtectedMember
-from reportportal_client._internal.static.defines import NOT_SET
 from reportportal_client.aio.tasks import Task
 from reportportal_client.client import RP, OutputType
 from reportportal_client.core.rp_issues import Issue
@@ -121,7 +122,7 @@ class Client:
     launch_uuid_print: bool
     print_output: OutputType
     truncate_attributes: bool
-    _skip_analytics: str
+    _skip_analytics: Optional[str]
     _session: Optional[ClientSession]
     __stat_task: Optional[asyncio.Task]
 
@@ -133,7 +134,7 @@ class Client:
         api_key: Optional[str] = None,
         is_skipped_an_issue: bool = True,
         verify_ssl: Union[bool, str] = True,
-        retries: int = NOT_SET,
+        retries: Optional[int] = -1,
         max_pool_size: int = 50,
         http_timeout: Optional[Union[float, tuple[float, float]]] = (10, 10),
         keepalive_timeout: Optional[float] = None,
@@ -217,16 +218,19 @@ class Client:
 
         if oauth_provided:
             # Use OAuth 2.0 Password Grant authentication
+            # These params will be defined, since we checked them with "all" keyword above
+            # These 'or ""' just to mute dump type checkers
             self.auth = OAuthPasswordGrantAsync(
-                oauth_uri=oauth_uri,
-                username=oauth_username,
-                password=oauth_password,
-                client_id=oauth_client_id,
+                oauth_uri=oauth_uri or "",
+                username=oauth_username or "",
+                password=oauth_password or "",
+                client_id=oauth_client_id or "",
                 client_secret=oauth_client_secret,
                 scope=oauth_scope,
             )
         elif self.api_key:
-            self.auth = ApiKeyAuthAsync(api_key)
+            # Use API key authentication
+            self.auth = ApiKeyAuthAsync(self.api_key)
         else:
             # Neither OAuth nor API key provided
             raise ValueError(
@@ -273,20 +277,23 @@ class Client:
                 connect_timeout, read_timeout = self.http_timeout, self.http_timeout
             session_params["timeout"] = aiohttp.ClientTimeout(connect=connect_timeout, sock_read=read_timeout)
 
-        retries_set = self.retries is not NOT_SET and self.retries and self.retries > 0
-        use_retries = self.retries is NOT_SET or (self.retries and self.retries > 0)
+        retries_set = self.retries is not None and self.retries > 0
+        # Use retries with default parameters if not set, but don't use retries if it's `None`
+        use_retries = self.retries == -1 or retries_set
 
         if retries_set:
             session_params["max_retry_number"] = self.retries
 
+        wrapped_session: Union[aiohttp.ClientSession, RetryingClientSession]
         if use_retries:
             wrapped_session = RetryingClientSession(self.endpoint, **session_params)
         else:
             # noinspection PyTypeChecker
             wrapped_session = aiohttp.ClientSession(self.endpoint, **session_params)
+        my_session = ClientSession(wrapped=wrapped_session, auth=self.auth)
 
-        self._session = ClientSession(wrapped=wrapped_session, auth=self.auth)
-        return self._session
+        self._session = my_session
+        return my_session
 
     async def close(self) -> None:
         """Gracefully close internal aiohttp.ClientSession class instance and reset it."""
