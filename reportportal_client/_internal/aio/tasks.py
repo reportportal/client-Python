@@ -34,7 +34,7 @@ class BatchedTask(Generic[_T], Task[_T]):
 
     def __init__(
         self,
-        coro: Generator[Future[object] | None, None, Any] | Coroutine[Any, Any, Any],
+        coro: Union[Generator[Optional[Future[object]], None, Any], Coroutine[Any, Any, Any]],
         *,
         loop: asyncio.AbstractEventLoop,
         name: Optional[str] = None,
@@ -68,7 +68,7 @@ class ThreadedTask(Generic[_T], Task[_T]):
 
     def __init__(
         self,
-        coro: Generator[Future[object] | None, None, Any] | Coroutine[Any, Any, Any],
+        coro: Union[Generator[Optional[Future[object]], None, Any], Coroutine[Any, Any, Any]],
         wait_timeout: float,
         *,
         loop: asyncio.AbstractEventLoop,

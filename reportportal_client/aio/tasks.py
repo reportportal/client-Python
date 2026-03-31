@@ -13,11 +13,16 @@
 
 """This module contains customized asynchronous Tasks and Task Factories for the ReportPortal client."""
 
-import sys
 import asyncio
+import sys
 from abc import abstractmethod
 from asyncio import Future
-from typing import Any, Coroutine, Generator, Generic, Optional, TypeVar, TypeAlias
+from typing import Any, Coroutine, Generator, Generic, Optional, TypeVar, Union
+
+if sys.version_info >= (3, 10):
+    from typing import TypeAlias
+else:
+    from typing_extensions import TypeAlias
 
 # noinspection PyProtectedMember
 from reportportal_client._internal.static.abstract import AbstractBaseClass
@@ -32,7 +37,7 @@ class BlockingOperationError(RuntimeError):
 if sys.version_info >= (3, 12):
     _TaskCompatibleCoro: TypeAlias = Coroutine[Any, Any, Any]
 else:
-    _TaskCompatibleCoro: TypeAlias = Generator[Future[object] | None, None, Any] | Coroutine[Any, Any, Any]
+    _TaskCompatibleCoro: TypeAlias = Union[Generator[Optional[Future[object]], None, Any], Coroutine[Any, Any, Any]]
 
 
 class Task(Generic[_T], asyncio.Task, metaclass=AbstractBaseClass):
