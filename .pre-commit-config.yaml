@@ -35,5 +35,5 @@ repos:
     rev: 'a66e98df7b4aeeb3724184b332785976d062b92e'
     hooks:
       - id: mypy
-        args: [ "--ignore-missing-imports", "-p", "reportportal_client" ]
+        args: [ "--ignore-missing-imports", "-p reportportal_client" ]
         exclude: 'tests/'
