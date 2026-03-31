@@ -465,7 +465,11 @@ class ItemFinishRequest(RPRequestBase):
         issue_payload: Any = None
         status = kwargs.get("status")
         issue = kwargs.get("issue")
-        if issue is None and (status is not None and status.lower() == "skipped") and not kwargs.get("is_skipped_an_issue"):
+        if (
+            issue is None
+            and (status is not None and status.lower() == "skipped")
+            and not kwargs.get("is_skipped_an_issue")
+        ):
             issue_payload = {"issue_type": "NOT_ISSUE"}
         elif issue is not None:
             issue_payload = cast(Issue, issue).payload
