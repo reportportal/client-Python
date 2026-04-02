@@ -262,12 +262,31 @@ def test_attribute_truncation(rp_client: RPClient, method, call_method, argument
     if method != "start_launch":
         rp_client._RPClient__launch_uuid = "test_launch_id"
 
-    getattr(rp_client, method)(*arguments, **{"attributes": {"key": "value" * 26}})
+    getattr(rp_client, method)(
+        *arguments, **{"attributes": {"k" * 140: "v" * 140}}
+    )
     getattr(session, call_method).assert_called_once()
     kwargs = getattr(session, call_method).call_args_list[0][1]
     assert "attributes" in kwargs["json"]
     assert kwargs["json"]["attributes"]
+    assert len(kwargs["json"]["attributes"][0]["key"]) == 128
     assert len(kwargs["json"]["attributes"][0]["value"]) == 128
+
+
+def test_attribute_sanitization_binary_and_number_limit(rp_client: RPClient):
+    # noinspection PyTypeChecker
+    session: mock.Mock = rp_client.session
+    rp_client._RPClient__launch_uuid = "test_launch_id"
+    attributes = [{"key": f"k{index:03d}", "value": "value"} for index in range(300)]
+    attributes[0] = {"key": "a\x00key", "value": "v\x1balue"}
+
+    rp_client.start_test_item("Test Item", timestamp(), "SUITE", attributes=attributes)
+
+    kwargs = session.post.call_args_list[0][1]
+    sanitized_attributes = kwargs["json"]["attributes"]
+    assert len(sanitized_attributes) == 256
+    assert all("\x00" not in attr["key"] for attr in sanitized_attributes if attr.get("key"))
+    assert all("\x1b" not in attr["value"] for attr in sanitized_attributes if attr.get("value"))
 
 
 @pytest.mark.parametrize(

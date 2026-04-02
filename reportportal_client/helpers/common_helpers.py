@@ -38,6 +38,10 @@ logger: logging.Logger = logging.getLogger(__name__)
 _T = TypeVar("_T")
 ATTRIBUTE_LENGTH_LIMIT: int = 128
 TRUNCATE_REPLACEMENT: str = "..."
+LAUNCH_NAME_LENGTH_LIMIT: int = 256
+ITEM_NAME_LENGTH_LIMIT: int = 1024
+LAUNCH_DESCRIPTION_LENGTH_LIMIT: int = 2048
+ITEM_DESCRIPTION_LENGTH_LIMIT: int = 65536
 BYTES_TO_READ_FOR_DETECTION = 128
 ATTRIBUTE_DELIMITER = ":"
 
@@ -244,7 +248,7 @@ def truncate_attribute_string(text: str) -> str:
     return text
 
 
-def verify_value_length(attributes: Optional[Union[list[dict], dict]]) -> Optional[list[dict]]:
+def verify_value_length(attributes: list[dict]) -> Optional[list[dict]]:
     """Verify length of the attribute value.
 
     The length of the attribute value should have size from '1' to '128'.
@@ -255,18 +259,9 @@ def verify_value_length(attributes: Optional[Union[list[dict], dict]]) -> Option
     :param attributes: List of attributes(tags)
     :return:           List of attributes with corrected value length
     """
-    if attributes is None:
-        return attributes
-
-    my_attributes = attributes
-    if isinstance(my_attributes, dict):
-        converted_attributes = dict_to_payload(my_attributes)
-        if converted_attributes is None:
-            return None
-        my_attributes = converted_attributes
 
     result = []
-    for pair in my_attributes:
+    for pair in attributes:
         if not isinstance(pair, dict):
             continue
         attr_value = pair.get("value")

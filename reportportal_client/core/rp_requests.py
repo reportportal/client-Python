@@ -41,6 +41,7 @@ from reportportal_client.core.rp_file import RPFile
 from reportportal_client.core.rp_issues import Issue
 from reportportal_client.core.rp_responses import AsyncRPResponse, RPResponse
 from reportportal_client.helpers import await_if_necessary, dict_to_payload
+from reportportal_client.helpers.common_helpers import clean_binary_characters, verify_value_length
 
 try:
     # noinspection PyPackageRequirements
@@ -261,6 +262,7 @@ class ErrorPrintingAsyncHttpRequest(AsyncHttpRequest):
             return None
 
 
+@dataclass(frozen=True, kw_only=True)
 class RPRequestBase(metaclass=AbstractBaseClass):
     """Base class for specific ReportPortal request models.
 
@@ -268,6 +270,72 @@ class RPRequestBase(metaclass=AbstractBaseClass):
     """
 
     __metaclass__ = AbstractBaseClass
+    truncate_attributes_enabled: bool = True
+    truncate_fields_enabled: bool = True
+    replace_binary_characters: bool = True
+    attribute_length_limit: int = helpers.ATTRIBUTE_LENGTH_LIMIT
+    attribute_number_limit: int = 256
+    launch_name_length_limit: int = helpers.LAUNCH_NAME_LENGTH_LIMIT
+    item_name_length_limit: int = helpers.ITEM_NAME_LENGTH_LIMIT
+    launch_description_length_limit: int = helpers.LAUNCH_DESCRIPTION_LENGTH_LIMIT
+    item_description_length_limit: int = helpers.ITEM_DESCRIPTION_LENGTH_LIMIT
+    truncate_replacement: str = helpers.TRUNCATE_REPLACEMENT
+
+    def _sanitize_field(self, value: Optional[str], limit: int) -> Optional[str]:
+        if not value:
+            return value
+
+        sanitized_value = value
+        if self.replace_binary_characters:
+            sanitized_value = clean_binary_characters(sanitized_value)
+            if not sanitized_value:
+                return value
+
+        if not self.truncate_fields_enabled:
+            return sanitized_value
+
+        effective_limit = max(0, limit)
+        if len(sanitized_value) <= effective_limit:
+            return sanitized_value
+        if effective_limit == 0:
+            return ""
+        if effective_limit <= len(self.truncate_replacement):
+            return sanitized_value[:effective_limit]
+        return sanitized_value[: effective_limit - len(self.truncate_replacement)] + self.truncate_replacement
+
+    def _truncate_attributes(self, attributes: Optional[Union[list, dict]]) -> Optional[list[dict[str, Any]]]:
+        if attributes is None:
+            return None
+
+        my_attributes = attributes
+        if isinstance(my_attributes, dict):
+            converted_attributes = dict_to_payload(my_attributes)
+            if not converted_attributes:
+                return None
+            my_attributes = converted_attributes
+
+        normalized_attributes = [dict(attribute) for attribute in my_attributes if isinstance(attribute, dict)]
+        if len(normalized_attributes) == 0:
+            return []
+
+        if len(normalized_attributes) > self.attribute_number_limit:
+            normalized_attributes = sorted(normalized_attributes, key=lambda attr: str(attr.get("key", "")))[
+                : self.attribute_number_limit
+            ]
+
+        if self.replace_binary_characters:
+            for attribute in normalized_attributes:
+                key = attribute.get("key")
+                value = attribute.get("value")
+                if key is not None:
+                    attribute["key"] = clean_binary_characters(str(key))
+                if value is not None:
+                    attribute["value"] = clean_binary_characters(str(value))
+
+        if not self.truncate_attributes_enabled:
+            return normalized_attributes
+
+        return verify_value_length(normalized_attributes)
 
     @property
     @abstractmethod
@@ -301,14 +369,13 @@ class LaunchStartRequest(RPRequestBase):
 
         :return: JSON representation in the form of a Dictionary
         """
-        my_attributes = self.attributes
-        if my_attributes and isinstance(self.attributes, dict):
-            my_attributes = dict_to_payload(self.attributes)
+        my_name = self._sanitize_field(self.name, self.launch_name_length_limit)
+        my_attributes = self._truncate_attributes(self.attributes)
         result = {
             "attributes": my_attributes,
-            "description": self.description,
+            "description": self._sanitize_field(self.description, self.launch_description_length_limit),
             "mode": self.mode,
-            "name": self.name,
+            "name": my_name,
             "rerun": self.rerun,
             "rerunOf": self.rerun_of,
             "startTime": self.start_time,
@@ -336,12 +403,10 @@ class LaunchFinishRequest(RPRequestBase):
 
         :return: JSON representation in the form of a Dictionary
         """
-        my_attributes = self.attributes
-        if my_attributes and isinstance(self.attributes, dict):
-            my_attributes = dict_to_payload(self.attributes)
+        my_attributes = self._truncate_attributes(self.attributes)
         return {
             "attributes": my_attributes,
-            "description": self.description,
+            "description": self._sanitize_field(self.description, self.launch_description_length_limit),
             "endTime": self.end_time,
             "status": self.status,
         }
@@ -368,13 +433,13 @@ class ItemStartRequest(RPRequestBase):
     test_case_id: Optional[str]
     uuid: Optional[str]
 
-    @staticmethod
-    def _create_request(**kwargs) -> dict:
+    def _create_request(self, **kwargs) -> dict:
+        name = self._sanitize_field(kwargs.get("name"), self.item_name_length_limit)
         request = {
             "codeRef": kwargs.get("code_ref"),
-            "description": kwargs.get("description"),
+            "description": self._sanitize_field(kwargs.get("description"), self.item_description_length_limit),
             "hasStats": kwargs.get("has_stats"),
-            "name": kwargs["name"],
+            "name": name,
             "retry": kwargs.get("retry"),
             "retryOf": kwargs.get("retry_of"),
             "startTime": kwargs["start_time"],
@@ -383,9 +448,7 @@ class ItemStartRequest(RPRequestBase):
             "launchUuid": kwargs["launch_uuid"],
         }
         attributes = kwargs.get("attributes")
-        if attributes and isinstance(attributes, dict):
-            attributes = dict_to_payload(kwargs["attributes"])
-        request["attributes"] = attributes
+        request["attributes"] = self._truncate_attributes(attributes)
         parameters = kwargs.get("parameters")
         if parameters is not None and isinstance(parameters, dict):
             parameters = dict_to_payload(kwargs["parameters"])
@@ -403,7 +466,7 @@ class ItemStartRequest(RPRequestBase):
         """
         data = self.__dict__.copy()
         data["type"] = data.pop("type_")
-        return ItemStartRequest._create_request(**data)
+        return self._create_request(**data)
 
 
 class AsyncItemStartRequest(ItemStartRequest):
@@ -425,7 +488,7 @@ class AsyncItemStartRequest(ItemStartRequest):
         data = self.__dict__.copy()
         data["type"] = data.pop("type_")
         data["launch_uuid"] = await await_if_necessary(data.pop("launch_uuid"))
-        return ItemStartRequest._create_request(**data)
+        return self._create_request(**data)
 
 
 @dataclass(frozen=True)
@@ -446,10 +509,9 @@ class ItemFinishRequest(RPRequestBase):
     retry_of: Optional[str]
     test_case_id: Optional[str]
 
-    @staticmethod
-    def _create_request(**kwargs) -> dict:
+    def _create_request(self, **kwargs) -> dict:
         request = {
-            "description": kwargs.get("description"),
+            "description": self._sanitize_field(kwargs.get("description"), self.item_description_length_limit),
             "endTime": kwargs["end_time"],
             "launchUuid": kwargs["launch_uuid"],
             "status": kwargs.get("status"),
@@ -458,16 +520,14 @@ class ItemFinishRequest(RPRequestBase):
             "testCaseId": kwargs.get("test_case_id"),
         }
         attributes = kwargs.get("attributes")
-        if attributes and isinstance(attributes, dict):
-            attributes = dict_to_payload(kwargs["attributes"])
-        request["attributes"] = attributes
+        request["attributes"] = self._truncate_attributes(attributes)
 
         issue_payload: Any = None
         status = kwargs.get("status")
         issue = kwargs.get("issue")
         if (
             issue is None
-            and (status is not None and status.lower() == "skipped")
+            and (status is not None and str(status).lower() == "skipped")
             and not kwargs.get("is_skipped_an_issue")
         ):
             issue_payload = {"issue_type": "NOT_ISSUE"}
@@ -482,7 +542,7 @@ class ItemFinishRequest(RPRequestBase):
 
         :return: JSON representation in the form of a Dictionary
         """
-        return ItemFinishRequest._create_request(**self.__dict__)
+        return self._create_request(**self.__dict__)
 
 
 class AsyncItemFinishRequest(ItemFinishRequest):
@@ -503,7 +563,26 @@ class AsyncItemFinishRequest(ItemFinishRequest):
         """
         data = self.__dict__.copy()
         data["launch_uuid"] = await await_if_necessary(data.pop("launch_uuid"))
-        return ItemFinishRequest._create_request(**data)
+        return self._create_request(**data)
+
+
+@dataclass(frozen=True)
+class ItemUpdateRequest(RPRequestBase):
+    """ReportPortal update test item request model."""
+
+    attributes: Optional[Union[list, dict]] = None
+    description: Optional[str] = None
+
+    @property
+    def payload(self) -> dict:
+        """Get HTTP payload for the request.
+
+        :return: JSON representation in the form of a Dictionary
+        """
+        return {
+            "description": self._sanitize_field(self.description, self.item_description_length_limit),
+            "attributes": self._truncate_attributes(self.attributes),
+        }
 
 
 @dataclass(frozen=True)
@@ -590,25 +669,16 @@ class AsyncRPRequestLog(RPRequestLog):
         return RPRequestLog._multipart_size(await self.payload, self.file)
 
 
+@dataclass(frozen=True)
 class RPLogBatch(RPRequestBase):
     """ReportPortal log save batches with attachments request model.
 
     https://github.com/reportportal/documentation/blob/master/src/md/src/DevGuides/reporting.md#batch-save-logs
     """
 
-    default_content: str
     log_reqs: list[Union[RPRequestLog, AsyncRPRequestLog]]
-    priority: Priority
-
-    def __init__(self, log_reqs: list[Union[RPRequestLog, AsyncRPRequestLog]]) -> None:
-        """Initialize instance attributes.
-
-        :param log_reqs:
-        """
-        super().__init__()
-        self.default_content = "application/octet-stream"
-        self.log_reqs = log_reqs
-        self.priority = cast(Priority, LOW_PRIORITY)
+    default_content: str = "application/octet-stream"
+    priority: Priority = cast(Priority, LOW_PRIORITY)
 
     def __get_file(self, rp_file) -> tuple[str, tuple]:
         """Form a tuple for the single file."""

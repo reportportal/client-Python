@@ -66,42 +66,6 @@ def test_get_launch_sys_attrs_docker():
     "attributes, expected_attributes",
     [
         (
-            {"tn": "v" * 129},
-            [
-                {
-                    "key": "tn",
-                    "value": "v" * (ATTRIBUTE_LENGTH_LIMIT - len(TRUNCATE_REPLACEMENT)) + TRUNCATE_REPLACEMENT,
-                }
-            ],
-        ),
-        ({"tn": "v" * 128}, [{"key": "tn", "value": "v" * 128}]),
-        (
-            {"k" * 129: "v"},
-            [{"key": "k" * (ATTRIBUTE_LENGTH_LIMIT - len(TRUNCATE_REPLACEMENT)) + TRUNCATE_REPLACEMENT, "value": "v"}],
-        ),
-        ({"k" * 128: "v"}, [{"key": "k" * 128, "value": "v"}]),
-        ({"tn": "v" * 128, "system": True}, [{"key": "tn", "value": "v" * 128, "system": True}]),
-        (
-            {"tn": "v" * 129, "system": True},
-            [
-                {
-                    "key": "tn",
-                    "value": "v" * (ATTRIBUTE_LENGTH_LIMIT - len(TRUNCATE_REPLACEMENT)) + TRUNCATE_REPLACEMENT,
-                    "system": True,
-                }
-            ],
-        ),
-        (
-            {"k" * 129: "v", "system": False},
-            [
-                {
-                    "key": "k" * (ATTRIBUTE_LENGTH_LIMIT - len(TRUNCATE_REPLACEMENT)) + TRUNCATE_REPLACEMENT,
-                    "value": "v",
-                    "system": False,
-                }
-            ],
-        ),
-        (
             [{"key": "tn", "value": "v" * 129}],
             [
                 {
@@ -114,11 +78,32 @@ def test_get_launch_sys_attrs_docker():
             [{"key": "k" * 129, "value": "v"}],
             [{"key": "k" * (ATTRIBUTE_LENGTH_LIMIT - len(TRUNCATE_REPLACEMENT)) + TRUNCATE_REPLACEMENT, "value": "v"}],
         ),
+        (
+            [{"key": "k" * 129, "value": "v", "system": False}],
+            [
+                {
+                    "key": "k" * (ATTRIBUTE_LENGTH_LIMIT - len(TRUNCATE_REPLACEMENT)) + TRUNCATE_REPLACEMENT,
+                    "value": "v",
+                    "system": False,
+                }
+            ],
+        ),
+        (
+            [{"system": True, "key": "tn", "value": "v" * 129}],
+            [
+                {
+                    "key": "tn",
+                    "value": "v" * (ATTRIBUTE_LENGTH_LIMIT - len(TRUNCATE_REPLACEMENT)) + TRUNCATE_REPLACEMENT,
+                    "system": True,
+                }
+            ],
+        ),
     ],
 )
 def test_verify_value_length(attributes, expected_attributes):
     """Test for validate verify_value_length() function."""
     result = verify_value_length(attributes)
+    assert result is not None
     assert len(result) == len(expected_attributes)
     for i, element in enumerate(result):
         expected = expected_attributes[i]
