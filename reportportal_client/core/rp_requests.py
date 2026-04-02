@@ -262,7 +262,7 @@ class ErrorPrintingAsyncHttpRequest(AsyncHttpRequest):
             return None
 
 
-@dataclass(frozen=True, kw_only=True)
+@dataclass(frozen=True)
 class RPRequestBase(metaclass=AbstractBaseClass):
     """Base class for specific ReportPortal request models.
 
