@@ -37,6 +37,7 @@ except ImportError:
 logger: logging.Logger = logging.getLogger(__name__)
 _T = TypeVar("_T")
 ATTRIBUTE_LENGTH_LIMIT: int = 128
+ATTRIBUTE_NUMBER_LIMIT: int = 256
 TRUNCATE_REPLACEMENT: str = "..."
 LAUNCH_NAME_LENGTH_LIMIT: int = 256
 ITEM_NAME_LENGTH_LIMIT: int = 1024

@@ -148,7 +148,16 @@ def test_logs_flush_on_close(batched_client: ThreadedRPClient):
     # noinspection PyTypeChecker
     client: mock.Mock = batched_client.client
     batcher: mock.Mock = mock.Mock()
-    batcher.flush.return_value = [AsyncRPRequestLog("test_launch_uuid", timestamp(), message="test_message")]
+    batcher.flush.return_value = [
+        AsyncRPRequestLog(
+            truncate_attributes_enabled=None,
+            truncate_fields_enabled=None,
+            replace_binary_characters=None,
+            launch_uuid="test_launch_uuid",
+            time=timestamp(),
+            message="test_message",
+        )
+    ]
     batched_client._log_batcher = batcher
 
     batched_client.close()

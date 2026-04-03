@@ -3,6 +3,7 @@
 from reportportal_client.helpers import markdown_helpers
 from reportportal_client.helpers.common_helpers import (
     ATTRIBUTE_LENGTH_LIMIT,
+    ATTRIBUTE_NUMBER_LIMIT,
     CONTENT_TYPE_TO_EXTENSIONS,
     ITEM_DESCRIPTION_LENGTH_LIMIT,
     ITEM_NAME_LENGTH_LIMIT,
@@ -40,6 +41,7 @@ from reportportal_client.helpers.common_helpers import (
 __all__ = [
     "markdown_helpers",
     "ATTRIBUTE_LENGTH_LIMIT",
+    "ATTRIBUTE_NUMBER_LIMIT",
     "LAUNCH_DESCRIPTION_LENGTH_LIMIT",
     "ITEM_DESCRIPTION_LENGTH_LIMIT",
     "LAUNCH_NAME_LENGTH_LIMIT",

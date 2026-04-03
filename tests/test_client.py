@@ -262,9 +262,7 @@ def test_attribute_truncation(rp_client: RPClient, method, call_method, argument
     if method != "start_launch":
         rp_client._RPClient__launch_uuid = "test_launch_id"
 
-    getattr(rp_client, method)(
-        *arguments, **{"attributes": {"k" * 140: "v" * 140}}
-    )
+    getattr(rp_client, method)(*arguments, **{"attributes": {"k" * 140: "v" * 140}})
     getattr(session, call_method).assert_called_once()
     kwargs = getattr(session, call_method).call_args_list[0][1]
     assert "attributes" in kwargs["json"]
@@ -327,7 +325,16 @@ def test_logs_flush_on_close(rp_client: RPClient):
     # noinspection PyTypeChecker
     session: mock.Mock = rp_client.session
     batcher: mock.Mock = mock.Mock()
-    batcher.flush.return_value = [RPRequestLog("test_launch_uuid", timestamp(), message="test_message")]
+    batcher.flush.return_value = [
+        RPRequestLog(
+            truncate_attributes_enabled=None,
+            truncate_fields_enabled=None,
+            replace_binary_characters=None,
+            launch_uuid="test_launch_uuid",
+            time=timestamp(),
+            message="test_message",
+        )
+    ]
     rp_client._log_batcher = batcher
 
     rp_client.close()

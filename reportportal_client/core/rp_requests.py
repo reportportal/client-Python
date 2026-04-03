@@ -36,7 +36,7 @@ from reportportal_client import helpers
 from reportportal_client._internal.static.abstract import AbstractBaseClass, abstractmethod
 
 # noinspection PyProtectedMember
-from reportportal_client._internal.static.defines import DEFAULT_PRIORITY, LOW_PRIORITY, RP_LOG_LEVELS, Priority
+from reportportal_client._internal.static.defines import DEFAULT_LOG_LEVEL, DEFAULT_PRIORITY, LOW_PRIORITY, Priority
 from reportportal_client.core.rp_file import RPFile
 from reportportal_client.core.rp_issues import Issue
 from reportportal_client.core.rp_responses import AsyncRPResponse, RPResponse
@@ -270,28 +270,33 @@ class RPRequestBase(metaclass=AbstractBaseClass):
     """
 
     __metaclass__ = AbstractBaseClass
-    truncate_attributes_enabled: bool = True
-    truncate_fields_enabled: bool = True
-    replace_binary_characters: bool = True
-    attribute_length_limit: int = helpers.ATTRIBUTE_LENGTH_LIMIT
-    attribute_number_limit: int = 256
-    launch_name_length_limit: int = helpers.LAUNCH_NAME_LENGTH_LIMIT
-    item_name_length_limit: int = helpers.ITEM_NAME_LENGTH_LIMIT
-    launch_description_length_limit: int = helpers.LAUNCH_DESCRIPTION_LENGTH_LIMIT
-    item_description_length_limit: int = helpers.ITEM_DESCRIPTION_LENGTH_LIMIT
-    truncate_replacement: str = helpers.TRUNCATE_REPLACEMENT
+    truncate_attributes_enabled: Optional[bool]
+    truncate_fields_enabled: Optional[bool]
+    replace_binary_characters: Optional[bool]
+
+    @property
+    def _truncate_attributes_enabled(self) -> bool:
+        return self.truncate_attributes_enabled is not False
+
+    @property
+    def _truncate_fields_enabled(self) -> bool:
+        return self.truncate_fields_enabled is not False
+
+    @property
+    def _replace_binary_characters_enabled(self) -> bool:
+        return self.replace_binary_characters is not False
 
     def _sanitize_field(self, value: Optional[str], limit: int) -> Optional[str]:
         if not value:
             return value
 
         sanitized_value = value
-        if self.replace_binary_characters:
+        if self._replace_binary_characters_enabled:
             sanitized_value = clean_binary_characters(sanitized_value)
             if not sanitized_value:
                 return value
 
-        if not self.truncate_fields_enabled:
+        if not self._truncate_fields_enabled:
             return sanitized_value
 
         effective_limit = max(0, limit)
@@ -299,9 +304,9 @@ class RPRequestBase(metaclass=AbstractBaseClass):
             return sanitized_value
         if effective_limit == 0:
             return ""
-        if effective_limit <= len(self.truncate_replacement):
+        if effective_limit <= len(helpers.TRUNCATE_REPLACEMENT):
             return sanitized_value[:effective_limit]
-        return sanitized_value[: effective_limit - len(self.truncate_replacement)] + self.truncate_replacement
+        return sanitized_value[: effective_limit - len(helpers.TRUNCATE_REPLACEMENT)] + helpers.TRUNCATE_REPLACEMENT
 
     def _truncate_attributes(self, attributes: Optional[Union[list, dict]]) -> Optional[list[dict[str, Any]]]:
         if attributes is None:
@@ -318,12 +323,12 @@ class RPRequestBase(metaclass=AbstractBaseClass):
         if len(normalized_attributes) == 0:
             return []
 
-        if len(normalized_attributes) > self.attribute_number_limit:
+        if len(normalized_attributes) > helpers.ATTRIBUTE_NUMBER_LIMIT:
             normalized_attributes = sorted(normalized_attributes, key=lambda attr: str(attr.get("key", "")))[
-                : self.attribute_number_limit
+                : helpers.ATTRIBUTE_NUMBER_LIMIT
             ]
 
-        if self.replace_binary_characters:
+        if self._replace_binary_characters_enabled:
             for attribute in normalized_attributes:
                 key = attribute.get("key")
                 value = attribute.get("value")
@@ -332,7 +337,7 @@ class RPRequestBase(metaclass=AbstractBaseClass):
                 if value is not None:
                     attribute["value"] = clean_binary_characters(str(value))
 
-        if not self.truncate_attributes_enabled:
+        if not self._truncate_attributes_enabled:
             return normalized_attributes
 
         return verify_value_length(normalized_attributes)
@@ -369,11 +374,11 @@ class LaunchStartRequest(RPRequestBase):
 
         :return: JSON representation in the form of a Dictionary
         """
-        my_name = self._sanitize_field(self.name, self.launch_name_length_limit)
+        my_name = self._sanitize_field(self.name, helpers.LAUNCH_NAME_LENGTH_LIMIT)
         my_attributes = self._truncate_attributes(self.attributes)
         result = {
             "attributes": my_attributes,
-            "description": self._sanitize_field(self.description, self.launch_description_length_limit),
+            "description": self._sanitize_field(self.description, helpers.LAUNCH_DESCRIPTION_LENGTH_LIMIT),
             "mode": self.mode,
             "name": my_name,
             "rerun": self.rerun,
@@ -406,7 +411,7 @@ class LaunchFinishRequest(RPRequestBase):
         my_attributes = self._truncate_attributes(self.attributes)
         return {
             "attributes": my_attributes,
-            "description": self._sanitize_field(self.description, self.launch_description_length_limit),
+            "description": self._sanitize_field(self.description, helpers.LAUNCH_DESCRIPTION_LENGTH_LIMIT),
             "endTime": self.end_time,
             "status": self.status,
         }
@@ -434,10 +439,10 @@ class ItemStartRequest(RPRequestBase):
     uuid: Optional[str]
 
     def _create_request(self, **kwargs) -> dict:
-        name = self._sanitize_field(kwargs.get("name"), self.item_name_length_limit)
+        name = self._sanitize_field(kwargs.get("name"), helpers.ITEM_NAME_LENGTH_LIMIT)
         request = {
             "codeRef": kwargs.get("code_ref"),
-            "description": self._sanitize_field(kwargs.get("description"), self.item_description_length_limit),
+            "description": self._sanitize_field(kwargs.get("description"), helpers.ITEM_DESCRIPTION_LENGTH_LIMIT),
             "hasStats": kwargs.get("has_stats"),
             "name": name,
             "retry": kwargs.get("retry"),
@@ -511,7 +516,7 @@ class ItemFinishRequest(RPRequestBase):
 
     def _create_request(self, **kwargs) -> dict:
         request = {
-            "description": self._sanitize_field(kwargs.get("description"), self.item_description_length_limit),
+            "description": self._sanitize_field(kwargs.get("description"), helpers.ITEM_DESCRIPTION_LENGTH_LIMIT),
             "endTime": kwargs["end_time"],
             "launchUuid": kwargs["launch_uuid"],
             "status": kwargs.get("status"),
@@ -580,7 +585,7 @@ class ItemUpdateRequest(RPRequestBase):
         :return: JSON representation in the form of a Dictionary
         """
         return {
-            "description": self._sanitize_field(self.description, self.item_description_length_limit),
+            "description": self._sanitize_field(self.description, helpers.ITEM_DESCRIPTION_LENGTH_LIMIT),
             "attributes": self._truncate_attributes(self.attributes),
         }
 
@@ -596,7 +601,7 @@ class RPRequestLog(RPRequestBase):
     time: str
     file: Optional[RPFile] = None
     item_uuid: Optional[Any] = None
-    level: str = RP_LOG_LEVELS[40000]
+    level: str = DEFAULT_LOG_LEVEL
     message: Optional[str] = None
 
     @staticmethod

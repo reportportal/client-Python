@@ -14,7 +14,13 @@ from reportportal_client.helpers import (
 
 def test_launch_name_truncated_in_payload():
     launch_name = "n" * (LAUNCH_NAME_LENGTH_LIMIT + 20)
-    payload = LaunchStartRequest(name=launch_name, start_time="0").payload
+    payload = LaunchStartRequest(
+        truncate_attributes_enabled=None,
+        truncate_fields_enabled=None,
+        replace_binary_characters=None,
+        name=launch_name,
+        start_time="0",
+    ).payload
     assert len(payload["name"]) == LAUNCH_NAME_LENGTH_LIMIT
     assert payload["name"].endswith("...")
 
@@ -22,10 +28,13 @@ def test_launch_name_truncated_in_payload():
 def test_item_name_cleaned_and_truncated_in_payload():
     item_name = "bad\x00name" + ("n" * ITEM_NAME_LENGTH_LIMIT)
     payload = ItemStartRequest(
-        item_name,
-        "0",
-        "SUITE",
-        "launch_uuid",
+        truncate_attributes_enabled=None,
+        truncate_fields_enabled=None,
+        replace_binary_characters=None,
+        name=item_name,
+        start_time="0",
+        type_="SUITE",
+        launch_uuid="launch_uuid",
         attributes=None,
         code_ref=None,
         description=None,
@@ -42,7 +51,14 @@ def test_item_name_cleaned_and_truncated_in_payload():
 
 def test_launch_description_cleaned_and_truncated_in_payload():
     launch_description = "bad\x00description" + ("d" * LAUNCH_DESCRIPTION_LENGTH_LIMIT)
-    payload = LaunchStartRequest(name="launch", start_time="0", description=launch_description).payload
+    payload = LaunchStartRequest(
+        truncate_attributes_enabled=None,
+        truncate_fields_enabled=None,
+        replace_binary_characters=None,
+        name="launch",
+        start_time="0",
+        description=launch_description,
+    ).payload
     assert "\x00" not in payload["description"]
     assert len(payload["description"]) == LAUNCH_DESCRIPTION_LENGTH_LIMIT
     assert payload["description"].endswith("...")
@@ -51,10 +67,13 @@ def test_launch_description_cleaned_and_truncated_in_payload():
 def test_item_description_cleaned_and_truncated_in_payload():
     item_description = "bad\x00description" + ("d" * ITEM_DESCRIPTION_LENGTH_LIMIT)
     payload = ItemStartRequest(
-        "item",
-        "0",
-        "SUITE",
-        "launch_uuid",
+        truncate_attributes_enabled=None,
+        truncate_fields_enabled=None,
+        replace_binary_characters=None,
+        name="item",
+        start_time="0",
+        type_="SUITE",
+        launch_uuid="launch_uuid",
         attributes=None,
         code_ref=None,
         description=item_description,
@@ -72,10 +91,16 @@ def test_item_description_cleaned_and_truncated_in_payload():
 
 def test_finish_requests_truncate_description():
     launch_finish_payload = LaunchFinishRequest(
+        truncate_attributes_enabled=None,
+        truncate_fields_enabled=None,
+        replace_binary_characters=None,
         end_time="0",
         description="d" * (LAUNCH_DESCRIPTION_LENGTH_LIMIT + 10),
     ).payload
     item_finish_payload = ItemFinishRequest(
+        truncate_attributes_enabled=None,
+        truncate_fields_enabled=None,
+        replace_binary_characters=None,
         end_time="0",
         launch_uuid="launch_uuid",
         status="PASSED",

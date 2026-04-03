@@ -54,6 +54,7 @@ from reportportal_client._internal.services.statistics import async_send_event
 
 # noinspection PyProtectedMember
 from reportportal_client._internal.static.abstract import AbstractBaseClass, abstractmethod
+from reportportal_client._internal.static.defines import DEFAULT_LOG_LEVEL
 
 # noinspection PyProtectedMember
 from reportportal_client.aio.tasks import Task
@@ -375,8 +376,6 @@ class Client:
             truncate_attributes_enabled=self.truncate_attributes,
             truncate_fields_enabled=self.truncate_fields,
             replace_binary_characters=self.replace_binary_chars,
-            launch_name_length_limit=self.launch_name_length_limit,
-            launch_description_length_limit=self.launch_description_length_limit,
             description=description,
             mode=self.mode,
             rerun=rerun,
@@ -445,16 +444,14 @@ class Client:
         else:
             url = root_uri_join(self.base_url_v2, "item")
         request_payload = AsyncItemStartRequest(
-            name,
-            start_time,
-            item_type,
-            launch_uuid,
+            name=name,
+            start_time=start_time,
+            type_=item_type,
+            launch_uuid=launch_uuid,
             attributes=attributes,
             truncate_attributes_enabled=self.truncate_attributes,
             truncate_fields_enabled=self.truncate_fields,
             replace_binary_characters=self.replace_binary_chars,
-            item_name_length_limit=self.item_name_length_limit,
-            item_description_length_limit=self.item_description_length_limit,
             code_ref=code_ref,
             description=description,
             has_stats=has_stats,
@@ -511,14 +508,13 @@ class Client:
         """
         url = self.__get_item_url(item_id)
         request_payload = AsyncItemFinishRequest(
-            end_time,
-            launch_uuid,
-            status,
+            end_time=end_time,
+            launch_uuid=launch_uuid,
+            status=status,
             attributes=attributes,
             truncate_attributes_enabled=self.truncate_attributes,
             truncate_fields_enabled=self.truncate_fields,
             replace_binary_characters=self.replace_binary_chars,
-            item_description_length_limit=self.item_description_length_limit,
             description=description,
             test_case_id=test_case_id,
             is_skipped_an_issue=self.is_skipped_an_issue,
@@ -556,13 +552,12 @@ class Client:
         """
         url = self.__get_launch_url(launch_uuid)
         request_payload = LaunchFinishRequest(
-            end_time,
+            end_time=end_time,
             status=status,
             attributes=attributes,
             truncate_attributes_enabled=self.truncate_attributes,
             truncate_fields_enabled=self.truncate_fields,
             replace_binary_characters=self.replace_binary_chars,
-            launch_description_length_limit=self.launch_description_length_limit,
             description=kwargs.get("description"),
         ).payload
         response = await AsyncHttpRequest(
@@ -593,7 +588,6 @@ class Client:
             truncate_attributes_enabled=self.truncate_attributes,
             truncate_fields_enabled=self.truncate_fields,
             replace_binary_characters=self.replace_binary_chars,
-            item_description_length_limit=self.item_description_length_limit,
         ).payload
         item_id = await self.get_item_id_by_uuid(item_uuid)
         url = root_uri_join(self.base_url_v1, "item", item_id, "update")
@@ -699,7 +693,15 @@ class Client:
 
         url = root_uri_join(self.base_url_v2, "log")
         response = await ErrorPrintingAsyncHttpRequest(
-            (await self.session()).post, url=url, data=AsyncRPLogBatch(log_batch).payload, name="log"
+            (await self.session()).post,
+            url=url,
+            data=AsyncRPLogBatch(
+                truncate_attributes_enabled=None,
+                truncate_fields_enabled=None,
+                replace_binary_characters=None,
+                log_reqs=log_batch,
+            ).payload,
+            name="log",
         ).make()
         return await response.messages if response else None
 
@@ -1126,8 +1128,19 @@ class AsyncRPClient(RP):
         :param item_id:    UUID of the ReportPortal Item the message belongs to.
         :return:           Response message Tuple if Log message batch was sent or None.
         """
+        rp_level = str(level) if level else DEFAULT_LOG_LEVEL
         rp_file = RPFile(**attachment) if attachment else None
-        rp_log = AsyncRPRequestLog(self.__launch_uuid, time, rp_file, item_id, level, message)
+        rp_log = AsyncRPRequestLog(
+            truncate_attributes_enabled=None,
+            truncate_fields_enabled=None,
+            replace_binary_characters=None,
+            launch_uuid=self.__launch_uuid,
+            time=time,
+            file=rp_file,
+            item_uuid=item_id,
+            level=rp_level,
+            message=message,
+        )
         return await self.__client.log_batch(await self._log_batcher.append_async(rp_log))
 
     def clone(self) -> "AsyncRPClient":
@@ -1577,8 +1590,19 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
         :param item_id:    UUID of the ReportPortal Item the message belongs to.
         :return:           Response message Tuple if Log message batch was sent or None.
         """
+        rp_level = str(level) if level else DEFAULT_LOG_LEVEL
         rp_file = RPFile(**attachment) if attachment else None
-        rp_log = AsyncRPRequestLog(self.launch_uuid, time, rp_file, item_id, level, message)
+        rp_log = AsyncRPRequestLog(
+            truncate_attributes_enabled=None,
+            truncate_fields_enabled=None,
+            replace_binary_characters=None,
+            launch_uuid=self.launch_uuid,
+            time=time,
+            file=rp_file,
+            item_uuid=item_id,
+            level=rp_level,
+            message=message,
+        )
         return self.create_task(self._log(rp_log))
 
     def close(self) -> None:

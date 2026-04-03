@@ -31,8 +31,20 @@ def test_worker_continue_working_on_request_error():
     worker = APIWorker(test_queue)
     worker.start()
 
-    log_request = RPRequestLog(TEST_LAUNCH_UUID, timestamp(), message=TEST_MASSAGE)
-    log_batch = RPLogBatch([log_request])
+    log_request = RPRequestLog(
+        truncate_attributes_enabled=None,
+        truncate_fields_enabled=None,
+        replace_binary_characters=None,
+        launch_uuid=TEST_LAUNCH_UUID,
+        time=timestamp(),
+        message=TEST_MASSAGE,
+    )
+    log_batch = RPLogBatch(
+        truncate_attributes_enabled=None,
+        truncate_fields_enabled=None,
+        replace_binary_characters=None,
+        log_reqs=[log_request],
+    )
 
     fail_session = mock.Mock()
     fail_session.side_effect = Exception()

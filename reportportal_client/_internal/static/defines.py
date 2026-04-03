@@ -26,6 +26,7 @@ RP_LOG_LEVELS = {
     10000: "DEBUG",
     5000: "TRACE",
 }
+DEFAULT_LOG_LEVEL = RP_LOG_LEVELS[40000]
 
 
 class _PresenceSentinel:

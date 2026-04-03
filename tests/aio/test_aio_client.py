@@ -565,7 +565,22 @@ def request_error(*_, **__):
         ("get", "get_launch_ui_id", ["launch_uuid"]),
         ("get", "get_launch_ui_url", ["launch_uuid"]),
         ("get", "get_project_settings", []),
-        ("post", "log_batch", [[AsyncRPRequestLog("launch_uuid", timestamp(), item_uuid="test_item_uuid")]]),
+        (
+            "post",
+            "log_batch",
+            [
+                [
+                    AsyncRPRequestLog(
+                        truncate_attributes_enabled=None,
+                        truncate_fields_enabled=None,
+                        replace_binary_characters=None,
+                        launch_uuid="launch_uuid",
+                        time=timestamp(),
+                        item_uuid="test_item_uuid",
+                    )
+                ]
+            ],
+        ),
     ],
 )
 @pytest.mark.asyncio

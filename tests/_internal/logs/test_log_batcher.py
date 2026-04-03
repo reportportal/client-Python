@@ -37,6 +37,9 @@ def test_log_batch_send_by_length():
     for i in range(TEST_BATCH_SIZE):
         result = log_batcher.append(
             RPRequestLog(
+                truncate_attributes_enabled=None,
+                truncate_fields_enabled=None,
+                replace_binary_characters=None,
                 launch_uuid=TEST_LAUNCH_ID,
                 time=helpers.timestamp(),
                 message=TEST_MASSAGE,
@@ -60,6 +63,9 @@ def test_log_batch_send_by_flush():
     for _ in range(TEST_BATCH_SIZE - 1):
         log_batcher.append(
             RPRequestLog(
+                truncate_attributes_enabled=None,
+                truncate_fields_enabled=None,
+                replace_binary_characters=None,
                 launch_uuid=TEST_LAUNCH_ID,
                 time=helpers.timestamp(),
                 message=TEST_MASSAGE,
@@ -80,6 +86,9 @@ def test_log_batch_send_by_size():
     random_byte_array = bytearray(os.urandom(MAX_LOG_BATCH_PAYLOAD_SIZE))
     binary_result = log_batcher.append(
         RPRequestLog(
+            truncate_attributes_enabled=None,
+            truncate_fields_enabled=None,
+            replace_binary_characters=None,
             launch_uuid=TEST_LAUNCH_ID,
             time=helpers.timestamp(),
             message=TEST_MASSAGE,
@@ -90,6 +99,9 @@ def test_log_batch_send_by_size():
     )
     message_result = log_batcher.append(
         RPRequestLog(
+            truncate_attributes_enabled=None,
+            truncate_fields_enabled=None,
+            replace_binary_characters=None,
             launch_uuid=TEST_LAUNCH_ID,
             time=helpers.timestamp(),
             message=TEST_MASSAGE,
@@ -113,6 +125,9 @@ def test_log_batch_triggers_previous_request_to_send():
 
     message_result = log_batcher.append(
         RPRequestLog(
+            truncate_attributes_enabled=None,
+            truncate_fields_enabled=None,
+            replace_binary_characters=None,
             launch_uuid=TEST_LAUNCH_ID,
             time=helpers.timestamp(),
             message=TEST_MASSAGE,
@@ -123,6 +138,9 @@ def test_log_batch_triggers_previous_request_to_send():
 
     binary_result = log_batcher.append(
         RPRequestLog(
+            truncate_attributes_enabled=None,
+            truncate_fields_enabled=None,
+            replace_binary_characters=None,
             launch_uuid=TEST_LAUNCH_ID,
             time=helpers.timestamp(),
             message=TEST_MASSAGE,

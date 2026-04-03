@@ -665,8 +665,6 @@ class RPClient(RP):
             truncate_attributes_enabled=self.truncate_attributes,
             truncate_fields_enabled=self.truncate_fields,
             replace_binary_characters=self.replace_binary_chars,
-            launch_name_length_limit=self.launch_name_length_limit,
-            launch_description_length_limit=self.launch_description_length_limit,
             description=description,
             mode=self.mode,
             rerun=rerun,
@@ -735,16 +733,14 @@ class RPClient(RP):
         else:
             url = uri_join(self.base_url_v2, "item")
         request_payload = ItemStartRequest(
-            name,
-            start_time,
-            item_type,
-            self.__launch_uuid,
+            name=name,
+            start_time=start_time,
+            type_=item_type,
+            launch_uuid=self.__launch_uuid,
             attributes=attributes,
             truncate_attributes_enabled=self.truncate_attributes,
             truncate_fields_enabled=self.truncate_fields,
             replace_binary_characters=self.replace_binary_chars,
-            item_name_length_limit=self.item_name_length_limit,
-            item_description_length_limit=self.item_description_length_limit,
             code_ref=code_ref,
             description=description,
             has_stats=has_stats,
@@ -807,14 +803,13 @@ class RPClient(RP):
             return None
         url = uri_join(self.base_url_v2, "item", item_id)
         request_payload = ItemFinishRequest(
-            end_time,
-            self.__launch_uuid,
-            status,
+            end_time=end_time,
+            launch_uuid=self.__launch_uuid,
+            status=status,
             attributes=attributes,
             truncate_attributes_enabled=self.truncate_attributes,
             truncate_fields_enabled=self.truncate_fields,
             replace_binary_characters=self.replace_binary_chars,
-            item_description_length_limit=self.item_description_length_limit,
             description=description,
             is_skipped_an_issue=self.is_skipped_an_issue,
             issue=issue,
@@ -857,13 +852,12 @@ class RPClient(RP):
                 return None
             url = uri_join(self.base_url_v2, "launch", self.__launch_uuid, "finish")
             request_payload = LaunchFinishRequest(
-                end_time,
+                end_time=end_time,
                 status=status,
                 attributes=attributes,
                 truncate_attributes_enabled=self.truncate_attributes,
                 truncate_fields_enabled=self.truncate_fields,
                 replace_binary_characters=self.replace_binary_chars,
-                launch_description_length_limit=self.launch_description_length_limit,
                 description=kwargs.get("description"),
             ).payload
             response = HttpRequest(
@@ -902,7 +896,6 @@ class RPClient(RP):
             truncate_attributes_enabled=self.truncate_attributes,
             truncate_fields_enabled=self.truncate_fields,
             replace_binary_characters=self.replace_binary_chars,
-            item_description_length_limit=self.item_description_length_limit,
         ).payload
         item_id = self.get_item_id_by_uuid(item_uuid)
         if not item_id:
@@ -929,7 +922,12 @@ class RPClient(RP):
         response = ErrorPrintingHttpRequest(
             self.session.post,
             url,
-            files=RPLogBatch(batch).payload,
+            files=RPLogBatch(
+                truncate_attributes_enabled=None,
+                truncate_fields_enabled=None,
+                replace_binary_characters=None,
+                log_reqs=batch,
+            ).payload,
             verify_ssl=self.verify_ssl,
             http_timeout=self.http_timeout,
             name="log",
@@ -957,7 +955,17 @@ class RPClient(RP):
         :return:           Response message Tuple if Log message batch was sent or None.
         """
         rp_file = RPFile(**attachment) if attachment else None
-        rp_log = RPRequestLog(self.__launch_uuid, time, rp_file, item_id, str(level), message)
+        rp_log = RPRequestLog(
+            truncate_attributes_enabled=None,
+            truncate_fields_enabled=None,
+            replace_binary_characters=None,
+            launch_uuid=self.__launch_uuid,
+            time=time,
+            file=rp_file,
+            item_uuid=item_id,
+            level=str(level),
+            message=message,
+        )
         return self._log(self._log_batcher.append(rp_log))
 
     def get_item_id_by_uuid(self, item_uuid: str) -> Optional[str]:
