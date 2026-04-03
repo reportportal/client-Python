@@ -260,7 +260,6 @@ def verify_value_length(attributes: list[dict]) -> Optional[list[dict]]:
     :param attributes: List of attributes(tags)
     :return:           List of attributes with corrected value length
     """
-
     result = []
     for pair in attributes:
         if not isinstance(pair, dict):
