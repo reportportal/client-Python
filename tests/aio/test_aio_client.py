@@ -30,7 +30,6 @@ from reportportal_client import OutputType
 from reportportal_client._internal.aio.http import DEFAULT_RETRY_NUMBER, ClientSession, RetryingClientSession
 
 # noinspection PyProtectedMember
-from reportportal_client._internal.static.defines import NOT_SET
 from reportportal_client.aio.client import Client
 from reportportal_client.core.rp_issues import Issue
 from reportportal_client.core.rp_requests import AsyncRPRequestLog
@@ -58,10 +57,10 @@ def test_client_pickling():
     "retry_num, expected_wrapped_class, expected_param",
     [
         (1, RetryingClientSession, 1),
-        (0, aiohttp.ClientSession, NOT_SET),
-        (-1, aiohttp.ClientSession, NOT_SET),
-        (None, aiohttp.ClientSession, NOT_SET),
-        (NOT_SET, RetryingClientSession, DEFAULT_RETRY_NUMBER),
+        (0, aiohttp.ClientSession, -1),
+        (-2, aiohttp.ClientSession, -1),
+        (None, aiohttp.ClientSession, -1),
+        (-1, RetryingClientSession, DEFAULT_RETRY_NUMBER),
     ],
 )
 @pytest.mark.asyncio
@@ -73,7 +72,7 @@ async def test_retries_param(retry_num, expected_wrapped_class, expected_param):
     # Check the wrapped session type
     # noinspection PyProtectedMember
     assert isinstance(session._client, expected_wrapped_class)
-    if expected_param is not NOT_SET:
+    if expected_param != -1:
         # noinspection PyProtectedMember
         assert getattr(session._client, "_RetryingClientSession__retry_number") == expected_param
 
@@ -566,7 +565,22 @@ def request_error(*_, **__):
         ("get", "get_launch_ui_id", ["launch_uuid"]),
         ("get", "get_launch_ui_url", ["launch_uuid"]),
         ("get", "get_project_settings", []),
-        ("post", "log_batch", [[AsyncRPRequestLog("launch_uuid", timestamp(), item_uuid="test_item_uuid")]]),
+        (
+            "post",
+            "log_batch",
+            [
+                [
+                    AsyncRPRequestLog(
+                        truncate_attributes_enabled=None,
+                        truncate_fields_enabled=None,
+                        replace_binary_characters=None,
+                        launch_uuid="launch_uuid",
+                        time=timestamp(),
+                        item_uuid="test_item_uuid",
+                    )
+                ]
+            ],
+        ),
     ],
 )
 @pytest.mark.asyncio

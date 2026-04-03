@@ -37,7 +37,7 @@ def _get_client_info() -> tuple[str, str]:
     :return: ('reportportal-client', '5.0.4')
     """
     name, version = get_package_parameters("reportportal-client", ["name", "version"])
-    return name, version
+    return name or "None", version or "None"
 
 
 def _get_platform_info() -> str:

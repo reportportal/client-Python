@@ -14,9 +14,15 @@
 """This module contains customized asynchronous Tasks and Task Factories for the ReportPortal client."""
 
 import asyncio
+import sys
 from abc import abstractmethod
 from asyncio import Future
-from typing import Awaitable, Generator, Generic, Optional, TypeVar, Union
+from typing import Any, Coroutine, Generator, Generic, Optional, TypeVar, Union
+
+if sys.version_info >= (3, 10):
+    from typing import TypeAlias
+else:
+    from typing_extensions import TypeAlias
 
 # noinspection PyProtectedMember
 from reportportal_client._internal.static.abstract import AbstractBaseClass
@@ -26,6 +32,12 @@ _T = TypeVar("_T")
 
 class BlockingOperationError(RuntimeError):
     """An issue with task blocking execution."""
+
+
+if sys.version_info >= (3, 12):
+    _TaskCompatibleCoro: TypeAlias = Coroutine[Any, Any, Any]
+else:
+    _TaskCompatibleCoro: TypeAlias = Union[Generator[Optional[Future[object]], None, Any], Coroutine[Any, Any, Any]]
 
 
 class Task(Generic[_T], asyncio.Task, metaclass=AbstractBaseClass):
@@ -41,7 +53,7 @@ class Task(Generic[_T], asyncio.Task, metaclass=AbstractBaseClass):
 
     def __init__(
         self,
-        coro: Union[Generator[Future, None, _T], Awaitable[_T]],
+        coro: _TaskCompatibleCoro,
         *,
         loop: asyncio.AbstractEventLoop,
         name: Optional[str] = None,

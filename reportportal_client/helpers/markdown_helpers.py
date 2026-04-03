@@ -1,7 +1,7 @@
 """A set of utility methods for reporting to ReportPortal."""
 
 from itertools import zip_longest
-from typing import Any, Optional
+from typing import Any, Optional, Sequence
 
 MARKDOWN_MODE = "!!!MARKDOWN_MODE!!!"
 NEW_LINE = "\n"
@@ -36,7 +36,7 @@ def as_code(language: Optional[str], script: Optional[str]) -> str:
     return as_markdown(f"```{lang}\n{script}\n```")
 
 
-def calculate_col_sizes(table: list[list[str]]) -> list[int]:
+def calculate_col_sizes(table: list[Sequence[str]]) -> list[int]:
     """Calculate maximum width for each column in the table.
 
     :param table: Table data as list of rows
@@ -66,7 +66,7 @@ def calculate_table_size(col_sizes: list[int]) -> int:
     return col_table_size
 
 
-def transpose_table(table: list[list[Any]]) -> list[list[Any]]:
+def transpose_table(table: list[Sequence[Any]]) -> list[Sequence[Any]]:
     """Transpose table rows into columns.
 
     :param table: Table data as list of rows
@@ -78,7 +78,7 @@ def transpose_table(table: list[list[Any]]) -> list[list[Any]]:
         transposed = table
     else:
         # noinspection PyArgumentList
-        transposed = zip_longest(*table)
+        transposed = list(zip_longest(*table))
     return [list(filter(None, col)) for col in transposed]
 
 
@@ -109,7 +109,7 @@ def adjust_col_sizes(col_sizes: list[int], max_table_size: int) -> list[int]:
     return [size for size, _ in sorted(cols_by_size, key=lambda x: x[1])]
 
 
-def format_data_table(table: list[list[str]], max_table_size: int = MAX_TABLE_SIZE) -> str:
+def format_data_table(table: list[Sequence[str]], max_table_size: int = MAX_TABLE_SIZE) -> str:
     """Convert a table represented as List of Lists to a formatted table string.
 
     :param table: Table data as list of rows

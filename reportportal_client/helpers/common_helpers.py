@@ -24,7 +24,7 @@ import unicodedata
 import uuid
 from platform import machine, processor, system
 from types import MappingProxyType
-from typing import Any, Callable, Generic, Iterable, Optional, TypeVar, Union
+from typing import Any, Callable, Generic, Iterable, Optional, Sized, TypeVar, Union
 
 from reportportal_client.core.rp_file import RPFile
 
@@ -32,12 +32,17 @@ try:
     # noinspection PyPackageRequirements
     import simplejson as json
 except ImportError:
-    import json
+    import json  # type: ignore
 
 logger: logging.Logger = logging.getLogger(__name__)
 _T = TypeVar("_T")
 ATTRIBUTE_LENGTH_LIMIT: int = 128
+ATTRIBUTE_NUMBER_LIMIT: int = 256
 TRUNCATE_REPLACEMENT: str = "..."
+LAUNCH_NAME_LENGTH_LIMIT: int = 256
+ITEM_NAME_LENGTH_LIMIT: int = 1024
+LAUNCH_DESCRIPTION_LENGTH_LIMIT: int = 2048
+ITEM_DESCRIPTION_LENGTH_LIMIT: int = 65536
 BYTES_TO_READ_FOR_DETECTION = 128
 ATTRIBUTE_DELIMITER = ":"
 
@@ -93,7 +98,7 @@ class LifoQueue(Generic[_T]):
                 self.__items = self.__items[:-1]
         return result
 
-    def last(self) -> _T:
+    def last(self) -> Optional[_T]:
         """Return the last element from the queue, but does not remove it.
 
         :return: The last element in the queue.
@@ -186,7 +191,7 @@ def gen_attributes(rp_attributes: Iterable[str]) -> list[dict[str, str]]:
     return attributes
 
 
-def get_launch_sys_attrs() -> dict[str, str]:
+def get_launch_sys_attrs() -> dict[str, Any]:
     """Generate attributes for the launch containing system information.
 
     :return: dict {'os': 'Windows',
@@ -201,14 +206,14 @@ def get_launch_sys_attrs() -> dict[str, str]:
     }
 
 
-def get_package_parameters(package_name: str, parameters: list[str] = None) -> list[Optional[str]]:
+def get_package_parameters(package_name: str, parameters: Optional[list[str]] = None) -> list[Optional[str]]:
     """Get parameters of the given package.
 
     :param package_name: Name of the package.
     :param parameters:   Wanted parameters.
     :return:             Parameter List.
     """
-    result = []
+    result: list[Optional[str]] = []
     if not parameters:
         return result
 
@@ -244,7 +249,7 @@ def truncate_attribute_string(text: str) -> str:
     return text
 
 
-def verify_value_length(attributes: Optional[Union[list[dict], dict]]) -> Optional[list[dict]]:
+def verify_value_length(attributes: list[dict]) -> Optional[list[dict]]:
     """Verify length of the attribute value.
 
     The length of the attribute value should have size from '1' to '128'.
@@ -255,15 +260,8 @@ def verify_value_length(attributes: Optional[Union[list[dict], dict]]) -> Option
     :param attributes: List of attributes(tags)
     :return:           List of attributes with corrected value length
     """
-    if attributes is None:
-        return attributes
-
-    my_attributes = attributes
-    if isinstance(my_attributes, dict):
-        my_attributes = dict_to_payload(my_attributes)
-
     result = []
-    for pair in my_attributes:
+    for pair in attributes:
         if not isinstance(pair, dict):
             continue
         attr_value = pair.get("value")
@@ -312,7 +310,7 @@ def root_uri_join(*uri_parts: str) -> str:
     return "/" + uri_join(*uri_parts)
 
 
-def get_function_params(func: Callable, args: tuple, kwargs: dict[str, Any]) -> dict[str, Any]:
+def get_function_params(func: Callable, args: tuple, kwargs: dict[str, Any]) -> Optional[dict[str, Any]]:
     """Extract argument names from the function and combine them with values.
 
     :param func: the function to get arg names
@@ -379,7 +377,9 @@ def calculate_file_part_size(file: Optional[RPFile]) -> int:
     if file is None:
         return 0
     size = len(TYPICAL_FILE_PART_HEADER.format(file.name, file.content_type))
-    size += len(file.content)
+    content = file.content
+    if isinstance(content, Sized):
+        size += len(content)
     return size
 
 
@@ -435,9 +435,10 @@ def guess_content_type_from_bytes(data: Union[bytes, bytearray, list[int]]) -> s
     :param data: bytes or bytearray
     :return: content type
     """
-    my_data = data
     if isinstance(data, list):
-        my_data = bytes(my_data)
+        my_data: Union[bytes, bytearray] = bytes(data)
+    else:
+        my_data = data
 
     if len(my_data) >= BYTES_TO_READ_FOR_DETECTION:
         my_data = my_data[:BYTES_TO_READ_FOR_DETECTION]
@@ -497,9 +498,9 @@ def to_bool(value: Optional[Any]) -> Optional[bool]:
     """
     if value is None:
         return None
-    if value in {"TRUE", "True", "true", "1", "Y", "y", 1, True}:
+    if value in {"TRUE", "True", "true", "1", "Y", "y", True}:
         return True
-    if value in {"FALSE", "False", "false", "0", "N", "n", 0, False}:
+    if value in {"FALSE", "False", "false", "0", "N", "n", False}:
         return False
     raise ValueError(f"Invalid boolean value {value}.")
 
@@ -549,3 +550,39 @@ def caseless_equal(left: str, right: str) -> bool:
     :return: True if strings are equal ignoring case, False otherwise
     """
     return normalize_caseless(left) == normalize_caseless(right)
+
+
+# System/Data Controls
+NUL = 0x00  # Null
+SOH = 0x01  # Start of Heading
+STX = 0x02  # Start of Text
+ETX = 0x03  # End of Text
+EOT = 0x04  # End of Transmission
+ENQ = 0x05  # Enquiry
+ACK = 0x06  # Acknowledge
+NAK = 0x15  # Negative Acknowledge
+SYN = 0x16  # Synchronous Idle
+ETB = 0x17  # End of Trans. Block
+
+# Legacy Device Controls
+BEL = 0x07  # Bell/Beep
+DC1 = 0x11  # Device Control 1 (XON)
+DC2 = 0x12  # Device Control 2
+DC3 = 0x13  # Device Control 3 (XOFF)
+DC4 = 0x14  # Device Control 4
+CAN = 0x18  # Cancel
+EM = 0x19  # End of Medium
+SUB = 0x1A  # Substitute
+ESC = 0x1B  # Escape
+
+PURELY_BINARY_CODES = {NUL, SOH, STX, ETX, EOT, ENQ, ACK, NAK, SYN, ETB, BEL, DC1, DC2, DC3, DC4, CAN, EM, SUB, ESC}
+
+REPLACEMENT = chr(0xFFFD)
+CLEANUP_TABLE = str.maketrans({code: REPLACEMENT for code in PURELY_BINARY_CODES})
+
+
+def clean_binary_characters(text: str) -> str:
+    """Clean a string from binary characters, replace them with a question mark inside a diamond."""
+    if not text:
+        return ""
+    return text.translate(CLEANUP_TABLE)

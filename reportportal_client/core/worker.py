@@ -51,8 +51,8 @@ class ControlCommand(Enum):
     def priority(self) -> Priority:
         """Get the priority of the command."""
         if self is ControlCommand.STOP_IMMEDIATE:
-            return Priority.PRIORITY_IMMEDIATE
-        return Priority.PRIORITY_LOW
+            return Priority(Priority.PRIORITY_IMMEDIATE)
+        return Priority(Priority.PRIORITY_LOW)
 
     def __lt__(self, other: Union["ControlCommand", "HttpRequest"]) -> bool:
         """Priority protocol for the PriorityQueue."""
@@ -88,7 +88,7 @@ class APIWorker(object):
         except queue.Empty:
             return None
 
-    def _command_process(self, cmd: Optional[ControlCommand]) -> None:
+    def _command_process(self, cmd: ControlCommand) -> None:
         """Process control command sent to the worker.
 
         :param cmd: a command to be processed
@@ -157,7 +157,7 @@ class APIWorker(object):
         may be some records still left on the queue, which won't be processed.
         """
         self._stop_lock.acquire()
-        if self._thread.is_alive() and self._thread is not current_thread():
+        if self._thread is not None and self._thread.is_alive() and self._thread is not current_thread():
             self._thread.join(timeout=THREAD_TIMEOUT)
         self._thread = None
         self._stop_lock.notify_all()
@@ -168,7 +168,7 @@ class APIWorker(object):
 
         :return: True is self._thread is not None, False otherwise
         """
-        return bool(self._thread) and self._thread.is_alive()
+        return self._thread is not None and self._thread.is_alive()
 
     def send(self, entity: Union[ControlCommand, HttpRequest]) -> None:
         """Send control command or a request to the worker queue."""

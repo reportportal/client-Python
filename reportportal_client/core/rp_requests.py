@@ -18,13 +18,15 @@ can be found by the following link:
 https://github.com/reportportal/documentation/blob/master/src/md/src/DevGuides/reporting.md
 """
 
+# mypy: disable_error_code=override
+
 import asyncio
 import logging
 import sys
 import traceback
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Callable, Optional, TypeVar, Union
+from typing import Any, Awaitable, Callable, Optional, TypeVar, Union, cast
 
 import aiohttp
 
@@ -34,17 +36,18 @@ from reportportal_client import helpers
 from reportportal_client._internal.static.abstract import AbstractBaseClass, abstractmethod
 
 # noinspection PyProtectedMember
-from reportportal_client._internal.static.defines import DEFAULT_PRIORITY, LOW_PRIORITY, RP_LOG_LEVELS, Priority
+from reportportal_client._internal.static.defines import DEFAULT_LOG_LEVEL, DEFAULT_PRIORITY, LOW_PRIORITY, Priority
 from reportportal_client.core.rp_file import RPFile
 from reportportal_client.core.rp_issues import Issue
 from reportportal_client.core.rp_responses import AsyncRPResponse, RPResponse
 from reportportal_client.helpers import await_if_necessary, dict_to_payload
+from reportportal_client.helpers.common_helpers import clean_binary_characters, verify_value_length
 
 try:
     # noinspection PyPackageRequirements
-    import simplejson as json_converter
+    import simplejson as _json_converter
 except ImportError:
-    import json as json_converter
+    import json as _json_converter  # type: ignore[no-redef]
 
 logger = logging.getLogger(__name__)
 T = TypeVar("T")
@@ -95,7 +98,7 @@ class HttpRequest:
         self.verify_ssl = verify_ssl
         self.http_timeout = http_timeout
         self.name = name
-        self._priority = DEFAULT_PRIORITY
+        self._priority = cast(Priority, DEFAULT_PRIORITY)
 
     def __lt__(self, other: "HttpRequest") -> bool:
         """Priority protocol for the PriorityQueue.
@@ -121,7 +124,7 @@ class HttpRequest:
         """
         self._priority = value
 
-    def make(self) -> Optional[RPResponse]:
+    def make(self) -> Any:
         """Make HTTP request to the ReportPortal API.
 
         The method catches any request error to not fail reporting. Since we are reporting tool and should not fail
@@ -142,6 +145,7 @@ class HttpRequest:
             )
         except (KeyError, IOError, ValueError, TypeError) as exc:
             logger.warning("ReportPortal %s request failed", self.name, exc_info=exc)
+            return None
 
 
 class ErrorPrintingHttpRequest(HttpRequest):
@@ -179,6 +183,7 @@ class ErrorPrintingHttpRequest(HttpRequest):
                 f"{datetime.now().isoformat()} - [ERROR] - ReportPortal request error:\n{traceback.format_exc()}",
                 file=sys.stderr,
             )
+            return None
 
 
 class AsyncHttpRequest(HttpRequest):
@@ -220,6 +225,7 @@ class AsyncHttpRequest(HttpRequest):
             return AsyncRPResponse(await self.session_method(url, data=data, json=json))
         except (KeyError, IOError, ValueError, TypeError) as exc:
             logger.warning("ReportPortal %s request failed", self.name, exc_info=exc)
+            return None
 
 
 class ErrorPrintingAsyncHttpRequest(AsyncHttpRequest):
@@ -253,8 +259,10 @@ class ErrorPrintingAsyncHttpRequest(AsyncHttpRequest):
                 f"{datetime.now().isoformat()} - [ERROR] - ReportPortal request error:\n{traceback.format_exc()}",
                 file=sys.stderr,
             )
+            return None
 
 
+@dataclass(frozen=True)
 class RPRequestBase(metaclass=AbstractBaseClass):
     """Base class for specific ReportPortal request models.
 
@@ -262,10 +270,81 @@ class RPRequestBase(metaclass=AbstractBaseClass):
     """
 
     __metaclass__ = AbstractBaseClass
+    truncate_attributes_enabled: Optional[bool]
+    truncate_fields_enabled: Optional[bool]
+    replace_binary_characters: Optional[bool]
+
+    @property
+    def _truncate_attributes_enabled(self) -> bool:
+        return self.truncate_attributes_enabled is not False
+
+    @property
+    def _truncate_fields_enabled(self) -> bool:
+        return self.truncate_fields_enabled is not False
+
+    @property
+    def _replace_binary_characters_enabled(self) -> bool:
+        return self.replace_binary_characters is not False
+
+    def _sanitize_field(self, value: Optional[str], limit: int) -> Optional[str]:
+        if not value:
+            return value
+
+        sanitized_value = value
+        if self._replace_binary_characters_enabled:
+            sanitized_value = clean_binary_characters(sanitized_value)
+            if not sanitized_value:
+                return value
+
+        if not self._truncate_fields_enabled:
+            return sanitized_value
+
+        effective_limit = max(0, limit)
+        if len(sanitized_value) <= effective_limit:
+            return sanitized_value
+        if effective_limit == 0:
+            return ""
+        if effective_limit <= len(helpers.TRUNCATE_REPLACEMENT):
+            return sanitized_value[:effective_limit]
+        return sanitized_value[: effective_limit - len(helpers.TRUNCATE_REPLACEMENT)] + helpers.TRUNCATE_REPLACEMENT
+
+    def _truncate_attributes(self, attributes: Optional[Union[list, dict]]) -> Optional[list[dict[str, Any]]]:
+        if attributes is None:
+            return None
+
+        my_attributes = attributes
+        if isinstance(my_attributes, dict):
+            converted_attributes = dict_to_payload(my_attributes)
+            if not converted_attributes:
+                return None
+            my_attributes = converted_attributes
+
+        normalized_attributes = [dict(attribute) for attribute in my_attributes if isinstance(attribute, dict)]
+        if len(normalized_attributes) == 0:
+            return []
+
+        if len(normalized_attributes) > helpers.ATTRIBUTE_NUMBER_LIMIT:
+            normalized_attributes = sorted(normalized_attributes, key=lambda attr: str(attr.get("key", "")))[
+                : helpers.ATTRIBUTE_NUMBER_LIMIT
+            ]
+
+        if self._replace_binary_characters_enabled:
+            for attribute in normalized_attributes:
+                key = attribute.get("key")
+                value = attribute.get("value")
+                if key is not None:
+                    attribute["key"] = clean_binary_characters(str(key))
+                if value is not None:
+                    attribute["value"] = clean_binary_characters(str(value))
+
+        if not self._truncate_attributes_enabled:
+            return normalized_attributes
+
+        return verify_value_length(normalized_attributes)
 
     @property
     @abstractmethod
-    def payload(self) -> dict:
+    def payload(self) -> Any:
         """Abstract interface for getting HTTP request payload.
 
         :return: JSON representation in the form of a Dictionary
@@ -286,8 +365,8 @@ class LaunchStartRequest(RPRequestBase):
     description: Optional[str] = None
     mode: str = "default"
     rerun: bool = False
-    rerun_of: str = None
-    uuid: str = None
+    rerun_of: Optional[str] = None
+    uuid: Optional[str] = None
 
     @property
     def payload(self) -> dict:
@@ -295,14 +374,13 @@ class LaunchStartRequest(RPRequestBase):
 
         :return: JSON representation in the form of a Dictionary
         """
-        my_attributes = self.attributes
-        if my_attributes and isinstance(self.attributes, dict):
-            my_attributes = dict_to_payload(self.attributes)
+        my_name = self._sanitize_field(self.name, helpers.LAUNCH_NAME_LENGTH_LIMIT)
+        my_attributes = self._truncate_attributes(self.attributes)
         result = {
             "attributes": my_attributes,
-            "description": self.description,
+            "description": self._sanitize_field(self.description, helpers.LAUNCH_DESCRIPTION_LENGTH_LIMIT),
             "mode": self.mode,
-            "name": self.name,
+            "name": my_name,
             "rerun": self.rerun,
             "rerunOf": self.rerun_of,
             "startTime": self.start_time,
@@ -330,12 +408,10 @@ class LaunchFinishRequest(RPRequestBase):
 
         :return: JSON representation in the form of a Dictionary
         """
-        my_attributes = self.attributes
-        if my_attributes and isinstance(self.attributes, dict):
-            my_attributes = dict_to_payload(self.attributes)
+        my_attributes = self._truncate_attributes(self.attributes)
         return {
             "attributes": my_attributes,
-            "description": self.description,
+            "description": self._sanitize_field(self.description, helpers.LAUNCH_DESCRIPTION_LENGTH_LIMIT),
             "endTime": self.end_time,
             "status": self.status,
         }
@@ -362,13 +438,13 @@ class ItemStartRequest(RPRequestBase):
     test_case_id: Optional[str]
     uuid: Optional[str]
 
-    @staticmethod
-    def _create_request(**kwargs) -> dict:
+    def _create_request(self, **kwargs) -> dict:
+        name = self._sanitize_field(kwargs.get("name"), helpers.ITEM_NAME_LENGTH_LIMIT)
         request = {
             "codeRef": kwargs.get("code_ref"),
-            "description": kwargs.get("description"),
+            "description": self._sanitize_field(kwargs.get("description"), helpers.ITEM_DESCRIPTION_LENGTH_LIMIT),
             "hasStats": kwargs.get("has_stats"),
-            "name": kwargs["name"],
+            "name": name,
             "retry": kwargs.get("retry"),
             "retryOf": kwargs.get("retry_of"),
             "startTime": kwargs["start_time"],
@@ -377,9 +453,7 @@ class ItemStartRequest(RPRequestBase):
             "launchUuid": kwargs["launch_uuid"],
         }
         attributes = kwargs.get("attributes")
-        if attributes and isinstance(attributes, dict):
-            attributes = dict_to_payload(kwargs["attributes"])
-        request["attributes"] = attributes
+        request["attributes"] = self._truncate_attributes(attributes)
         parameters = kwargs.get("parameters")
         if parameters is not None and isinstance(parameters, dict):
             parameters = dict_to_payload(kwargs["parameters"])
@@ -397,7 +471,7 @@ class ItemStartRequest(RPRequestBase):
         """
         data = self.__dict__.copy()
         data["type"] = data.pop("type_")
-        return ItemStartRequest._create_request(**data)
+        return self._create_request(**data)
 
 
 class AsyncItemStartRequest(ItemStartRequest):
@@ -419,7 +493,7 @@ class AsyncItemStartRequest(ItemStartRequest):
         data = self.__dict__.copy()
         data["type"] = data.pop("type_")
         data["launch_uuid"] = await await_if_necessary(data.pop("launch_uuid"))
-        return ItemStartRequest._create_request(**data)
+        return self._create_request(**data)
 
 
 @dataclass(frozen=True)
@@ -440,10 +514,9 @@ class ItemFinishRequest(RPRequestBase):
     retry_of: Optional[str]
     test_case_id: Optional[str]
 
-    @staticmethod
-    def _create_request(**kwargs) -> dict:
+    def _create_request(self, **kwargs) -> dict:
         request = {
-            "description": kwargs.get("description"),
+            "description": self._sanitize_field(kwargs.get("description"), helpers.ITEM_DESCRIPTION_LENGTH_LIMIT),
             "endTime": kwargs["end_time"],
             "launchUuid": kwargs["launch_uuid"],
             "status": kwargs.get("status"),
@@ -452,19 +525,19 @@ class ItemFinishRequest(RPRequestBase):
             "testCaseId": kwargs.get("test_case_id"),
         }
         attributes = kwargs.get("attributes")
-        if attributes and isinstance(attributes, dict):
-            attributes = dict_to_payload(kwargs["attributes"])
-        request["attributes"] = attributes
+        request["attributes"] = self._truncate_attributes(attributes)
 
-        issue_payload = None
+        issue_payload: Any = None
+        status = kwargs.get("status")
+        issue = kwargs.get("issue")
         if (
-            kwargs.get("issue") is None
-            and (kwargs.get("status") is not None and kwargs.get("status").lower() == "skipped")
+            issue is None
+            and (status is not None and str(status).lower() == "skipped")
             and not kwargs.get("is_skipped_an_issue")
         ):
             issue_payload = {"issue_type": "NOT_ISSUE"}
-        elif kwargs.get("issue") is not None:
-            issue_payload = kwargs.get("issue").payload
+        elif issue is not None:
+            issue_payload = cast(Issue, issue).payload
         request["issue"] = issue_payload
         return request
 
@@ -474,7 +547,7 @@ class ItemFinishRequest(RPRequestBase):
 
         :return: JSON representation in the form of a Dictionary
         """
-        return ItemFinishRequest._create_request(**self.__dict__)
+        return self._create_request(**self.__dict__)
 
 
 class AsyncItemFinishRequest(ItemFinishRequest):
@@ -495,7 +568,26 @@ class AsyncItemFinishRequest(ItemFinishRequest):
         """
         data = self.__dict__.copy()
         data["launch_uuid"] = await await_if_necessary(data.pop("launch_uuid"))
-        return ItemFinishRequest._create_request(**data)
+        return self._create_request(**data)
+
+
+@dataclass(frozen=True)
+class ItemUpdateRequest(RPRequestBase):
+    """ReportPortal update test item request model."""
+
+    attributes: Optional[Union[list, dict]] = None
+    description: Optional[str] = None
+
+    @property
+    def payload(self) -> dict:
+        """Get HTTP payload for the request.
+
+        :return: JSON representation in the form of a Dictionary
+        """
+        return {
+            "description": self._sanitize_field(self.description, helpers.ITEM_DESCRIPTION_LENGTH_LIMIT),
+            "attributes": self._truncate_attributes(self.attributes),
+        }
 
 
 @dataclass(frozen=True)
@@ -509,7 +601,7 @@ class RPRequestLog(RPRequestBase):
     time: str
     file: Optional[RPFile] = None
     item_uuid: Optional[Any] = None
-    level: str = RP_LOG_LEVELS[40000]
+    level: str = DEFAULT_LOG_LEVEL
     message: Optional[str] = None
 
     @staticmethod
@@ -541,7 +633,7 @@ class RPRequestLog(RPRequestBase):
         return size
 
     @property
-    def multipart_size(self) -> int:
+    def multipart_size(self) -> Any:
         """Calculate request size how it would be transfer in Multipart HTTP.
 
         :return: estimate request size
@@ -582,25 +674,16 @@ class AsyncRPRequestLog(RPRequestLog):
         return RPRequestLog._multipart_size(await self.payload, self.file)
 
 
+@dataclass(frozen=True)
 class RPLogBatch(RPRequestBase):
     """ReportPortal log save batches with attachments request model.
 
     https://github.com/reportportal/documentation/blob/master/src/md/src/DevGuides/reporting.md#batch-save-logs
     """
 
-    default_content: str
     log_reqs: list[Union[RPRequestLog, AsyncRPRequestLog]]
-    priority: Priority
-
-    def __init__(self, log_reqs: list[Union[RPRequestLog, AsyncRPRequestLog]]) -> None:
-        """Initialize instance attributes.
-
-        :param log_reqs:
-        """
-        super().__init__()
-        self.default_content = "application/octet-stream"
-        self.log_reqs = log_reqs
-        self.priority = LOW_PRIORITY
+    default_content: str = "application/octet-stream"
+    priority: Priority = cast(Priority, LOW_PRIORITY)
 
     def __get_file(self, rp_file) -> tuple[str, tuple]:
         """Form a tuple for the single file."""
@@ -618,7 +701,7 @@ class RPLogBatch(RPRequestBase):
         body = [
             (
                 "json_request_part",
-                (None, json_converter.dumps([log.payload for log in self.log_reqs]), "application/json"),
+                (None, _json_converter.dumps([log.payload for log in self.log_reqs]), "application/json"),
             )
         ]
         return body
@@ -658,7 +741,7 @@ class AsyncRPLogBatch(RPLogBatch):
         super.__init__(*args, **kwargs)
 
     async def __get_request_part(self) -> list[dict]:
-        coroutines = [log.payload for log in self.log_reqs]
+        coroutines = [cast(Awaitable[dict], log.payload) for log in self.log_reqs]
         return list(await asyncio.gather(*coroutines))
 
     @property

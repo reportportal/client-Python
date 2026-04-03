@@ -13,6 +13,8 @@
 
 """This module contains asynchronous implementations of ReportPortal Client."""
 
+# mypy: ignore-errors
+
 import asyncio
 import logging
 import ssl
@@ -52,9 +54,9 @@ from reportportal_client._internal.services.statistics import async_send_event
 
 # noinspection PyProtectedMember
 from reportportal_client._internal.static.abstract import AbstractBaseClass, abstractmethod
+from reportportal_client._internal.static.defines import DEFAULT_LOG_LEVEL
 
 # noinspection PyProtectedMember
-from reportportal_client._internal.static.defines import NOT_SET
 from reportportal_client.aio.tasks import Task
 from reportportal_client.client import RP, OutputType
 from reportportal_client.core.rp_issues import Issue
@@ -65,17 +67,21 @@ from reportportal_client.core.rp_requests import (
     AsyncRPLogBatch,
     AsyncRPRequestLog,
     ErrorPrintingAsyncHttpRequest,
+    ItemUpdateRequest,
     LaunchFinishRequest,
     LaunchStartRequest,
     RPFile,
 )
 from reportportal_client.helpers import (
+    ITEM_DESCRIPTION_LENGTH_LIMIT,
+    ITEM_NAME_LENGTH_LIMIT,
+    LAUNCH_DESCRIPTION_LENGTH_LIMIT,
+    LAUNCH_NAME_LENGTH_LIMIT,
     LifoQueue,
     agent_name_version,
     await_if_necessary,
     root_uri_join,
     uri_join,
-    verify_value_length,
 )
 from reportportal_client.logs import MAX_LOG_BATCH_PAYLOAD_SIZE
 from reportportal_client.steps import StepReporter
@@ -121,7 +127,13 @@ class Client:
     launch_uuid_print: bool
     print_output: OutputType
     truncate_attributes: bool
-    _skip_analytics: str
+    truncate_fields: bool
+    replace_binary_chars: bool
+    launch_name_length_limit: int
+    item_name_length_limit: int
+    launch_description_length_limit: int
+    item_description_length_limit: int
+    _skip_analytics: Optional[str]
     _session: Optional[ClientSession]
     __stat_task: Optional[asyncio.Task]
 
@@ -133,7 +145,7 @@ class Client:
         api_key: Optional[str] = None,
         is_skipped_an_issue: bool = True,
         verify_ssl: Union[bool, str] = True,
-        retries: int = NOT_SET,
+        retries: Optional[int] = -1,
         max_pool_size: int = 50,
         http_timeout: Optional[Union[float, tuple[float, float]]] = (10, 10),
         keepalive_timeout: Optional[float] = None,
@@ -141,6 +153,12 @@ class Client:
         launch_uuid_print: bool = False,
         print_output: OutputType = OutputType.STDOUT,
         truncate_attributes: bool = True,
+        truncate_fields: bool = True,
+        replace_binary_chars: bool = True,
+        launch_name_length_limit: int = LAUNCH_NAME_LENGTH_LIMIT,
+        item_name_length_limit: int = ITEM_NAME_LENGTH_LIMIT,
+        launch_description_length_limit: int = LAUNCH_DESCRIPTION_LENGTH_LIMIT,
+        item_description_length_limit: int = ITEM_DESCRIPTION_LENGTH_LIMIT,
         # OAuth 2.0 Password Grant parameters
         oauth_uri: Optional[str] = None,
         oauth_username: Optional[str] = None,
@@ -152,27 +170,35 @@ class Client:
     ) -> None:
         """Initialize the class instance with arguments.
 
-        :param endpoint:               Endpoint of the ReportPortal service.
-        :param project:                Project name to report to.
-        :param api_key:                Authorization API key.
-        :param oauth_uri:              OAuth 2.0 token endpoint URI (for OAuth authentication).
-        :param oauth_username:         Username for OAuth 2.0 authentication.
-        :param oauth_password:         Password for OAuth 2.0 authentication.
-        :param oauth_client_id:        OAuth 2.0 client ID.
-        :param oauth_client_secret:    OAuth 2.0 client secret (optional).
-        :param oauth_scope:            OAuth 2.0 scope (optional).
-        :param is_skipped_an_issue:    Option to mark skipped tests as not 'To Investigate' items on the
-                                       server side.
-        :param verify_ssl:             Option to skip ssl verification.
-        :param retries:                Number of retry attempts to make in case of connection / server errors.
-        :param max_pool_size:          Option to set the maximum number of connections to save the pool.
-        :param http_timeout:           A float in seconds for connect and read timeout. Use a Tuple to
-                                       specific connect and read separately.
-        :param keepalive_timeout:      Maximum amount of idle time in seconds before force connection closing.
-        :param mode:                   Launch mode, all Launches started by the client will be in that mode.
-        :param launch_uuid_print:      Print Launch UUID into passed TextIO or by default to stdout.
-        :param print_output:           Set output stream for Launch UUID printing.
-        :param truncate_attributes:    Truncate test item attributes to default maximum length.
+        :param endpoint:                         Endpoint of the ReportPortal service.
+        :param project:                          Project name to report to.
+        :param api_key:                          Authorization API key.
+        :param oauth_uri:                        OAuth 2.0 token endpoint URI (for OAuth authentication).
+        :param oauth_username:                   Username for OAuth 2.0 authentication.
+        :param oauth_password:                   Password for OAuth 2.0 authentication.
+        :param oauth_client_id:                  OAuth 2.0 client ID.
+        :param oauth_client_secret:              OAuth 2.0 client secret (optional).
+        :param oauth_scope:                      OAuth 2.0 scope (optional).
+        :param is_skipped_an_issue:              Option to mark skipped tests as not 'To Investigate' items on the
+                                                 server side.
+        :param verify_ssl:                       Option to skip ssl verification.
+        :param retries:                          Number of retry attempts to make in case of connection / server
+                                                 errors.
+        :param max_pool_size:                    Option to set the maximum number of connections to save the pool.
+        :param http_timeout:                     A float in seconds for connect and read timeout. Use a Tuple to
+                                                 specific connect and read separately.
+        :param keepalive_timeout:                Maximum amount of idle time in seconds before force connection
+                                                 closing.
+        :param mode:                             Launch mode, all Launches started by the client will be in that mode.
+        :param launch_uuid_print:                Print Launch UUID into passed TextIO or by default to stdout.
+        :param print_output:                     Set output stream for Launch UUID printing.
+        :param truncate_attributes:              Truncate test item attributes to default maximum length.
+        :param truncate_fields:                  Truncate request fields to configured limits.
+        :param replace_binary_chars:             Toggle replacement of basic binary characters with \ufffd char.
+        :param launch_name_length_limit:         Maximum allowed launch name length.
+        :param item_name_length_limit:           Maximum allowed test item name length.
+        :param launch_description_length_limit:  Maximum allowed launch description length.
+        :param item_description_length_limit:    Maximum allowed test item description length.
         """
         self.api_v1, self.api_v2 = "v1", "v2"
         self.endpoint = endpoint
@@ -192,6 +218,12 @@ class Client:
         self._session = None
         self.__stat_task = None
         self.truncate_attributes = truncate_attributes
+        self.truncate_fields = truncate_fields
+        self.replace_binary_chars = replace_binary_chars
+        self.launch_name_length_limit = launch_name_length_limit
+        self.item_name_length_limit = item_name_length_limit
+        self.launch_description_length_limit = launch_description_length_limit
+        self.item_description_length_limit = item_description_length_limit
 
         self.api_key = api_key
         # Handle deprecated token argument
@@ -217,16 +249,19 @@ class Client:
 
         if oauth_provided:
             # Use OAuth 2.0 Password Grant authentication
+            # These params will be defined, since we checked them with "all" keyword above
+            # These 'or ""' just to mute dump type checkers
             self.auth = OAuthPasswordGrantAsync(
-                oauth_uri=oauth_uri,
-                username=oauth_username,
-                password=oauth_password,
-                client_id=oauth_client_id,
+                oauth_uri=oauth_uri or "",
+                username=oauth_username or "",
+                password=oauth_password or "",
+                client_id=oauth_client_id or "",
                 client_secret=oauth_client_secret,
                 scope=oauth_scope,
             )
         elif self.api_key:
-            self.auth = ApiKeyAuthAsync(api_key)
+            # Use API key authentication
+            self.auth = ApiKeyAuthAsync(self.api_key)
         else:
             # Neither OAuth nor API key provided
             raise ValueError(
@@ -273,20 +308,23 @@ class Client:
                 connect_timeout, read_timeout = self.http_timeout, self.http_timeout
             session_params["timeout"] = aiohttp.ClientTimeout(connect=connect_timeout, sock_read=read_timeout)
 
-        retries_set = self.retries is not NOT_SET and self.retries and self.retries > 0
-        use_retries = self.retries is NOT_SET or (self.retries and self.retries > 0)
+        retries_set = self.retries is not None and self.retries > 0
+        # Use retries with default parameters if not set, but don't use retries if it's `None`
+        use_retries = self.retries == -1 or retries_set
 
         if retries_set:
             session_params["max_retry_number"] = self.retries
 
+        wrapped_session: Union[aiohttp.ClientSession, RetryingClientSession]
         if use_retries:
             wrapped_session = RetryingClientSession(self.endpoint, **session_params)
         else:
             # noinspection PyTypeChecker
             wrapped_session = aiohttp.ClientSession(self.endpoint, **session_params)
+        my_session = ClientSession(wrapped=wrapped_session, auth=self.auth)
 
-        self._session = ClientSession(wrapped=wrapped_session, auth=self.auth)
-        return self._session
+        self._session = my_session
+        return my_session
 
     async def close(self) -> None:
         """Gracefully close internal aiohttp.ClientSession class instance and reset it."""
@@ -334,7 +372,10 @@ class Client:
         request_payload = LaunchStartRequest(
             name=name,
             start_time=start_time,
-            attributes=verify_value_length(attributes) if self.truncate_attributes else attributes,
+            attributes=attributes,
+            truncate_attributes_enabled=self.truncate_attributes,
+            truncate_fields_enabled=self.truncate_fields,
+            replace_binary_characters=self.replace_binary_chars,
             description=description,
             mode=self.mode,
             rerun=rerun,
@@ -403,11 +444,14 @@ class Client:
         else:
             url = root_uri_join(self.base_url_v2, "item")
         request_payload = AsyncItemStartRequest(
-            name,
-            start_time,
-            item_type,
-            launch_uuid,
-            attributes=verify_value_length(attributes) if self.truncate_attributes else attributes,
+            name=name,
+            start_time=start_time,
+            type_=item_type,
+            launch_uuid=launch_uuid,
+            attributes=attributes,
+            truncate_attributes_enabled=self.truncate_attributes,
+            truncate_fields_enabled=self.truncate_fields,
+            replace_binary_characters=self.replace_binary_chars,
             code_ref=code_ref,
             description=description,
             has_stats=has_stats,
@@ -464,10 +508,13 @@ class Client:
         """
         url = self.__get_item_url(item_id)
         request_payload = AsyncItemFinishRequest(
-            end_time,
-            launch_uuid,
-            status,
-            attributes=verify_value_length(attributes) if self.truncate_attributes else attributes,
+            end_time=end_time,
+            launch_uuid=launch_uuid,
+            status=status,
+            attributes=attributes,
+            truncate_attributes_enabled=self.truncate_attributes,
+            truncate_fields_enabled=self.truncate_fields,
+            replace_binary_characters=self.replace_binary_chars,
             description=description,
             test_case_id=test_case_id,
             is_skipped_an_issue=self.is_skipped_an_issue,
@@ -505,9 +552,12 @@ class Client:
         """
         url = self.__get_launch_url(launch_uuid)
         request_payload = LaunchFinishRequest(
-            end_time,
+            end_time=end_time,
             status=status,
-            attributes=verify_value_length(attributes) if self.truncate_attributes else attributes,
+            attributes=attributes,
+            truncate_attributes_enabled=self.truncate_attributes,
+            truncate_fields_enabled=self.truncate_fields,
+            replace_binary_characters=self.replace_binary_chars,
             description=kwargs.get("description"),
         ).payload
         response = await AsyncHttpRequest(
@@ -532,10 +582,13 @@ class Client:
         :param description: Test Item description.
         :return:            Response message or None.
         """
-        data = {
-            "description": description,
-            "attributes": verify_value_length(attributes) if self.truncate_attributes else attributes,
-        }
+        data = ItemUpdateRequest(
+            description=description,
+            attributes=attributes,
+            truncate_attributes_enabled=self.truncate_attributes,
+            truncate_fields_enabled=self.truncate_fields,
+            replace_binary_characters=self.replace_binary_chars,
+        ).payload
         item_id = await self.get_item_id_by_uuid(item_uuid)
         url = root_uri_join(self.base_url_v1, "item", item_id, "update")
         response = await AsyncHttpRequest(
@@ -640,7 +693,15 @@ class Client:
 
         url = root_uri_join(self.base_url_v2, "log")
         response = await ErrorPrintingAsyncHttpRequest(
-            (await self.session()).post, url=url, data=AsyncRPLogBatch(log_batch).payload, name="log"
+            (await self.session()).post,
+            url=url,
+            data=AsyncRPLogBatch(
+                truncate_attributes_enabled=None,
+                truncate_fields_enabled=None,
+                replace_binary_characters=None,
+                log_reqs=log_batch,
+            ).payload,
+            name="log",
         ).make()
         return await response.messages if response else None
 
@@ -663,6 +724,13 @@ class Client:
             mode=self.mode,
             launch_uuid_print=self.launch_uuid_print,
             print_output=self.print_output,
+            truncate_fields=self.truncate_fields,
+            truncate_attributes=self.truncate_attributes,
+            replace_binary_chars=self.replace_binary_chars,
+            launch_name_length_limit=self.launch_name_length_limit,
+            item_name_length_limit=self.item_name_length_limit,
+            launch_description_length_limit=self.launch_description_length_limit,
+            item_description_length_limit=self.item_description_length_limit,
             oauth_uri=self.oauth_uri,
             oauth_username=self.oauth_username,
             oauth_password=self.oauth_password,
@@ -1060,8 +1128,19 @@ class AsyncRPClient(RP):
         :param item_id:    UUID of the ReportPortal Item the message belongs to.
         :return:           Response message Tuple if Log message batch was sent or None.
         """
+        rp_level = str(level) if level else DEFAULT_LOG_LEVEL
         rp_file = RPFile(**attachment) if attachment else None
-        rp_log = AsyncRPRequestLog(self.__launch_uuid, time, rp_file, item_id, level, message)
+        rp_log = AsyncRPRequestLog(
+            truncate_attributes_enabled=None,
+            truncate_fields_enabled=None,
+            replace_binary_characters=None,
+            launch_uuid=self.__launch_uuid,
+            time=time,
+            file=rp_file,
+            item_uuid=item_id,
+            level=rp_level,
+            message=message,
+        )
         return await self.__client.log_batch(await self._log_batcher.append_async(rp_log))
 
     def clone(self) -> "AsyncRPClient":
@@ -1511,8 +1590,19 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
         :param item_id:    UUID of the ReportPortal Item the message belongs to.
         :return:           Response message Tuple if Log message batch was sent or None.
         """
+        rp_level = str(level) if level else DEFAULT_LOG_LEVEL
         rp_file = RPFile(**attachment) if attachment else None
-        rp_log = AsyncRPRequestLog(self.launch_uuid, time, rp_file, item_id, level, message)
+        rp_log = AsyncRPRequestLog(
+            truncate_attributes_enabled=None,
+            truncate_fields_enabled=None,
+            replace_binary_characters=None,
+            launch_uuid=self.launch_uuid,
+            time=time,
+            file=rp_file,
+            item_uuid=item_id,
+            level=rp_level,
+            message=message,
+        )
         return self.create_task(self._log(rp_log))
 
     def close(self) -> None:

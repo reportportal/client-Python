@@ -48,13 +48,20 @@ from reportportal_client.core.rp_requests import (
     HttpRequest,
     ItemFinishRequest,
     ItemStartRequest,
+    ItemUpdateRequest,
     LaunchFinishRequest,
     LaunchStartRequest,
     RPFile,
     RPLogBatch,
     RPRequestLog,
 )
-from reportportal_client.helpers import LifoQueue, agent_name_version, uri_join, verify_value_length
+from reportportal_client.helpers import LifoQueue, agent_name_version, uri_join
+from reportportal_client.helpers.common_helpers import (
+    ITEM_DESCRIPTION_LENGTH_LIMIT,
+    ITEM_NAME_LENGTH_LIMIT,
+    LAUNCH_DESCRIPTION_LENGTH_LIMIT,
+    LAUNCH_NAME_LENGTH_LIMIT,
+)
 from reportportal_client.logs import MAX_LOG_BATCH_PAYLOAD_SIZE
 from reportportal_client.steps import StepReporter
 
@@ -315,7 +322,7 @@ class RP(metaclass=AbstractBaseClass):
         message: str,
         level: Optional[Union[int, str]] = None,
         attachment: Optional[dict] = None,
-        item_id: Optional[str] = None,
+        item_id: Optional[Any] = None,
     ) -> Optional[tuple[str, ...]]:
         """Send Log message to the ReportPortal and attach it to a Test Item or Launch.
 
@@ -401,7 +408,7 @@ class RPClient(RP):
     oauth_scope: Optional[str]
     auth: Auth
     verify_ssl: Union[bool, str]
-    retries: int
+    retries: Optional[int]
     max_pool_size: int
     http_timeout: Union[float, tuple[float, float]]
     session: ClientSession
@@ -410,7 +417,13 @@ class RPClient(RP):
     launch_uuid_print: Optional[bool]
     print_output: OutputType
     truncate_attributes: bool
-    _skip_analytics: str
+    truncate_fields: bool
+    replace_binary_chars: bool
+    launch_name_length_limit: int
+    item_name_length_limit: int
+    launch_description_length_limit: int
+    item_description_length_limit: int
+    _skip_analytics: Optional[str]
     _item_stack: LifoQueue
     _log_batcher: LogBatcher[RPRequestLog]
 
@@ -466,7 +479,7 @@ class RPClient(RP):
         log_batch_size: int = 20,
         is_skipped_an_issue: bool = True,
         verify_ssl: Union[bool, str] = True,
-        retries: int = None,
+        retries: Optional[int] = None,
         max_pool_size: int = 50,
         launch_uuid: Optional[str] = None,
         http_timeout: Union[float, tuple[float, float]] = (10, 10),
@@ -476,6 +489,12 @@ class RPClient(RP):
         print_output: OutputType = OutputType.STDOUT,
         log_batcher: Optional[LogBatcher[RPRequestLog]] = None,
         truncate_attributes: bool = True,
+        truncate_fields: bool = True,
+        replace_binary_chars: bool = True,
+        launch_name_length_limit: int = LAUNCH_NAME_LENGTH_LIMIT,
+        item_name_length_limit: int = ITEM_NAME_LENGTH_LIMIT,
+        launch_description_length_limit: int = LAUNCH_DESCRIPTION_LENGTH_LIMIT,
+        item_description_length_limit: int = ITEM_DESCRIPTION_LENGTH_LIMIT,
         # OAuth 2.0 Password Grant parameters
         oauth_uri: Optional[str] = None,
         oauth_username: Optional[str] = None,
@@ -487,31 +506,38 @@ class RPClient(RP):
     ) -> None:
         """Initialize the class instance with arguments.
 
-        :param endpoint:                Endpoint of the ReportPortal service.
-        :param project:                 Project name to report to.
-        :param api_key:                 Authorization API key.
-        :param oauth_uri:               OAuth 2.0 token endpoint URI (for OAuth authentication).
-        :param oauth_username:          Username for OAuth 2.0 authentication.
-        :param oauth_password:          Password for OAuth 2.0 authentication.
-        :param oauth_client_id:         OAuth 2.0 client ID.
-        :param oauth_client_secret:     OAuth 2.0 client secret (optional).
-        :param oauth_scope:             OAuth 2.0 scope (optional).
-        :param log_batch_size:          Option to set the maximum number of logs that can be processed in one
-                                        batch.
-        :param is_skipped_an_issue:     Option to mark skipped tests as not 'To Investigate' items on the
-                                        server side.
-        :param verify_ssl:              Option to skip ssl verification.
-        :param retries:                 Number of retry attempts to make in case of connection / server errors.
-        :param max_pool_size:           Option to set the maximum number of connections to save the pool.
-        :param launch_uuid:             A launch UUID to use instead of starting own one.
-        :param http_timeout:            A float in seconds for connect and read timeout. Use a Tuple to
-                                        specific connect and read separately.
-        :param log_batch_payload_limit: Maximum size in bytes of logs that can be processed in one batch.
-        :param mode:                    Launch mode, all Launches started by the client will be in that mode.
-        :param launch_uuid_print:       Print Launch UUID into passed TextIO or by default to stdout.
-        :param print_output:            Set output stream for Launch UUID printing.
-        :param log_batcher:             Use existing LogBatcher instance instead of creation of own one.
-        :param truncate_attributes:     Truncate test item attributes to default maximum length.
+        :param endpoint:                         Endpoint of the ReportPortal service.
+        :param project:                          Project name to report to.
+        :param api_key:                          Authorization API key.
+        :param oauth_uri:                        OAuth 2.0 token endpoint URI (for OAuth authentication).
+        :param oauth_username:                   Username for OAuth 2.0 authentication.
+        :param oauth_password:                   Password for OAuth 2.0 authentication.
+        :param oauth_client_id:                  OAuth 2.0 client ID.
+        :param oauth_client_secret:              OAuth 2.0 client secret (optional).
+        :param oauth_scope:                      OAuth 2.0 scope (optional).
+        :param log_batch_size:                   Option to set the maximum number of logs that can be processed in one
+                                                 batch.
+        :param is_skipped_an_issue:              Option to mark skipped tests as not 'To Investigate' items on the
+                                                 server side.
+        :param verify_ssl:                       Option to skip ssl verification.
+        :param retries:                          Number of retry attempts to make in case of connection / server
+                                                 errors.
+        :param max_pool_size:                    Option to set the maximum number of connections to save the pool.
+        :param launch_uuid:                      A launch UUID to use instead of starting own one.
+        :param http_timeout:                     A float in seconds for connect and read timeout. Use a Tuple to
+                                                 specific connect and read separately.
+        :param log_batch_payload_limit:          Maximum size in bytes of logs that can be processed in one batch.
+        :param mode:                             Launch mode, all Launches started by the client will be in that mode.
+        :param launch_uuid_print:                Print Launch UUID into passed TextIO or by default to stdout.
+        :param print_output:                     Set output stream for Launch UUID printing.
+        :param log_batcher:                      Use existing LogBatcher instance instead of creation of own one.
+        :param truncate_attributes:              Truncate test item attributes to default maximum length.
+        :param truncate_fields:                  Truncate request fields to configured limits.
+        :param replace_binary_chars:             Toggle replacement of basic binary characters with \ufffd char.
+        :param launch_name_length_limit:         Maximum allowed launch name length.
+        :param item_name_length_limit:           Maximum allowed test item name length.
+        :param launch_description_length_limit:  Maximum allowed launch description length.
+        :param item_description_length_limit:    Maximum allowed test item description length.
         """
         set_current(self)
         self.api_v1, self.api_v2 = "v1", "v2"
@@ -546,6 +572,12 @@ class RPClient(RP):
         self.launch_uuid_print = launch_uuid_print
         self.print_output = print_output
         self.truncate_attributes = truncate_attributes
+        self.truncate_fields = truncate_fields
+        self.replace_binary_chars = replace_binary_chars
+        self.launch_name_length_limit = launch_name_length_limit
+        self.item_name_length_limit = item_name_length_limit
+        self.launch_description_length_limit = launch_description_length_limit
+        self.item_description_length_limit = item_description_length_limit
 
         self.api_key = api_key
         # Handle deprecated token argument
@@ -571,16 +603,19 @@ class RPClient(RP):
 
         if oauth_provided:
             # Use OAuth 2.0 Password Grant authentication
+            # These params will be defined, since we checked them with "all" keyword above
+            # These 'or ""' just to mute dump type checkers
             self.auth = OAuthPasswordGrantSync(
-                oauth_uri=oauth_uri,
-                username=oauth_username,
-                password=oauth_password,
-                client_id=oauth_client_id,
+                oauth_uri=oauth_uri or "",
+                username=oauth_username or "",
+                password=oauth_password or "",
+                client_id=oauth_client_id or "",
                 client_secret=oauth_client_secret,
                 scope=oauth_scope,
             )
         elif self.api_key:
-            self.auth = ApiKeyAuthSync(api_key)
+            # Use API key authentication
+            self.auth = ApiKeyAuthSync(self.api_key)
         else:
             # Neither OAuth nor API key provided
             raise ValueError(
@@ -626,7 +661,10 @@ class RPClient(RP):
         request_payload = LaunchStartRequest(
             name=name,
             start_time=start_time,
-            attributes=verify_value_length(attributes) if self.truncate_attributes else attributes,
+            attributes=attributes,
+            truncate_attributes_enabled=self.truncate_attributes,
+            truncate_fields_enabled=self.truncate_fields,
+            replace_binary_characters=self.replace_binary_chars,
             description=description,
             mode=self.mode,
             rerun=rerun,
@@ -661,9 +699,9 @@ class RPClient(RP):
         attributes: Optional[Union[list[dict], dict]] = None,
         parameters: Optional[dict] = None,
         parent_item_id: Optional[str] = None,
-        has_stats: bool = True,
+        has_stats: Optional[bool] = True,
         code_ref: Optional[str] = None,
-        retry: bool = False,
+        retry: Optional[bool] = False,
         test_case_id: Optional[str] = None,
         retry_of: Optional[str] = None,
         uuid: Optional[str] = None,
@@ -695,11 +733,14 @@ class RPClient(RP):
         else:
             url = uri_join(self.base_url_v2, "item")
         request_payload = ItemStartRequest(
-            name,
-            start_time,
-            item_type,
-            self.__launch_uuid,
-            attributes=verify_value_length(attributes) if self.truncate_attributes else attributes,
+            name=name,
+            start_time=start_time,
+            type_=item_type,
+            launch_uuid=self.__launch_uuid,
+            attributes=attributes,
+            truncate_attributes_enabled=self.truncate_attributes,
+            truncate_fields_enabled=self.truncate_fields,
+            replace_binary_characters=self.replace_binary_chars,
             code_ref=code_ref,
             description=description,
             has_stats=has_stats,
@@ -730,7 +771,7 @@ class RPClient(RP):
 
     def finish_test_item(
         self,
-        item_id: str,
+        item_id: Any,
         end_time: str,
         status: Optional[str] = None,
         issue: Optional[Issue] = None,
@@ -762,10 +803,13 @@ class RPClient(RP):
             return None
         url = uri_join(self.base_url_v2, "item", item_id)
         request_payload = ItemFinishRequest(
-            end_time,
-            self.__launch_uuid,
-            status,
-            attributes=verify_value_length(attributes) if self.truncate_attributes else attributes,
+            end_time=end_time,
+            launch_uuid=self.__launch_uuid,
+            status=status,
+            attributes=attributes,
+            truncate_attributes_enabled=self.truncate_attributes,
+            truncate_fields_enabled=self.truncate_fields,
+            replace_binary_characters=self.replace_binary_chars,
             description=description,
             is_skipped_an_issue=self.is_skipped_an_issue,
             issue=issue,
@@ -808,9 +852,12 @@ class RPClient(RP):
                 return None
             url = uri_join(self.base_url_v2, "launch", self.__launch_uuid, "finish")
             request_payload = LaunchFinishRequest(
-                end_time,
+                end_time=end_time,
                 status=status,
-                attributes=verify_value_length(attributes) if self.truncate_attributes else attributes,
+                attributes=attributes,
+                truncate_attributes_enabled=self.truncate_attributes,
+                truncate_fields_enabled=self.truncate_fields,
+                replace_binary_characters=self.replace_binary_chars,
                 description=kwargs.get("description"),
             ).payload
             response = HttpRequest(
@@ -828,7 +875,10 @@ class RPClient(RP):
         return None
 
     def update_test_item(
-        self, item_uuid: str, attributes: Optional[Union[list, dict]] = None, description: Optional[str] = None
+        self,
+        item_uuid: Optional[str],
+        attributes: Optional[Union[list, dict]] = None,
+        description: Optional[str] = None,
     ) -> Optional[str]:
         """Update existing Test Item at the ReportPortal.
 
@@ -837,11 +887,19 @@ class RPClient(RP):
         :param description: Test Item description.
         :return:            Response message or None.
         """
-        data = {
-            "description": description,
-            "attributes": verify_value_length(attributes) if self.truncate_attributes else attributes,
-        }
+        if not item_uuid:
+            logger.warning("Attempt to update non-existent item")
+            return None
+        data = ItemUpdateRequest(
+            description=description,
+            attributes=attributes,
+            truncate_attributes_enabled=self.truncate_attributes,
+            truncate_fields_enabled=self.truncate_fields,
+            replace_binary_characters=self.replace_binary_chars,
+        ).payload
         item_id = self.get_item_id_by_uuid(item_uuid)
+        if not item_id:
+            return None
         url = uri_join(self.base_url_v1, "item", item_id, "update")
         response = HttpRequest(
             self.session.put,
@@ -864,7 +922,12 @@ class RPClient(RP):
         response = ErrorPrintingHttpRequest(
             self.session.post,
             url,
-            files=RPLogBatch(batch).payload,
+            files=RPLogBatch(
+                truncate_attributes_enabled=None,
+                truncate_fields_enabled=None,
+                replace_binary_characters=None,
+                log_reqs=batch,
+            ).payload,
             verify_ssl=self.verify_ssl,
             http_timeout=self.http_timeout,
             name="log",
@@ -877,7 +940,7 @@ class RPClient(RP):
         message: str,
         level: Optional[Union[int, str]] = None,
         attachment: Optional[dict] = None,
-        item_id: Optional[str] = None,
+        item_id: Optional[Any] = None,
     ) -> Optional[tuple[str, ...]]:
         """Send Log message to the ReportPortal and attach it to a Test Item or Launch.
 
@@ -892,7 +955,17 @@ class RPClient(RP):
         :return:           Response message Tuple if Log message batch was sent or None.
         """
         rp_file = RPFile(**attachment) if attachment else None
-        rp_log = RPRequestLog(self.__launch_uuid, time, rp_file, item_id, level, message)
+        rp_log = RPRequestLog(
+            truncate_attributes_enabled=None,
+            truncate_fields_enabled=None,
+            replace_binary_characters=None,
+            launch_uuid=self.__launch_uuid,
+            time=time,
+            file=rp_file,
+            item_uuid=item_id,
+            level=str(level),
+            message=message,
+        )
         return self._log(self._log_batcher.append(rp_log))
 
     def get_item_id_by_uuid(self, item_uuid: str) -> Optional[str]:
@@ -914,7 +987,10 @@ class RPClient(RP):
         """
         if self.launch_uuid is None:
             return {}
-        url = uri_join(self.base_url_v1, "launch", "uuid", self.__launch_uuid)
+        launch_uuid = self.__launch_uuid
+        if launch_uuid is None:
+            return {}
+        url = uri_join(self.base_url_v1, "launch", "uuid", launch_uuid)
         logger.debug("get_launch_info - ID: %s", self.__launch_uuid)
         response = HttpRequest(
             self.session.get,
@@ -1018,6 +1094,13 @@ class RPClient(RP):
             http_timeout=self.http_timeout,
             log_batch_payload_limit=self.log_batch_payload_limit,
             mode=self.mode,
+            truncate_fields=self.truncate_fields,
+            truncate_attributes=self.truncate_attributes,
+            replace_binary_chars=self.replace_binary_chars,
+            launch_name_length_limit=self.launch_name_length_limit,
+            item_name_length_limit=self.item_name_length_limit,
+            launch_description_length_limit=self.launch_description_length_limit,
+            item_description_length_limit=self.item_description_length_limit,
             log_batcher=self._log_batcher,
             oauth_uri=self.oauth_uri,
             oauth_username=self.oauth_username,

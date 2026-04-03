@@ -62,6 +62,12 @@ class _ClientOptions(TypedDict, total=False):
     launch_uuid_print: bool
     print_output: OutputType
     truncate_attributes: bool
+    truncate_fields: bool
+    replace_binary_chars: bool
+    launch_name_length_limit: int
+    item_name_length_limit: int
+    launch_description_length_limit: int
+    item_description_length_limit: int
     log_batch_size: int
     log_batch_payload_limit: int
     # Async client specific parameters
@@ -80,42 +86,48 @@ def create_client(
 ) -> Optional[RP]:
     """Create and ReportPortal Client based on the type and arguments provided.
 
-    :param client_type:             Type of the Client to create.
-    :param endpoint:                Endpoint of the ReportPortal service.
-    :param project:                 Project name to report to.
-    :param api_key:                 Authorization API key.
-    :param oauth_uri:               OAuth 2.0 token endpoint URI (for OAuth authentication).
-    :param oauth_username:          Username for OAuth 2.0 authentication.
-    :param oauth_password:          Password for OAuth 2.0 authentication.
-    :param oauth_client_id:         OAuth 2.0 client ID.
-    :param oauth_client_secret:     OAuth 2.0 client secret (optional).
-    :param oauth_scope:             OAuth 2.0 scope (optional).
-    :param launch_uuid:             A launch UUID to use instead of starting own one.
-    :param is_skipped_an_issue:     Option to mark skipped tests as not 'To Investigate' items on the server
-                                    side.
-    :param verify_ssl:              Option to skip ssl verification.
-    :param retries:                 Number of retry attempts to make in case of connection / server
-                                    errors.
-    :param max_pool_size:           Option to set the maximum number of connections to save the pool.
-    :param http_timeout :           A float in seconds for connect and read timeout. Use a Tuple to
-                                    specific connect and read separately.
-    :param mode:                    Launch mode, all Launches started by the client will be in that mode.
-    :param launch_uuid_print:       Print Launch UUID into passed TextIO or by default to stdout.
-    :param print_output:            Set output stream for Launch UUID printing.
-    :param truncate_attributes:     Truncate test item attributes to default maximum length.
-    :param log_batch_size:          Option to set the maximum number of logs that can be processed in one
-                                    batch.
-    :param log_batch_payload_limit: Maximum size in bytes of logs that can be processed in one batch.
-    :param keepalive_timeout:       For Async Clients only. Maximum amount of idle time in seconds before
-                                    force connection closing.
-    :param task_timeout:            For Async Threaded and Batched Clients only. Time limit in seconds for a
-                                    Task processing.
-    :param shutdown_timeout:        For Async Threaded and Batched Clients only. Time limit in seconds for
-                                    shutting down internal Tasks.
-    :param trigger_num:             For Async Batched Client only. Number of tasks which triggers Task batch
-                                    execution.
-    :param trigger_interval:        For Async Batched Client only. Time limit which triggers Task batch
-                                    execution.
+    :param client_type:                      Type of the Client to create.
+    :param endpoint:                         Endpoint of the ReportPortal service.
+    :param project:                          Project name to report to.
+    :param api_key:                          Authorization API key.
+    :param oauth_uri:                        OAuth 2.0 token endpoint URI (for OAuth authentication).
+    :param oauth_username:                   Username for OAuth 2.0 authentication.
+    :param oauth_password:                   Password for OAuth 2.0 authentication.
+    :param oauth_client_id:                  OAuth 2.0 client ID.
+    :param oauth_client_secret:              OAuth 2.0 client secret (optional).
+    :param oauth_scope:                      OAuth 2.0 scope (optional).
+    :param launch_uuid:                      A launch UUID to use instead of starting own one.
+    :param is_skipped_an_issue:              Option to mark skipped tests as not 'To Investigate' items on the server
+                                             side.
+    :param verify_ssl:                       Option to skip ssl verification.
+    :param retries:                          Number of retry attempts to make in case of connection / server
+                                             errors.
+    :param max_pool_size:                    Option to set the maximum number of connections to save the pool.
+    :param http_timeout:                     A float in seconds for connect and read timeout. Use a Tuple to
+                                             specific connect and read separately.
+    :param mode:                             Launch mode, all Launches started by the client will be in that mode.
+    :param launch_uuid_print:                Print Launch UUID into passed TextIO or by default to stdout.
+    :param print_output:                     Set output stream for Launch UUID printing.
+    :param truncate_attributes:              Truncate test item attributes to default maximum length.
+    :param truncate_fields:                  Truncate request fields to configured limits.
+    :param replace_binary_chars:             Toggle replacement of basic binary characters with \ufffd char.
+    :param launch_name_length_limit:         Maximum allowed launch name length.
+    :param item_name_length_limit:           Maximum allowed test item name length.
+    :param launch_description_length_limit:  Maximum allowed launch description length.
+    :param item_description_length_limit:    Maximum allowed test item description length.
+    :param log_batch_size:                   Option to set the maximum number of logs that can be processed in one
+                                             batch.
+    :param log_batch_payload_limit:          Maximum size in bytes of logs that can be processed in one batch.
+    :param keepalive_timeout:                For Async Clients only. Maximum amount of idle time in seconds before
+                                             force connection closing.
+    :param task_timeout:                     For Async Threaded and Batched Clients only. Time limit in seconds for a
+                                             Task processing.
+    :param shutdown_timeout:                 For Async Threaded and Batched Clients only. Time limit in seconds for
+                                             shutting down internal Tasks.
+    :param trigger_num:                      For Async Batched Client only. Number of tasks which triggers Task batch
+                                             execution.
+    :param trigger_interval:                 For Async Batched Client only. Time limit which triggers Task batch
+                                             execution.
     :return: ReportPortal Client instance.
     """
     my_kwargs = kwargs.copy()
