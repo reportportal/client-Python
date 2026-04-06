@@ -15,6 +15,7 @@
 
 import sys
 import warnings
+from enum import Enum
 from typing import Optional, TypedDict, Union
 
 # noinspection PyUnreachableCode
@@ -22,8 +23,6 @@ if sys.version_info >= (3, 11):
     from typing import Unpack
 else:
     from typing_extensions import Unpack
-
-import aenum  # type: ignore
 
 # noinspection PyProtectedMember
 from reportportal_client._internal.local import current, set_current
@@ -33,13 +32,13 @@ from reportportal_client.logs import RPLogger, RPLogHandler
 from reportportal_client.steps import step
 
 
-class ClientType(aenum.Enum):
+class ClientType(Enum):
     """Enum of possible type of ReportPortal clients."""
 
-    SYNC = aenum.auto()
-    ASYNC = aenum.auto()
-    ASYNC_THREAD = aenum.auto()
-    ASYNC_BATCHED = aenum.auto()
+    SYNC = 1
+    ASYNC = 2
+    ASYNC_THREAD = 3
+    ASYNC_BATCHED = 4
 
 
 class _ClientOptions(TypedDict, total=False):

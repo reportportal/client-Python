@@ -17,11 +17,10 @@ import logging
 import queue
 import threading
 import warnings
+from enum import Enum
 from queue import PriorityQueue
 from threading import Thread, current_thread
 from typing import Optional, Union
-
-from aenum import Enum, auto, unique
 
 # noinspection PyProtectedMember
 from reportportal_client._internal.static.defines import Priority
@@ -33,15 +32,14 @@ logger.addHandler(logging.NullHandler())
 THREAD_TIMEOUT: int = 10  # Thread termination / wait timeout in seconds
 
 
-@unique
 class ControlCommand(Enum):
     """This class stores worker control commands."""
 
-    CLEAR_QUEUE = auto()
-    NOP = auto()
-    REPORT_STATUS = auto()
-    STOP = auto()
-    STOP_IMMEDIATE = auto()
+    CLEAR_QUEUE = 1
+    NOP = 2
+    REPORT_STATUS = 3
+    STOP = 4
+    STOP_IMMEDIATE = 5
 
     def is_stop_cmd(self) -> bool:
         """Verify if the command is the stop one."""

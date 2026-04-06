@@ -1,5 +1,4 @@
-aenum==3.1.17
-typing-extensions==4.13.2
-requests==2.32.5
-aiohttp==3.11.18
+typing-extensions>=4.13.2, <=4.15.0
+requests>=2.32.5, <=2.33.1
+aiohttp>=3.13.4, <=3.13.5
 certifi==2026.2.25

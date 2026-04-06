@@ -12,8 +12,7 @@
 #  limitations under the License
 
 """This module provides RP client static objects and variables."""
-
-import aenum as enum
+from enum import Enum, IntEnum
 
 from reportportal_client.helpers import ATTRIBUTE_LENGTH_LIMIT as ATTRIBUTE_LIMIT
 
@@ -47,7 +46,7 @@ class _PresenceSentinel:
     __bool__ = __nonzero__  # Python3 support
 
 
-class ItemStartType(str, enum.Enum):
+class ItemStartType(str, Enum):
     """This class defines item type mapping."""
 
     BEFORE_CLASS = "before_class"
@@ -69,7 +68,7 @@ class ItemStartType(str, enum.Enum):
     AFTER_TEST = "after_test"
 
 
-class Priority(enum.IntEnum):
+class Priority(IntEnum):
     """Generic enum for various operations' prioritization."""
 
     PRIORITY_IMMEDIATE = 0x0
