@@ -23,10 +23,10 @@
 
 import asyncio
 import sys
+from enum import Enum
 from types import TracebackType
 from typing import Any, Callable, Coroutine, Optional, Union
 
-from aenum import Enum  # type: ignore
 from aiohttp import ClientResponse, ClientResponseError
 from aiohttp import ClientSession as AioHttpClientSession
 from aiohttp import ServerConnectionError

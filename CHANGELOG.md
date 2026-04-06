@@ -1,6 +1,11 @@
 # Changelog
 
 ## [Unreleased]
+### Changed
+- `aiohttp` version updated to 3.13.4, by @HardNorth
+- `requests` version updated to 2.33.1, by @HardNorth
+### Removed
+- `aenum` dependency, by @HardNorth
 
 ## [5.7.1]
 ### Added

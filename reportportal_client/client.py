@@ -19,10 +19,10 @@ import queue
 import sys
 import warnings
 from abc import abstractmethod
+from enum import Enum
 from os import getenv
 from typing import Any, Optional, TextIO, Union
 
-import aenum
 from requests.adapters import DEFAULT_RETRIES, HTTPAdapter, Retry
 
 # noinspection PyProtectedMember
@@ -69,11 +69,11 @@ logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
 
-class OutputType(aenum.Enum):
+class OutputType(Enum):
     """Enum of possible print output types."""
 
-    STDOUT = aenum.auto()
-    STDERR = aenum.auto()
+    STDOUT = 1
+    STDERR = 2
 
     def get_output(self) -> Optional[TextIO]:
         """Return TextIO based on the current type."""
