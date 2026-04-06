@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.7.2]
 ### Changed
 - `aiohttp` version updated to 3.13.4, by @HardNorth
 ### Removed
