@@ -21,6 +21,7 @@ import pytest
 from reportportal_client.helpers import (
     ATTRIBUTE_LENGTH_LIMIT,
     TRUNCATE_REPLACEMENT,
+    compare_semantic_versions,
     gen_attributes,
     get_launch_sys_attrs,
     guess_content_type_from_bytes,
@@ -241,3 +242,36 @@ def test_to_bool_invalid_value():
 )
 def test_match_with_glob_pattern(pattern: Optional[str], line: Optional[str], expected: bool):
     assert match_pattern(translate_glob_to_regex(pattern), line) == expected
+
+
+@pytest.mark.parametrize(
+    ["compared", "basic", "expected"],
+    [
+        ("5.13.2", "5.13.2", 0),
+        ("5.13.1", "5.13.2", -1),
+        ("5.13.3", "5.13.2", 1),
+        ("5.12.2", "5.13.2", -1),
+        ("5.14.2", "5.13.2", 1),
+        ("4.13.2", "5.13.2", -1),
+        ("6.13.2", "5.13.2", 1),
+        ("v5.13.2", "5.13.2", 0),
+        ("v5.13.1", "v5.13.2", -1),
+        ("5.13.3+12345", "5.13.2+54321", 1),
+        ("5.13.2", "5.13.2+54321", 0),
+        ("5.13.2-1.1", "5.13.2-1.1", 0),
+        ("5.13.2-1.2", "5.13.2-1.1", 1),
+        ("5.13.2-0.9", "5.13.2-1.1", -1),
+        ("5.13.2-1.0", "5.13.2-1.1", -1),
+        ("5.13.2-1", "5.13.2-1.1", -1),
+        ("5.13.2-1.1", "5.13.2-1", 1),
+        ("5.13.2-1.", "5.13.2-1", 0),
+        ("5.13.2-1.", "5.13.2-1.1", -1),
+        ("5.13.2-1.a", "5.13.2-1.1", 1),
+        ("5.13.2-1.1", "5.13.2-1.a", -1),
+        ("5.13.2-1.a", "5.13.2-1.a", 0),
+        ("5.13.2-1.b", "5.13.2-1.a", 1),
+        ("5.13.2-1.a", "5.13.2-1.b", -1),
+    ],
+)
+def test_compare_semver(compared: str, basic: str, expected: int):
+    assert compare_semantic_versions(compared, basic) == expected

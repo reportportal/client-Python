@@ -16,12 +16,11 @@
 import asyncio
 import fnmatch
 import inspect
-import logging
 import re
 import threading
-import time
 import unicodedata
 import uuid
+from datetime import datetime, timezone
 from platform import machine, processor, system
 from types import MappingProxyType
 from typing import Any, Callable, Generic, Iterable, Optional, Sized, TypeVar, Union
@@ -34,7 +33,7 @@ try:
 except ImportError:
     import json  # type: ignore
 
-logger: logging.Logger = logging.getLogger(__name__)
+ISO_MICRO_FORMAT = "%Y-%m-%dT%H:%M:%S.%f%z"
 _T = TypeVar("_T")
 ATTRIBUTE_LENGTH_LIMIT: int = 128
 ATTRIBUTE_NUMBER_LIMIT: int = 256
@@ -277,9 +276,12 @@ def verify_value_length(attributes: list[dict]) -> Optional[list[dict]]:
     return result
 
 
-def timestamp() -> str:
-    """Return string representation of the current time in milliseconds."""
-    return str(int(time.time() * 1000))
+def timestamp(use_microseconds=False) -> str:
+    """Return string representation of the current time in milli/microseconds."""
+    now = datetime.now(tz=timezone.utc)
+    if use_microseconds:
+        return now.strftime(ISO_MICRO_FORMAT)
+    return str(int(now.timestamp() * 1000))
 
 
 def uri_join(*uri_parts: str) -> str:
@@ -586,3 +588,102 @@ def clean_binary_characters(text: str) -> str:
     if not text:
         return ""
     return text.translate(CLEANUP_TABLE)
+
+
+def compare_semantic_versions(compared: str, basic: str) -> int:
+    """Compare semantic versions using SemVer precedence rules."""
+    compared_norm = _normalize_version(compared)
+    basic_norm = _normalize_version(basic)
+
+    compared_base, compared_pre_release = _split_base_and_pre_release(compared_norm)
+    basic_base, basic_pre_release = _split_base_and_pre_release(basic_norm)
+
+    core_comparison = _compare_core_versions(compared_base, basic_base)
+    if core_comparison != 0:
+        return core_comparison
+
+    if compared_pre_release == basic_pre_release:
+        return 0
+    if compared_pre_release is None:
+        return 1
+    if basic_pre_release is None:
+        return -1
+    return _compare_pre_release(compared_pre_release, basic_pre_release)
+
+
+def _normalize_version(version: str) -> str:
+    normalized_version = version.strip()
+    if normalized_version.startswith("v") or normalized_version.startswith("V"):
+        normalized_version = normalized_version[1:]
+    plus_index = normalized_version.find("+")
+    if plus_index >= 0:
+        normalized_version = normalized_version[:plus_index]
+    return normalized_version
+
+
+def _split_base_and_pre_release(version: str) -> tuple[str, Optional[str]]:
+    dash_index = version.find("-")
+    if dash_index < 0:
+        return version, None
+    return version[:dash_index], version[dash_index + 1 :]
+
+
+def _compare_core_versions(core_1: str, core_2: str) -> int:
+    parts_1 = _split_without_trailing_empty_segments(core_1, ".")
+    parts_2 = _split_without_trailing_empty_segments(core_2, ".")
+    for i in range(max(len(parts_1), len(parts_2))):
+        part_1 = _parse_int_safe(parts_1[i]) if i < len(parts_1) else 0
+        part_2 = _parse_int_safe(parts_2[i]) if i < len(parts_2) else 0
+        if part_1 != part_2:
+            return -1 if part_1 < part_2 else 1
+    return 0
+
+
+def _compare_pre_release(pre_release_1: str, pre_release_2: str) -> int:
+    tokens_1 = _split_without_trailing_empty_segments(pre_release_1, ".")
+    tokens_2 = _split_without_trailing_empty_segments(pre_release_2, ".")
+    for i in range(max(len(tokens_1), len(tokens_2))):
+        token_1: Optional[str] = tokens_1[i] if i < len(tokens_1) else None
+        token_2: Optional[str] = tokens_2[i] if i < len(tokens_2) else None
+        if token_1 == token_2:
+            continue
+        if token_1 is None:
+            return -1
+        if token_2 is None:
+            return 1
+
+        token_1_is_numeric = _is_numeric(token_1)
+        token_2_is_numeric = _is_numeric(token_2)
+        if token_1_is_numeric and token_2_is_numeric:
+            number_1 = _parse_int_safe(token_1)
+            number_2 = _parse_int_safe(token_2)
+            if number_1 != number_2:
+                return -1 if number_1 < number_2 else 1
+        elif token_1_is_numeric != token_2_is_numeric:
+            return -1 if token_1_is_numeric else 1
+        else:
+            if token_1 < token_2:
+                return -1
+            if token_1 > token_2:
+                return 1
+    return 0
+
+
+def _parse_int_safe(value: str) -> int:
+    try:
+        return int(value)
+    except ValueError:
+        return 0
+
+
+def _is_numeric(value: str) -> bool:
+    if not value:
+        return False
+    return value.isdigit()
+
+
+def _split_without_trailing_empty_segments(value: str, separator: str) -> list[str]:
+    parts = value.split(separator)
+    while len(parts) > 1 and parts[-1] == "":
+        parts.pop()
+    return parts
