@@ -19,8 +19,9 @@ import asyncio
 import logging
 import ssl
 import threading
-import time as datetime
+import time
 import warnings
+from datetime import datetime
 from os import getenv
 from typing import Any, Coroutine, Optional, TypeVar, Union
 
@@ -349,7 +350,7 @@ class Client:
     async def start_launch(
         self,
         name: str,
-        start_time: str,
+        start_time: Union[str, datetime],
         *,
         description: Optional[str] = None,
         attributes: Optional[Union[list, dict]] = None,
@@ -402,7 +403,7 @@ class Client:
         self,
         launch_uuid: Union[str, Task[str]],
         name: str,
-        start_time: str,
+        start_time: Union[str, datetime],
         item_type: str,
         *,
         parent_item_id: Optional[Union[str, Task[str]]] = None,
@@ -478,7 +479,7 @@ class Client:
         self,
         launch_uuid: Union[str, Task[str]],
         item_id: Union[str, Task[str]],
-        end_time: str,
+        end_time: Union[str, datetime],
         *,
         status: Optional[str] = None,
         description: Optional[str] = None,
@@ -535,7 +536,7 @@ class Client:
     async def finish_launch(
         self,
         launch_uuid: Union[str, Task[str]],
-        end_time: str,
+        end_time: Union[str, datetime],
         *,
         status: Optional[str] = None,
         attributes: Optional[Union[list, dict]] = None,
@@ -883,7 +884,7 @@ class AsyncRPClient(RP):
     async def start_launch(
         self,
         name: str,
-        start_time: str,
+        start_time: Union[str, datetime],
         description: Optional[str] = None,
         attributes: Optional[Union[list, dict]] = None,
         rerun: bool = False,
@@ -912,7 +913,7 @@ class AsyncRPClient(RP):
     async def start_test_item(
         self,
         name: str,
-        start_time: str,
+        start_time: Union[str, datetime],
         item_type: str,
         description: Optional[str] = None,
         attributes: Optional[list[dict]] = None,
@@ -973,7 +974,7 @@ class AsyncRPClient(RP):
     async def finish_test_item(
         self,
         item_id: str,
-        end_time: str,
+        end_time: Union[str, datetime],
         status: Optional[str] = None,
         issue: Optional[Issue] = None,
         attributes: Optional[Union[list, dict]] = None,
@@ -1017,7 +1018,7 @@ class AsyncRPClient(RP):
 
     async def finish_launch(
         self,
-        end_time: str,
+        end_time: Union[str, datetime],
         status: Optional[str] = None,
         attributes: Optional[Union[list, dict]] = None,
         **kwargs: Any,
@@ -1110,7 +1111,7 @@ class AsyncRPClient(RP):
 
     async def log(
         self,
-        time: str,
+        time: Union[str, datetime],
         message: str,
         level: Optional[Union[int, str]] = None,
         attachment: Optional[dict] = None,
@@ -1340,7 +1341,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
     def start_launch(
         self,
         name: str,
-        start_time: str,
+        start_time: Union[str, datetime],
         description: Optional[str] = None,
         attributes: Optional[Union[list, dict]] = None,
         rerun: bool = False,
@@ -1369,7 +1370,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
     def start_test_item(
         self,
         name: str,
-        start_time: str,
+        start_time: Union[str, datetime],
         item_type: str,
         description: Optional[str] = None,
         attributes: Optional[list[dict]] = None,
@@ -1428,7 +1429,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
     def finish_test_item(
         self,
         item_id: Task[str],
-        end_time: str,
+        end_time: Union[str, datetime],
         status: Optional[str] = None,
         issue: Optional[Issue] = None,
         attributes: Optional[Union[list, dict]] = None,
@@ -1473,7 +1474,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
 
     def finish_launch(
         self,
-        end_time: str,
+        end_time: Union[str, datetime],
         status: Optional[str] = None,
         attributes: Optional[Union[list, dict]] = None,
         **kwargs: Any,
@@ -1572,7 +1573,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
 
     def log(
         self,
-        time: str,
+        time: Union[str, datetime],
         message: str,
         level: Optional[Union[int, str]] = None,
         attachment: Optional[dict] = None,
@@ -1747,13 +1748,13 @@ class ThreadedRPClient(_RPClient):
 
     def finish_tasks(self):
         """Ensure all pending Tasks are finished, block current Thread if necessary."""
-        shutdown_start_time = datetime.time()
+        shutdown_start_time = time.time()
         with self._task_mutex:
             tasks = self._task_list.flush()
         if tasks:
             for task in tasks:
                 task.blocking_result()
-                if datetime.time() - shutdown_start_time >= self.shutdown_timeout:
+                if time.time() - shutdown_start_time >= self.shutdown_timeout:
                     break
         logs = self._log_batcher.flush()
         if logs:
@@ -1916,7 +1917,7 @@ class BatchedRPClient(_RPClient):
         self.trigger_num = trigger_num
         self.trigger_interval = trigger_interval
         self.__init_task_list(task_list, task_mutex)
-        self.__last_run_time = datetime.time()
+        self.__last_run_time = time.time()
         self.__init_loop(loop)
         if type(launch_uuid) is str:
             super().__init__(

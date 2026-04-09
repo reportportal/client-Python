@@ -19,6 +19,7 @@ import queue
 import sys
 import warnings
 from abc import abstractmethod
+from datetime import datetime
 from enum import Enum
 from os import getenv
 from typing import Any, Optional, TextIO, Union
@@ -147,7 +148,7 @@ class RP(metaclass=AbstractBaseClass):
     def start_launch(
         self,
         name: str,
-        start_time: str,
+        start_time: Union[str, datetime],
         description: Optional[str] = None,
         attributes: Optional[Union[list, dict]] = None,
         rerun: bool = False,
@@ -171,7 +172,7 @@ class RP(metaclass=AbstractBaseClass):
     def start_test_item(
         self,
         name: str,
-        start_time: str,
+        start_time: Union[str, datetime],
         item_type: str,
         description: Optional[str] = None,
         attributes: Optional[Union[list[dict], dict]] = None,
@@ -212,7 +213,7 @@ class RP(metaclass=AbstractBaseClass):
     def finish_test_item(
         self,
         item_id: str,
-        end_time: str,
+        end_time: Union[str, datetime],
         status: Optional[str] = None,
         issue: Optional[Issue] = None,
         attributes: Optional[Union[list, dict]] = None,
@@ -243,7 +244,7 @@ class RP(metaclass=AbstractBaseClass):
     @abstractmethod
     def finish_launch(
         self,
-        end_time: str,
+        end_time: Union[str, datetime],
         status: Optional[str] = None,
         attributes: Optional[Union[list, dict]] = None,
         **kwargs: Any,
@@ -318,7 +319,7 @@ class RP(metaclass=AbstractBaseClass):
     @abstractmethod
     def log(
         self,
-        time: str,
+        time: Union[str, datetime],
         message: str,
         level: Optional[Union[int, str]] = None,
         attachment: Optional[dict] = None,
@@ -637,7 +638,7 @@ class RPClient(RP):
     def start_launch(
         self,
         name: str,
-        start_time: str,
+        start_time: Union[str, datetime],
         description: Optional[str] = None,
         attributes: Optional[Union[list, dict]] = None,
         rerun: bool = False,
@@ -693,7 +694,7 @@ class RPClient(RP):
     def start_test_item(
         self,
         name: str,
-        start_time: str,
+        start_time: Union[str, datetime],
         item_type: str,
         description: Optional[str] = None,
         attributes: Optional[Union[list[dict], dict]] = None,
@@ -772,7 +773,7 @@ class RPClient(RP):
     def finish_test_item(
         self,
         item_id: Any,
-        end_time: str,
+        end_time: Union[str, datetime],
         status: Optional[str] = None,
         issue: Optional[Issue] = None,
         attributes: Optional[Union[list, dict]] = None,
@@ -834,7 +835,7 @@ class RPClient(RP):
 
     def finish_launch(
         self,
-        end_time: str,
+        end_time: Union[str, datetime],
         status: Optional[str] = None,
         attributes: Optional[Union[list, dict]] = None,
         **kwargs: Any,
@@ -936,7 +937,7 @@ class RPClient(RP):
 
     def log(
         self,
-        time: str,
+        time: Union[str, datetime],
         message: str,
         level: Optional[Union[int, str]] = None,
         attachment: Optional[dict] = None,
