@@ -193,3 +193,16 @@ async def test_logs_flush_on_close(async_client: AsyncRPClient):
     batcher.flush.assert_called_once()
     client.log_batch.assert_called_once()
     client.close.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_get_api_info(async_client: AsyncRPClient):
+    # noinspection PyTypeChecker
+    client: mock.AsyncMock = async_client.client
+    expected_info = {"version": "5.14.0"}
+    client.get_api_info.return_value = expected_info
+
+    result = await async_client.get_api_info()
+
+    assert result == expected_info
+    client.get_api_info.assert_called_once_with()

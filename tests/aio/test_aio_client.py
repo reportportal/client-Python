@@ -565,6 +565,7 @@ def request_error(*_, **__):
         ("get", "get_launch_ui_id", ["launch_uuid"]),
         ("get", "get_launch_ui_url", ["launch_uuid"]),
         ("get", "get_project_settings", []),
+        ("get", "get_api_info", []),
         (
             "post",
             "log_batch",
@@ -904,6 +905,21 @@ async def test_get_launch_ui_url(aio_client: Client):
 
     result = await aio_client.get_launch_ui_url(launch_id)
     assert result == f"http://endpoint/ui/#project/launches/all/{GET_RESPONSE_ID}"
+    session.get.assert_called_once()
+    call_args = session.get.call_args_list[0]
+    assert expected_uri == call_args[0][0]
+
+
+@pytest.mark.asyncio
+async def test_get_api_info(aio_client: Client):
+    # noinspection PyTypeChecker
+    session: mock.AsyncMock = await aio_client.session()
+    mock_basic_get_response(session)
+
+    expected_uri = "/api/info"
+
+    result = await aio_client.get_api_info()
+    assert result == RETURN_GET_JSON
     session.get.assert_called_once()
     call_args = session.get.call_args_list[0]
     assert expected_uri == call_args[0][0]

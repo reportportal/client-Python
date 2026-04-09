@@ -167,3 +167,15 @@ def test_logs_flush_on_close(batched_client: BatchedRPClient):
     batcher.flush.assert_called_once()
     client.log_batch.assert_called_once()
     client.close.assert_called_once()
+
+
+def test_get_api_info():
+    aio_client = mock.AsyncMock()
+    expected_info = {"version": "5.14.0"}
+    aio_client.get_api_info.return_value = expected_info
+    client = BatchedRPClient("http://endpoint", "project", api_key="api_key", client=aio_client)
+
+    result = client.get_api_info().blocking_result()
+
+    assert result == expected_info
+    aio_client.get_api_info.assert_called_once_with()

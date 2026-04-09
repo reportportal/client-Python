@@ -317,6 +317,14 @@ class RP(metaclass=AbstractBaseClass):
         raise NotImplementedError('"get_project_settings" method is not implemented!')
 
     @abstractmethod
+    def get_api_info(self) -> Optional[dict]:
+        """Get server information, like version.
+
+        :return: server information.
+        """
+        raise NotImplementedError('"get_api_info" method is not implemented!')
+
+    @abstractmethod
     def log(
         self,
         time: Union[str, datetime],
@@ -1052,6 +1060,21 @@ class RPClient(RP):
             verify_ssl=self.verify_ssl,
             http_timeout=self.http_timeout,
             name="get_project_settings",
+        ).make()
+        return response.json if response else None
+
+    def get_api_info(self) -> Optional[dict]:
+        """Get server information, like version.
+
+        :return: server information.
+        """
+        url = uri_join(self.__endpoint, "api/info")
+        response = HttpRequest(
+            self.session.get,
+            url=url,
+            verify_ssl=self.verify_ssl,
+            http_timeout=self.http_timeout,
+            name="get_api_info",
         ).make()
         return response.json if response else None
 

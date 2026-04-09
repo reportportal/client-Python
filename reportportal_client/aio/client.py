@@ -683,6 +683,15 @@ class Client:
         response = await AsyncHttpRequest((await self.session()).get, url=url, name="get_project_settings").make()
         return await response.json if response else None
 
+    async def get_api_info(self) -> Optional[dict]:
+        """Get server information, like version.
+
+        :return: server information.
+        """
+        url = root_uri_join("api/info")
+        response = await AsyncHttpRequest((await self.session()).get, url=url, name="get_api_info").make()
+        return await response.json if response else None
+
     async def log_batch(self, log_batch: Optional[list[AsyncRPRequestLog]]) -> Optional[tuple[str, ...]]:
         """Send batch logging message to the ReportPortal.
 
@@ -1108,6 +1117,13 @@ class AsyncRPClient(RP):
         :return: Settings response in Dictionary.
         """
         return await self.__client.get_project_settings()
+
+    async def get_api_info(self) -> Optional[dict]:
+        """Get server information, like version.
+
+        :return: server information.
+        """
+        return await self.__client.get_api_info()
 
     async def log(
         self,
@@ -1562,6 +1578,15 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
         :return: Settings response in Dictionary.
         """
         result_coro = self.__client.get_project_settings()
+        result_task = self.create_task(result_coro)
+        return result_task
+
+    def get_api_info(self) -> Task[Optional[dict]]:
+        """Get server information, like version.
+
+        :return: server information.
+        """
+        result_coro = self.__client.get_api_info()
         result_task = self.create_task(result_coro)
         return result_task
 

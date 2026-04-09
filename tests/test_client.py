@@ -54,6 +54,7 @@ def invalid_response(*args, **kwargs):
         ("get", "get_launch_ui_id", []),
         ("get", "get_launch_ui_url", []),
         ("get", "get_project_settings", []),
+        ("get", "get_api_info", []),
         ("post", "start_launch", ["Test Launch", timestamp()]),
         ("post", "start_test_item", ["Test Item", timestamp(), "STEP"]),
         ("put", "update_test_item", ["test_item_id"]),
@@ -297,6 +298,7 @@ def test_attribute_sanitization_binary_and_number_limit(rp_client: RPClient):
         ("update_test_item", "put", ["test_item_uuid"]),
         ("get_launch_info", "get", []),
         ("get_project_settings", "get", []),
+        ("get_api_info", "get", []),
         ("get_item_id_by_uuid", "get", ["test_item_uuid"]),
         ("log", "post", [timestamp(), "Test Message"]),
     ],
@@ -342,6 +344,17 @@ def test_logs_flush_on_close(rp_client: RPClient):
     batcher.flush.assert_called_once()
     session.post.assert_called_once()
     session.close.assert_called_once()
+
+
+def test_get_api_info_url(rp_client: RPClient):
+    # noinspection PyTypeChecker
+    session: mock.Mock = rp_client.session
+
+    rp_client.get_api_info()
+
+    session.get.assert_called_once()
+    request_args = session.get.call_args_list[0][0]
+    assert request_args[0] == "http://endpoint/api/info"
 
 
 def test_oauth_authentication_parameters():
