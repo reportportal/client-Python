@@ -12,6 +12,8 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+"""This module contains auxiliary functions for async code."""
+
 import asyncio
 from typing import Coroutine, Optional, TypeVar, Union
 
