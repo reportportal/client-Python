@@ -56,10 +56,10 @@ from reportportal_client._internal.services.statistics import async_send_event
 # noinspection PyProtectedMember
 from reportportal_client._internal.static.abstract import AbstractBaseClass, abstractmethod
 from reportportal_client._internal.static.defines import DEFAULT_LOG_LEVEL
-from reportportal_client.aio import EmptyTask, await_if_necessary
 
 # noinspection PyProtectedMember
-from reportportal_client.aio.tasks import Task
+from reportportal_client.aio.tasks import EmptyTask, Task
+from reportportal_client.aio.util import await_if_necessary
 from reportportal_client.client import RP, OutputType
 from reportportal_client.core.rp_issues import Issue
 from reportportal_client.core.rp_requests import (

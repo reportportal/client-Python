@@ -37,7 +37,7 @@ from reportportal_client._internal.static.abstract import AbstractBaseClass, abs
 
 # noinspection PyProtectedMember
 from reportportal_client._internal.static.defines import DEFAULT_LOG_LEVEL, DEFAULT_PRIORITY, LOW_PRIORITY, Priority
-from reportportal_client.aio import await_if_necessary
+from reportportal_client.aio.util import await_if_necessary
 from reportportal_client.core.rp_file import RPFile
 from reportportal_client.core.rp_issues import Issue
 from reportportal_client.core.rp_responses import AsyncRPResponse, RPResponse
