@@ -56,6 +56,7 @@ from reportportal_client._internal.services.statistics import async_send_event
 # noinspection PyProtectedMember
 from reportportal_client._internal.static.abstract import AbstractBaseClass, abstractmethod
 from reportportal_client._internal.static.defines import DEFAULT_LOG_LEVEL
+from reportportal_client.aio import EmptyTask
 
 # noinspection PyProtectedMember
 from reportportal_client.aio.tasks import Task
@@ -1311,7 +1312,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
         set_current(self)
 
     @abstractmethod
-    def create_task(self, coro: Coroutine[Any, Any, _T]) -> Optional[Task[_T]]:
+    def create_task(self, coro: Coroutine[Any, Any, _T]) -> Task[_T]:
         """Create a Task from given Coroutine.
 
         :param coro: Coroutine which will be used for the Task creation.
@@ -1572,7 +1573,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
         result_task = self.create_task(result_coro)
         return result_task
 
-    def get_project_settings(self) -> Task[Optional[str]]:
+    def get_project_settings(self) -> Task[Optional[dict]]:
         """Get settings of the current Project.
 
         :return: Settings response in Dictionary.
@@ -1685,8 +1686,9 @@ class ThreadedRPClient(_RPClient):
             self._loop = asyncio.new_event_loop()
             self._loop.set_task_factory(ThreadedTaskFactory(self.task_timeout))
             self.__heartbeat()
-            self._thread = threading.Thread(target=self._loop.run_forever, name="RP-Async-Client", daemon=True)
-            self._thread.start()
+            thread = threading.Thread(target=self._loop.run_forever, name="RP-Async-Client", daemon=True)
+            thread.start()
+            self._thread = thread
 
     async def __return_value(self, value):
         return value
@@ -1758,14 +1760,14 @@ class ThreadedRPClient(_RPClient):
         else:
             super().__init__(endpoint, project, launch_uuid=launch_uuid, **kwargs)
 
-    def create_task(self, coro: Coroutine[Any, Any, _T]) -> Optional[Task[_T]]:
+    def create_task(self, coro: Coroutine[Any, Any, _T]) -> Task[_T]:
         """Create a Task from given Coroutine.
 
         :param coro: Coroutine which will be used for the Task creation.
         :return:     Task instance.
         """
         if not getattr(self, "_loop", None):
-            return None
+            return EmptyTask()
         result = self._loop.create_task(coro)
         with self._task_mutex:
             self._task_list.append(result)
@@ -1951,14 +1953,14 @@ class BatchedRPClient(_RPClient):
         else:
             super().__init__(endpoint, project, launch_uuid=launch_uuid, **kwargs)
 
-    def create_task(self, coro: Coroutine[Any, Any, _T]) -> Optional[Task[_T]]:
+    def create_task(self, coro: Coroutine[Any, Any, _T]) -> Task[_T]:
         """Create a Task from given Coroutine.
 
         :param coro: Coroutine which will be used for the Task creation.
         :return:     Task instance.
         """
         if not getattr(self, "_loop", None):
-            return None
+            return EmptyTask()
         result = self._loop.create_task(coro)
         with self._task_mutex:
             tasks = self._task_list.append(result)

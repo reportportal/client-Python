@@ -23,8 +23,9 @@ import uuid
 from datetime import datetime, timezone
 from platform import machine, processor, system
 from types import MappingProxyType
-from typing import Any, Callable, Generic, Iterable, Optional, Sized, TypeVar, Union
+from typing import Any, Callable, Coroutine, Generic, Iterable, Optional, Sized, TypeVar, Union
 
+from reportportal_client.aio import Task
 from reportportal_client.core.rp_file import RPFile
 
 try:
@@ -401,7 +402,7 @@ def agent_name_version(attributes: Optional[Union[list, dict]] = None) -> tuple[
     return agent_name, agent_version
 
 
-async def await_if_necessary(obj: Optional[Any]) -> Optional[Any]:
+async def await_if_necessary(obj: Union[_T, Task[_T], Coroutine[_T, None, None]]) -> Optional[_T]:
     """Await Coroutine, Feature or coroutine Function if given argument is one of them, or return immediately.
 
     :param obj: value, Coroutine, Feature or coroutine Function

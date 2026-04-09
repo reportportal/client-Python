@@ -55,7 +55,7 @@ class Task(Generic[_T], asyncio.Task, metaclass=AbstractBaseClass):
         self,
         coro: _TaskCompatibleCoro,
         *,
-        loop: asyncio.AbstractEventLoop,
+        loop: Optional[asyncio.AbstractEventLoop],
         name: Optional[str] = None,
     ) -> None:
         """Initialize an instance of the Task.
@@ -92,3 +92,26 @@ class Task(Generic[_T], asyncio.Task, metaclass=AbstractBaseClass):
         if self.done():
             return str(self.result())
         return super().__str__()
+
+
+class EmptyTask(Task[None]):
+    """Task implementation which always returns None."""
+
+    @staticmethod
+    async def __empty_coro() -> None:
+        return None
+
+    def __init__(self) -> None:
+        """Initialize an EmptyTask.
+
+        The class provides a no-op coroutine because ``asyncio.Task`` requires a non-None coroutine object.
+        """
+        super().__init__(self.__empty_coro(), loop=None)
+
+    def blocking_result(self) -> None:
+        """Return None without blocking."""
+        return None
+
+    def result(self) -> None:
+        """Return None regardless of the task state."""
+        return None
