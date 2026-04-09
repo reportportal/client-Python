@@ -37,10 +37,11 @@ from reportportal_client._internal.static.abstract import AbstractBaseClass, abs
 
 # noinspection PyProtectedMember
 from reportportal_client._internal.static.defines import DEFAULT_LOG_LEVEL, DEFAULT_PRIORITY, LOW_PRIORITY, Priority
+from reportportal_client.aio import await_if_necessary
 from reportportal_client.core.rp_file import RPFile
 from reportportal_client.core.rp_issues import Issue
 from reportportal_client.core.rp_responses import AsyncRPResponse, RPResponse
-from reportportal_client.helpers import await_if_necessary, dict_to_payload
+from reportportal_client.helpers import dict_to_payload
 from reportportal_client.helpers.common_helpers import clean_binary_characters, verify_value_length
 
 try:

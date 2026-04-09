@@ -12,6 +12,8 @@
 #  limitations under the License
 
 """Common package for Asynchronous I/O clients and utilities."""
+import asyncio
+from typing import Coroutine, Optional, TypeVar, Union
 
 from reportportal_client.aio.client import (
     DEFAULT_SHUTDOWN_TIMEOUT,
@@ -24,7 +26,25 @@ from reportportal_client.aio.client import (
 )
 from reportportal_client.aio.tasks import BlockingOperationError, EmptyTask, Task
 
+_T = TypeVar("_T")
+
+
+async def await_if_necessary(obj: Union[_T, Task[_T], Coroutine[_T, None, None]]) -> Optional[_T]:
+    """Await Coroutine, Feature or coroutine Function if given argument is one of them, or return immediately.
+
+    :param obj: value, Coroutine, Feature or coroutine Function
+    :return: result which was returned by Coroutine, Feature or coroutine Function
+    """
+    if obj:
+        if asyncio.isfuture(obj) or asyncio.iscoroutine(obj):
+            return await obj
+        elif asyncio.iscoroutinefunction(obj):
+            return await obj()
+    return obj
+
+
 __all__ = [
+    "await_if_necessary",
     "Task",
     "EmptyTask",
     "BlockingOperationError",

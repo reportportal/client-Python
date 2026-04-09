@@ -13,7 +13,6 @@
 
 """This module contains common functions-helpers of the client and agents."""
 
-import asyncio
 import fnmatch
 import inspect
 import re
@@ -23,9 +22,8 @@ import uuid
 from datetime import datetime, timezone
 from platform import machine, processor, system
 from types import MappingProxyType
-from typing import Any, Callable, Coroutine, Generic, Iterable, Optional, Sized, TypeVar, Union
+from typing import Any, Callable, Generic, Iterable, Optional, Sized, TypeVar, Union
 
-from reportportal_client.aio import Task
 from reportportal_client.core.rp_file import RPFile
 
 try:
@@ -400,20 +398,6 @@ def agent_name_version(attributes: Optional[Union[list, dict]] = None) -> tuple[
     if len(agent_attribute) > 0 and agent_attribute[0].get("value"):
         agent_name, agent_version = agent_attribute[0]["value"].split("|")
     return agent_name, agent_version
-
-
-async def await_if_necessary(obj: Union[_T, Task[_T], Coroutine[_T, None, None]]) -> Optional[_T]:
-    """Await Coroutine, Feature or coroutine Function if given argument is one of them, or return immediately.
-
-    :param obj: value, Coroutine, Feature or coroutine Function
-    :return: result which was returned by Coroutine, Feature or coroutine Function
-    """
-    if obj:
-        if asyncio.isfuture(obj) or asyncio.iscoroutine(obj):
-            return await obj
-        elif asyncio.iscoroutinefunction(obj):
-            return await obj()
-    return obj
 
 
 def is_binary(iterable: Union[bytes, bytearray, str]) -> bool:
