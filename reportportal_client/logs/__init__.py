@@ -16,12 +16,13 @@
 import logging
 import sys
 import threading
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, Optional, Union
 from urllib.parse import urlparse
 
 # noinspection PyProtectedMember
 from reportportal_client._internal.local import current, set_current
-from reportportal_client.helpers import TYPICAL_MULTIPART_FOOTER_LENGTH, timestamp
+from reportportal_client.helpers import TYPICAL_MULTIPART_FOOTER_LENGTH
 
 if TYPE_CHECKING:
     from reportportal_client.client import RP
@@ -195,7 +196,7 @@ class RPLogHandler(logging.Handler):
                     set_current(rp_client)
         if rp_client:
             rp_client.log(
-                timestamp(),
+                datetime.now(tz=timezone.utc),
                 msg,
                 level=log_level,
                 attachment=record.__dict__.get("attachment", None),
