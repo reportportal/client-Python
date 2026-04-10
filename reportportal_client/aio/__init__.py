@@ -22,10 +22,11 @@ from reportportal_client.aio.client import (
     BatchedRPClient,
     ThreadedRPClient,
 )
-from reportportal_client.aio.tasks import BlockingOperationError, Task
+from reportportal_client.aio.tasks import BlockingOperationError, EmptyTask, Task
 
 __all__ = [
     "Task",
+    "EmptyTask",
     "BlockingOperationError",
     "DEFAULT_TASK_TIMEOUT",
     "DEFAULT_SHUTDOWN_TIMEOUT",

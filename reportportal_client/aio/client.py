@@ -19,10 +19,11 @@ import asyncio
 import logging
 import ssl
 import threading
-import time as datetime
+import time
 import warnings
+from datetime import datetime
 from os import getenv
-from typing import Any, Coroutine, Optional, TypeVar, Union
+from typing import Any, Coroutine, Optional, TypeVar, Union, cast
 
 import aiohttp
 import certifi
@@ -57,7 +58,8 @@ from reportportal_client._internal.static.abstract import AbstractBaseClass, abs
 from reportportal_client._internal.static.defines import DEFAULT_LOG_LEVEL
 
 # noinspection PyProtectedMember
-from reportportal_client.aio.tasks import Task
+from reportportal_client.aio.tasks import EmptyTask, Task
+from reportportal_client.aio.util import await_if_necessary
 from reportportal_client.client import RP, OutputType
 from reportportal_client.core.rp_issues import Issue
 from reportportal_client.core.rp_requests import (
@@ -79,7 +81,8 @@ from reportportal_client.helpers import (
     LAUNCH_NAME_LENGTH_LIMIT,
     LifoQueue,
     agent_name_version,
-    await_if_necessary,
+    compare_semantic_versions,
+    extract_server_version,
     root_uri_join,
     uri_join,
 )
@@ -93,6 +96,7 @@ _T = TypeVar("_T")
 
 DEFAULT_TASK_TIMEOUT: float = 60.0
 DEFAULT_SHUTDOWN_TIMEOUT: float = 120.0
+MICROSECONDS_MIN_VERSION = "5.13.2"
 
 
 class Client:
@@ -682,6 +686,15 @@ class Client:
         response = await AsyncHttpRequest((await self.session()).get, url=url, name="get_project_settings").make()
         return await response.json if response else None
 
+    async def get_api_info(self) -> Optional[dict]:
+        """Get server information, like version.
+
+        :return: server information.
+        """
+        url = root_uri_join("api/info")
+        response = await AsyncHttpRequest((await self.session()).get, url=url, name="get_api_info").make()
+        return await response.json if response else None
+
     async def log_batch(self, log_batch: Optional[list[AsyncRPRequestLog]]) -> Optional[tuple[str, ...]]:
         """Send batch logging message to the ReportPortal.
 
@@ -775,6 +788,9 @@ class AsyncRPClient(RP):
     __launch_uuid: Optional[str]
     __step_reporter: StepReporter
     use_own_launch: bool
+    _api_info_task: Optional[asyncio.Task[Optional[dict]]]
+    _api_info_cache: Optional[dict]
+    _use_microseconds: Optional[bool]
 
     @property
     def client(self) -> Client:
@@ -878,12 +894,39 @@ class AsyncRPClient(RP):
             self.use_own_launch = False
         else:
             self.use_own_launch = True
+        self._api_info_task = None
+        self._api_info_cache = None
+        self._use_microseconds = None
         set_current(self)
+
+    def __cache_api_info(self, api_info: Optional[dict]) -> Optional[dict]:
+        if not isinstance(api_info, dict):
+            return None
+        self._api_info_cache = api_info
+        version = extract_server_version(api_info)
+        self._use_microseconds = bool(version and compare_semantic_versions(version, MICROSECONDS_MIN_VERSION) >= 0)
+        return api_info
+
+    async def __prefetch_api_info(self) -> Optional[dict]:
+        try:
+            api_info = await self.__client.get_api_info()
+            return self.__cache_api_info(api_info)
+        except Exception as exc:
+            logger.warning("Unable to prefetch API info in background: %s", exc)
+            return None
+
+    def __init_api_info_prefetch(self) -> None:
+        try:
+            loop = asyncio.get_running_loop()
+            self._api_info_task = loop.create_task(self.__prefetch_api_info())
+        except RuntimeError:
+            # Construction may happen without an active loop.
+            self._api_info_task = None
 
     async def start_launch(
         self,
         name: str,
-        start_time: str,
+        start_time: Union[str, datetime],
         description: Optional[str] = None,
         attributes: Optional[Union[list, dict]] = None,
         rerun: bool = False,
@@ -904,7 +947,13 @@ class AsyncRPClient(RP):
         if not self.use_own_launch:
             return self.launch_uuid
         launch_uuid = await self.__client.start_launch(
-            name, start_time, description=description, attributes=attributes, rerun=rerun, rerun_of=rerun_of, **kwargs
+            name,
+            await self._convert_time(start_time),
+            description=description,
+            attributes=attributes,
+            rerun=rerun,
+            rerun_of=rerun_of,
+            **kwargs,
         )
         self.__launch_uuid = launch_uuid
         return self.launch_uuid
@@ -912,7 +961,7 @@ class AsyncRPClient(RP):
     async def start_test_item(
         self,
         name: str,
-        start_time: str,
+        start_time: Union[str, datetime],
         item_type: str,
         description: Optional[str] = None,
         attributes: Optional[list[dict]] = None,
@@ -950,7 +999,7 @@ class AsyncRPClient(RP):
         item_id = await self.__client.start_test_item(
             self.__launch_uuid,
             name,
-            start_time,
+            await self._convert_time(start_time),
             item_type,
             description=description,
             attributes=attributes,
@@ -973,7 +1022,7 @@ class AsyncRPClient(RP):
     async def finish_test_item(
         self,
         item_id: str,
-        end_time: str,
+        end_time: Union[str, datetime],
         status: Optional[str] = None,
         issue: Optional[Issue] = None,
         attributes: Optional[Union[list, dict]] = None,
@@ -1002,7 +1051,7 @@ class AsyncRPClient(RP):
         result = await self.__client.finish_test_item(
             self.__launch_uuid,
             item_id,
-            end_time,
+            await self._convert_time(end_time),
             status=status,
             issue=issue,
             attributes=attributes,
@@ -1017,7 +1066,7 @@ class AsyncRPClient(RP):
 
     async def finish_launch(
         self,
-        end_time: str,
+        end_time: Union[str, datetime],
         status: Optional[str] = None,
         attributes: Optional[Union[list, dict]] = None,
         **kwargs: Any,
@@ -1032,7 +1081,7 @@ class AsyncRPClient(RP):
         """
         if self.use_own_launch:
             result = await self.__client.finish_launch(
-                self.__launch_uuid, end_time, status=status, attributes=attributes, **kwargs
+                self.__launch_uuid, await self._convert_time(end_time), status=status, attributes=attributes, **kwargs
             )
         else:
             result = ""
@@ -1108,9 +1157,38 @@ class AsyncRPClient(RP):
         """
         return await self.__client.get_project_settings()
 
+    async def get_api_info(self) -> Optional[dict]:
+        """Get server information, like version.
+
+        :return: server information.
+        """
+        if self._api_info_cache is not None:
+            return self.__cache_api_info(self._api_info_cache)
+        if self._api_info_task:
+            return await self._api_info_task
+        api_info = await self.__client.get_api_info()
+        return self.__cache_api_info(api_info)
+
+    async def use_microseconds(self) -> Optional[bool]:
+        """Return if current server version supports microseconds."""
+        if self._use_microseconds is not None:
+            return self._use_microseconds
+
+        await self.get_api_info()
+        if self._use_microseconds is None:
+            self._use_microseconds = False
+        return self._use_microseconds
+
+    async def _convert_time(self, time_value: Union[str, datetime]) -> str:
+        if isinstance(time_value, str):
+            return time_value
+        if await self.use_microseconds():
+            return time_value.strftime("%Y-%m-%dT%H:%M:%S.%f%z")
+        return str(int(time_value.timestamp() * 1000))
+
     async def log(
         self,
-        time: str,
+        time: Union[str, datetime],
         message: str,
         level: Optional[Union[int, str]] = None,
         attachment: Optional[dict] = None,
@@ -1135,7 +1213,7 @@ class AsyncRPClient(RP):
             truncate_fields_enabled=None,
             replace_binary_characters=None,
             launch_uuid=self.__launch_uuid,
-            time=time,
+            time=await self._convert_time(time),
             file=rp_file,
             item_uuid=item_id,
             level=rp_level,
@@ -1188,6 +1266,9 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
     __endpoint: str
     __project: str
     __step_reporter: StepReporter
+    _api_info_task: Optional[Task[Optional[dict]]]
+    _api_info_cache: Optional[dict]
+    _use_microseconds: Optional[bool]
 
     @property
     def client(self) -> Client:
@@ -1235,7 +1316,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
         project: str,
         *,
         client: Optional[Client] = None,
-        launch_uuid: Optional[Task[Optional[str]]] = None,
+        launch_uuid: Optional[Task[str]] = None,
         log_batch_size: int = 20,
         log_batch_payload_limit: int = MAX_LOG_BATCH_PAYLOAD_SIZE,
         log_batcher: Optional[LogBatcher] = None,
@@ -1291,10 +1372,13 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
         else:
             self.own_launch = True
 
+        self._api_info_task = None
+        self._api_info_cache = None
+        self._use_microseconds = None
         set_current(self)
 
     @abstractmethod
-    def create_task(self, coro: Coroutine[Any, Any, _T]) -> Optional[Task[_T]]:
+    def create_task(self, coro: Coroutine[Any, Any, _T]) -> Task[_T]:
         """Create a Task from given Coroutine.
 
         :param coro: Coroutine which will be used for the Task creation.
@@ -1337,10 +1421,53 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
     async def __int_value(self) -> int:
         return -1
 
+    async def _return_value(self, value: _T) -> _T:
+        return value
+
+    async def _prefetch_api_info(self) -> Optional[dict]:
+        try:
+            api_info = await self.__client.get_api_info()
+            self.__cache_api_info(api_info)
+            return api_info
+        except Exception as exc:
+            logger.warning("Unable to prefetch API info in background: %s", exc)
+            return None
+
+    def __cache_api_info(self, api_info: Optional[dict]) -> None:
+        if not isinstance(api_info, dict):
+            return
+        self._api_info_cache = api_info
+        version = extract_server_version(api_info)
+        self._use_microseconds = bool(version and compare_semantic_versions(version, MICROSECONDS_MIN_VERSION) >= 0)
+
+    async def __resolve_use_microseconds(self) -> bool:
+        if self._use_microseconds is not None:
+            return self._use_microseconds
+
+        if self._api_info_task:
+            try:
+                api_info = await self._api_info_task
+                self.__cache_api_info(api_info)
+            except Exception as exc:
+                logger.warning("Unable to await API info prefetch: %s", exc)
+
+        if self._use_microseconds is not None:
+            return self._use_microseconds or False
+
+        if self._api_info_cache is None:
+            try:
+                self.__cache_api_info(await self.__client.get_api_info())
+            except Exception as exc:
+                logger.warning("Unable to fetch API info for microseconds check: %s", exc)
+
+        if self._use_microseconds is None:
+            self._use_microseconds = False
+        return self._use_microseconds or False
+
     def start_launch(
         self,
         name: str,
-        start_time: str,
+        start_time: Union[str, datetime],
         description: Optional[str] = None,
         attributes: Optional[Union[list, dict]] = None,
         rerun: bool = False,
@@ -1361,7 +1488,13 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
         if not self.own_launch:
             return self.launch_uuid
         launch_uuid_coro = self.__client.start_launch(
-            name, start_time, description=description, attributes=attributes, rerun=rerun, rerun_of=rerun_of, **kwargs
+            name,
+            self._convert_time(start_time),
+            description=description,
+            attributes=attributes,
+            rerun=rerun,
+            rerun_of=rerun_of,
+            **kwargs,
         )
         self.__launch_uuid = self.create_task(launch_uuid_coro)
         return self.launch_uuid
@@ -1369,7 +1502,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
     def start_test_item(
         self,
         name: str,
-        start_time: str,
+        start_time: Union[str, datetime],
         item_type: str,
         description: Optional[str] = None,
         attributes: Optional[list[dict]] = None,
@@ -1407,7 +1540,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
         item_id_coro = self.__client.start_test_item(
             self.launch_uuid,
             name,
-            start_time,
+            self._convert_time(start_time),
             item_type,
             description=description,
             attributes=attributes,
@@ -1428,7 +1561,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
     def finish_test_item(
         self,
         item_id: Task[str],
-        end_time: str,
+        end_time: Union[str, datetime],
         status: Optional[str] = None,
         issue: Optional[Issue] = None,
         attributes: Optional[Union[list, dict]] = None,
@@ -1457,7 +1590,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
         result_coro = self.__client.finish_test_item(
             self.launch_uuid,
             item_id,
-            end_time,
+            self._convert_time(end_time),
             status=status,
             issue=issue,
             attributes=attributes,
@@ -1473,7 +1606,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
 
     def finish_launch(
         self,
-        end_time: str,
+        end_time: Union[str, datetime],
         status: Optional[str] = None,
         attributes: Optional[Union[list, dict]] = None,
         **kwargs: Any,
@@ -1489,7 +1622,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
         self.create_task(self.__client.log_batch(self._log_batcher.flush()))
         if self.own_launch:
             result_coro = self.__client.finish_launch(
-                self.launch_uuid, end_time, status=status, attributes=attributes, **kwargs
+                self.launch_uuid, self._convert_time(end_time), status=status, attributes=attributes, **kwargs
             )
         else:
             result_coro = self.__empty_str()
@@ -1555,7 +1688,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
         result_task = self.create_task(result_coro)
         return result_task
 
-    def get_project_settings(self) -> Task[Optional[str]]:
+    def get_project_settings(self) -> Task[Optional[dict]]:
         """Get settings of the current Project.
 
         :return: Settings response in Dictionary.
@@ -1563,6 +1696,32 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
         result_coro = self.__client.get_project_settings()
         result_task = self.create_task(result_coro)
         return result_task
+
+    def get_api_info(self) -> Task[Optional[dict]]:
+        """Get server information, like version.
+
+        :return: server information.
+        """
+        if self._api_info_cache is not None:
+            return self.create_task(self._return_value(self._api_info_cache))
+        if self._api_info_task:
+            return self._api_info_task
+        api_task = self.create_task(self._prefetch_api_info())
+        self._api_info_task = api_task
+        return api_task
+
+    def use_microseconds(self) -> Task[bool]:
+        """Return if current server version supports microseconds."""
+        if self._use_microseconds is not None:
+            return self.create_task(self._return_value(self._use_microseconds))
+        return self.create_task(self.__resolve_use_microseconds())
+
+    def _convert_time(self, time_value: Union[str, datetime]) -> str:
+        if isinstance(time_value, str):
+            return time_value
+        if self.use_microseconds().blocking_result():
+            return time_value.strftime("%Y-%m-%dT%H:%M:%S.%f%z")
+        return str(int(time_value.timestamp() * 1000))
 
     async def _log_batch(self, log_rq: Optional[list[AsyncRPRequestLog]]) -> Optional[tuple[str, ...]]:
         return await self.__client.log_batch(log_rq)
@@ -1572,7 +1731,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
 
     def log(
         self,
-        time: str,
+        time: Union[str, datetime],
         message: str,
         level: Optional[Union[int, str]] = None,
         attachment: Optional[dict] = None,
@@ -1597,7 +1756,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
             truncate_fields_enabled=None,
             replace_binary_characters=None,
             launch_uuid=self.launch_uuid,
-            time=time,
+            time=self._convert_time(time),
             file=rp_file,
             item_uuid=item_id,
             level=rp_level,
@@ -1659,11 +1818,9 @@ class ThreadedRPClient(_RPClient):
             self._loop = asyncio.new_event_loop()
             self._loop.set_task_factory(ThreadedTaskFactory(self.task_timeout))
             self.__heartbeat()
-            self._thread = threading.Thread(target=self._loop.run_forever, name="RP-Async-Client", daemon=True)
-            self._thread.start()
-
-    async def __return_value(self, value):
-        return value
+            thread = threading.Thread(target=self._loop.run_forever, name="RP-Async-Client", daemon=True)
+            thread.start()
+            self._thread = thread
 
     def __init__(
         self,
@@ -1726,20 +1883,30 @@ class ThreadedRPClient(_RPClient):
         self.__init_task_list(task_list, task_mutex)
         self.__init_loop(loop)
         if type(launch_uuid) is str:
+            my_launch_uuid = str(launch_uuid)
             super().__init__(
-                endpoint, project, launch_uuid=self.create_task(self.__return_value(launch_uuid)), **kwargs
+                endpoint, project, launch_uuid=self.create_task(self._return_value(my_launch_uuid)), **kwargs
             )
         else:
-            super().__init__(endpoint, project, launch_uuid=launch_uuid, **kwargs)
+            my_launch_uuid_task = cast(Task[str], launch_uuid)
+            super().__init__(endpoint, project, launch_uuid=my_launch_uuid_task, **kwargs)
+        self.__init_api_info_prefetch()
 
-    def create_task(self, coro: Coroutine[Any, Any, _T]) -> Optional[Task[_T]]:
+    def __init_api_info_prefetch(self) -> None:
+        if self._use_microseconds is not None or self._api_info_cache is not None:
+            return
+        if self._loop is None:
+            return
+        self._api_info_task = self._loop.create_task(self._prefetch_api_info())
+
+    def create_task(self, coro: Coroutine[Any, Any, _T]) -> Task[_T]:
         """Create a Task from given Coroutine.
 
         :param coro: Coroutine which will be used for the Task creation.
         :return:     Task instance.
         """
-        if not getattr(self, "_loop", None):
-            return None
+        if self._loop is None:
+            return EmptyTask()
         result = self._loop.create_task(coro)
         with self._task_mutex:
             self._task_list.append(result)
@@ -1747,13 +1914,13 @@ class ThreadedRPClient(_RPClient):
 
     def finish_tasks(self):
         """Ensure all pending Tasks are finished, block current Thread if necessary."""
-        shutdown_start_time = datetime.time()
+        shutdown_start_time = time.time()
         with self._task_mutex:
             tasks = self._task_list.flush()
         if tasks:
             for task in tasks:
                 task.blocking_result()
-                if datetime.time() - shutdown_start_time >= self.shutdown_timeout:
+                if time.time() - shutdown_start_time >= self.shutdown_timeout:
                     break
         logs = self._log_batcher.flush()
         if logs:
@@ -1798,6 +1965,7 @@ class ThreadedRPClient(_RPClient):
         del state["_task_mutex"]
         del state["_loop"]
         del state["_thread"]
+        del state["_api_info_task"]
         return state
 
     def __setstate__(self, state: dict[str, Any]) -> None:
@@ -1808,6 +1976,8 @@ class ThreadedRPClient(_RPClient):
         self.__dict__.update(state)
         self.__init_task_list(self._task_list, threading.RLock())
         self.__init_loop()
+        self._api_info_task = None
+        self.__init_api_info_prefetch()
 
 
 class BatchedRPClient(_RPClient):
@@ -1847,9 +2017,6 @@ class BatchedRPClient(_RPClient):
         else:
             self._loop = asyncio.new_event_loop()
             self._loop.set_task_factory(BatchedTaskFactory())
-
-    async def __return_value(self, value):
-        return value
 
     def __init__(
         self,
@@ -1916,23 +2083,30 @@ class BatchedRPClient(_RPClient):
         self.trigger_num = trigger_num
         self.trigger_interval = trigger_interval
         self.__init_task_list(task_list, task_mutex)
-        self.__last_run_time = datetime.time()
+        self.__last_run_time = time.time()
         self.__init_loop(loop)
         if type(launch_uuid) is str:
+            my_launch_uuid = str(launch_uuid)
             super().__init__(
-                endpoint, project, launch_uuid=self.create_task(self.__return_value(launch_uuid)), **kwargs
+                endpoint, project, launch_uuid=self.create_task(self._return_value(my_launch_uuid)), **kwargs
             )
         else:
-            super().__init__(endpoint, project, launch_uuid=launch_uuid, **kwargs)
+            my_launch_uuid_task = cast(Task[str], launch_uuid)
+            super().__init__(endpoint, project, launch_uuid=my_launch_uuid_task, **kwargs)
+        self.__init_api_info_prefetch()
 
-    def create_task(self, coro: Coroutine[Any, Any, _T]) -> Optional[Task[_T]]:
+    def __init_api_info_prefetch(self) -> None:
+        # Batched client loop runs on demand, so prefetch starts lazily.
+        self._api_info_task = None
+
+    def create_task(self, coro: Coroutine[Any, Any, _T]) -> Task[_T]:
         """Create a Task from given Coroutine.
 
         :param coro: Coroutine which will be used for the Task creation.
         :return:     Task instance.
         """
         if not getattr(self, "_loop", None):
-            return None
+            return EmptyTask()
         result = self._loop.create_task(coro)
         with self._task_mutex:
             tasks = self._task_list.append(result)
@@ -1989,6 +2163,7 @@ class BatchedRPClient(_RPClient):
         # Don't pickle 'session' field, since it contains unpickling 'socket'
         del state["_task_mutex"]
         del state["_loop"]
+        del state["_api_info_task"]
         return state
 
     def __setstate__(self, state: dict[str, Any]) -> None:
@@ -1999,3 +2174,5 @@ class BatchedRPClient(_RPClient):
         self.__dict__.update(state)
         self.__init_task_list(self._task_list, threading.RLock())
         self.__init_loop()
+        self._api_info_task = None
+        self.__init_api_info_prefetch()

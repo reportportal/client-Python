@@ -12,6 +12,7 @@
 #  limitations under the License
 
 import pickle
+from datetime import datetime, timezone
 from io import StringIO
 from unittest import mock
 
@@ -54,6 +55,7 @@ def invalid_response(*args, **kwargs):
         ("get", "get_launch_ui_id", []),
         ("get", "get_launch_ui_url", []),
         ("get", "get_project_settings", []),
+        ("get", "get_api_info", []),
         ("post", "start_launch", ["Test Launch", timestamp()]),
         ("post", "start_test_item", ["Test Item", timestamp(), "STEP"]),
         ("put", "update_test_item", ["test_item_id"]),
@@ -297,6 +299,7 @@ def test_attribute_sanitization_binary_and_number_limit(rp_client: RPClient):
         ("update_test_item", "put", ["test_item_uuid"]),
         ("get_launch_info", "get", []),
         ("get_project_settings", "get", []),
+        ("get_api_info", "get", []),
         ("get_item_id_by_uuid", "get", ["test_item_uuid"]),
         ("log", "post", [timestamp(), "Test Message"]),
     ],
@@ -342,6 +345,57 @@ def test_logs_flush_on_close(rp_client: RPClient):
     batcher.flush.assert_called_once()
     session.post.assert_called_once()
     session.close.assert_called_once()
+
+
+def test_get_api_info_url(rp_client: RPClient):
+    # noinspection PyTypeChecker
+    session: mock.Mock = rp_client.session
+
+    rp_client.get_api_info()
+
+    session.get.assert_called_once()
+    request_args = session.get.call_args_list[0][0]
+    assert request_args[0] == "http://endpoint/api/info"
+
+
+def test_use_microseconds_cached(rp_client: RPClient):
+    rp_client._api_info_prefetched.set()
+    rp_client._api_info_cache = {"build": {"version": "5.13.2"}}
+    rp_client._use_microseconds = None
+    rp_client.get_api_info = mock.Mock(return_value={"build": {"version": "5.1.0"}})
+
+    assert rp_client.use_microseconds() is True
+    assert rp_client.use_microseconds() is True
+    rp_client.get_api_info.assert_not_called()
+
+
+def test_use_microseconds_default_false(rp_client: RPClient):
+    rp_client._api_info_prefetched.set()
+    rp_client._api_info_cache = None
+    rp_client._use_microseconds = None
+    rp_client.get_api_info = mock.Mock(return_value=None)
+
+    assert rp_client.use_microseconds() is False
+    assert rp_client.use_microseconds() is False
+    rp_client.get_api_info.assert_called_once_with()
+
+
+@pytest.mark.parametrize(
+    "time_value, microseconds_enabled, expected_result",
+    [
+        ("1712700812345", True, "1712700812345"),
+        (datetime(2024, 1, 2, 3, 4, 5, 678901, tzinfo=timezone.utc), True, "2024-01-02T03:04:05.678901+0000"),
+        (
+            datetime(2024, 1, 2, 3, 4, 5, 678901, tzinfo=timezone.utc),
+            False,
+            str(int(datetime(2024, 1, 2, 3, 4, 5, 678901, tzinfo=timezone.utc).timestamp() * 1000)),
+        ),
+    ],
+)
+def test_convert_time(rp_client: RPClient, time_value, microseconds_enabled, expected_result):
+    rp_client.use_microseconds = mock.Mock(return_value=microseconds_enabled)
+
+    assert rp_client._convert_time(time_value) == expected_result
 
 
 def test_oauth_authentication_parameters():

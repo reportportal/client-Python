@@ -12,6 +12,7 @@
 #  limitations under the License
 
 import pickle
+from datetime import datetime, timezone
 from unittest import mock
 
 # noinspection PyPackageRequirements
@@ -167,3 +168,47 @@ def test_logs_flush_on_close(batched_client: BatchedRPClient):
     batcher.flush.assert_called_once()
     client.log_batch.assert_called_once()
     client.close.assert_called_once()
+
+
+def test_get_api_info():
+    aio_client = mock.AsyncMock()
+    expected_info = {"version": "5.14.0"}
+    aio_client.get_api_info.return_value = expected_info
+    client = BatchedRPClient("http://endpoint", "project", api_key="api_key", client=aio_client)
+
+    result = client.get_api_info().blocking_result()
+
+    assert result == expected_info
+    aio_client.get_api_info.assert_called_once_with()
+
+
+def test_use_microseconds_cached():
+    aio_client = mock.AsyncMock()
+    aio_client.get_api_info.return_value = {"build": {"version": "5.13.2"}}
+    client = BatchedRPClient("http://endpoint", "project", api_key="api_key", client=aio_client)
+
+    assert client.use_microseconds().blocking_result() is True
+    assert client.use_microseconds().blocking_result() is True
+    aio_client.get_api_info.assert_called_once_with()
+
+
+@pytest.mark.parametrize(
+    "time_value, microseconds_enabled, expected_result",
+    [
+        ("1712700812345", True, "1712700812345"),
+        (datetime(2024, 1, 2, 3, 4, 5, 678901, tzinfo=timezone.utc), True, "2024-01-02T03:04:05.678901+0000"),
+        (
+            datetime(2024, 1, 2, 3, 4, 5, 678901, tzinfo=timezone.utc),
+            False,
+            str(int(datetime(2024, 1, 2, 3, 4, 5, 678901, tzinfo=timezone.utc).timestamp() * 1000)),
+        ),
+    ],
+)
+def test_convert_time(time_value, microseconds_enabled, expected_result):
+    aio_client = mock.AsyncMock()
+    client = BatchedRPClient("http://endpoint", "project", api_key="api_key", client=aio_client)
+    microseconds_task = mock.Mock()
+    microseconds_task.blocking_result.return_value = microseconds_enabled
+    client.use_microseconds = mock.Mock(return_value=microseconds_task)
+
+    assert client._convert_time(time_value) == expected_result

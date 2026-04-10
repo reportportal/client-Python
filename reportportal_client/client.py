@@ -17,8 +17,10 @@
 import logging
 import queue
 import sys
+import threading
 import warnings
 from abc import abstractmethod
+from datetime import datetime
 from enum import Enum
 from os import getenv
 from typing import Any, Optional, TextIO, Union
@@ -55,7 +57,13 @@ from reportportal_client.core.rp_requests import (
     RPLogBatch,
     RPRequestLog,
 )
-from reportportal_client.helpers import LifoQueue, agent_name_version, uri_join
+from reportportal_client.helpers import (
+    LifoQueue,
+    agent_name_version,
+    compare_semantic_versions,
+    extract_server_version,
+    uri_join,
+)
 from reportportal_client.helpers.common_helpers import (
     ITEM_DESCRIPTION_LENGTH_LIMIT,
     ITEM_NAME_LENGTH_LIMIT,
@@ -67,6 +75,8 @@ from reportportal_client.steps import StepReporter
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
+
+MICROSECONDS_MIN_VERSION = "5.13.2"
 
 
 class OutputType(Enum):
@@ -144,10 +154,23 @@ class RP(metaclass=AbstractBaseClass):
         raise NotImplementedError('"step_reporter" property is not implemented!')
 
     @abstractmethod
+    def use_microseconds(self) -> Optional[bool]:
+        """Return if current server version supports microseconds.
+
+        :return: True if current server version supports microseconds.
+        """
+        raise NotImplementedError('"use_microseconds" method is not implemented!')
+
+    @abstractmethod
+    def _convert_time(self, time: Union[str, datetime]) -> str:
+        """Convert time to the format expected by ReportPortal."""
+        raise NotImplementedError('"convert_time" method is not implemented!')
+
+    @abstractmethod
     def start_launch(
         self,
         name: str,
-        start_time: str,
+        start_time: Union[str, datetime],
         description: Optional[str] = None,
         attributes: Optional[Union[list, dict]] = None,
         rerun: bool = False,
@@ -171,7 +194,7 @@ class RP(metaclass=AbstractBaseClass):
     def start_test_item(
         self,
         name: str,
-        start_time: str,
+        start_time: Union[str, datetime],
         item_type: str,
         description: Optional[str] = None,
         attributes: Optional[Union[list[dict], dict]] = None,
@@ -212,7 +235,7 @@ class RP(metaclass=AbstractBaseClass):
     def finish_test_item(
         self,
         item_id: str,
-        end_time: str,
+        end_time: Union[str, datetime],
         status: Optional[str] = None,
         issue: Optional[Issue] = None,
         attributes: Optional[Union[list, dict]] = None,
@@ -243,7 +266,7 @@ class RP(metaclass=AbstractBaseClass):
     @abstractmethod
     def finish_launch(
         self,
-        end_time: str,
+        end_time: Union[str, datetime],
         status: Optional[str] = None,
         attributes: Optional[Union[list, dict]] = None,
         **kwargs: Any,
@@ -316,9 +339,17 @@ class RP(metaclass=AbstractBaseClass):
         raise NotImplementedError('"get_project_settings" method is not implemented!')
 
     @abstractmethod
+    def get_api_info(self) -> Optional[dict]:
+        """Get server information, like version.
+
+        :return: server information.
+        """
+        raise NotImplementedError('"get_api_info" method is not implemented!')
+
+    @abstractmethod
     def log(
         self,
-        time: str,
+        time: Union[str, datetime],
         message: str,
         level: Optional[Union[int, str]] = None,
         attachment: Optional[dict] = None,
@@ -426,6 +457,10 @@ class RPClient(RP):
     _skip_analytics: Optional[str]
     _item_stack: LifoQueue
     _log_batcher: LogBatcher[RPRequestLog]
+    _api_info_cache: Optional[dict]
+    _use_microseconds: Optional[bool]
+    _api_info_lock: threading.Lock
+    _api_info_prefetched: threading.Event
 
     @property
     def launch_uuid(self) -> Optional[str]:
@@ -578,6 +613,10 @@ class RPClient(RP):
         self.item_name_length_limit = item_name_length_limit
         self.launch_description_length_limit = launch_description_length_limit
         self.item_description_length_limit = item_description_length_limit
+        self._api_info_cache = None
+        self._use_microseconds = None
+        self._api_info_lock = threading.Lock()
+        self._api_info_prefetched = threading.Event()
 
         self.api_key = api_key
         # Handle deprecated token argument
@@ -633,11 +672,31 @@ class RPClient(RP):
             )
 
         self.__init_session()
+        self.__init_api_info_prefetch()
+
+    def __cache_api_info(self, api_info: Optional[dict]) -> None:
+        if api_info is None:
+            return
+        with self._api_info_lock:
+            self._api_info_cache = api_info
+            version = extract_server_version(api_info)
+            self._use_microseconds = bool(
+                version and compare_semantic_versions(version, MICROSECONDS_MIN_VERSION) >= 0
+            )
+
+    def __prefetch_api_info(self) -> None:
+        try:
+            self.get_api_info()
+        finally:
+            self._api_info_prefetched.set()
+
+    def __init_api_info_prefetch(self) -> None:
+        threading.Thread(target=self.__prefetch_api_info, daemon=True, name="RP-API-Info-Prefetch").start()
 
     def start_launch(
         self,
         name: str,
-        start_time: str,
+        start_time: Union[str, datetime],
         description: Optional[str] = None,
         attributes: Optional[Union[list, dict]] = None,
         rerun: bool = False,
@@ -660,7 +719,7 @@ class RPClient(RP):
         url = uri_join(self.base_url_v2, "launch")
         request_payload = LaunchStartRequest(
             name=name,
-            start_time=start_time,
+            start_time=self._convert_time(start_time),
             attributes=attributes,
             truncate_attributes_enabled=self.truncate_attributes,
             truncate_fields_enabled=self.truncate_fields,
@@ -693,7 +752,7 @@ class RPClient(RP):
     def start_test_item(
         self,
         name: str,
-        start_time: str,
+        start_time: Union[str, datetime],
         item_type: str,
         description: Optional[str] = None,
         attributes: Optional[Union[list[dict], dict]] = None,
@@ -734,7 +793,7 @@ class RPClient(RP):
             url = uri_join(self.base_url_v2, "item")
         request_payload = ItemStartRequest(
             name=name,
-            start_time=start_time,
+            start_time=self._convert_time(start_time),
             type_=item_type,
             launch_uuid=self.__launch_uuid,
             attributes=attributes,
@@ -772,7 +831,7 @@ class RPClient(RP):
     def finish_test_item(
         self,
         item_id: Any,
-        end_time: str,
+        end_time: Union[str, datetime],
         status: Optional[str] = None,
         issue: Optional[Issue] = None,
         attributes: Optional[Union[list, dict]] = None,
@@ -803,7 +862,7 @@ class RPClient(RP):
             return None
         url = uri_join(self.base_url_v2, "item", item_id)
         request_payload = ItemFinishRequest(
-            end_time=end_time,
+            end_time=self._convert_time(end_time),
             launch_uuid=self.__launch_uuid,
             status=status,
             attributes=attributes,
@@ -834,7 +893,7 @@ class RPClient(RP):
 
     def finish_launch(
         self,
-        end_time: str,
+        end_time: Union[str, datetime],
         status: Optional[str] = None,
         attributes: Optional[Union[list, dict]] = None,
         **kwargs: Any,
@@ -852,7 +911,7 @@ class RPClient(RP):
                 return None
             url = uri_join(self.base_url_v2, "launch", self.__launch_uuid, "finish")
             request_payload = LaunchFinishRequest(
-                end_time=end_time,
+                end_time=self._convert_time(end_time),
                 status=status,
                 attributes=attributes,
                 truncate_attributes_enabled=self.truncate_attributes,
@@ -936,7 +995,7 @@ class RPClient(RP):
 
     def log(
         self,
-        time: str,
+        time: Union[str, datetime],
         message: str,
         level: Optional[Union[int, str]] = None,
         attachment: Optional[dict] = None,
@@ -960,7 +1019,7 @@ class RPClient(RP):
             truncate_fields_enabled=None,
             replace_binary_characters=None,
             launch_uuid=self.__launch_uuid,
-            time=time,
+            time=self._convert_time(time),
             file=rp_file,
             item_uuid=item_id,
             level=str(level),
@@ -1030,7 +1089,7 @@ class RPClient(RP):
         if not mode:
             mode = self.mode
 
-        launch_type = "launches" if mode.upper() == "DEFAULT" else "userdebug"
+        launch_type = "launches" if str(mode).upper() == "DEFAULT" else "userdebug"
 
         path = "ui/#{project_name}/{launch_type}/all/{launch_id}".format(
             project_name=self.__project.lower(), launch_type=launch_type, launch_id=ui_id
@@ -1053,6 +1112,50 @@ class RPClient(RP):
             name="get_project_settings",
         ).make()
         return response.json if response else None
+
+    def get_api_info(self) -> Optional[dict]:
+        """Get server information, like version.
+
+        :return: server information.
+        """
+        url = uri_join(self.__endpoint, "api/info")
+        response = HttpRequest(
+            self.session.get,
+            url=url,
+            verify_ssl=self.verify_ssl,
+            http_timeout=self.http_timeout,
+            name="get_api_info",
+        ).make()
+        api_info = response.json if response else None
+        self.__cache_api_info(api_info)
+        return api_info
+
+    def use_microseconds(self) -> Optional[bool]:
+        """Return if current server version supports microseconds."""
+        if self._use_microseconds is not None:
+            return self._use_microseconds
+
+        if not self._api_info_prefetched.is_set():
+            self._api_info_prefetched.wait(timeout=10.0)
+
+        if self._use_microseconds is not None:
+            return self._use_microseconds
+
+        if self._api_info_cache is not None:
+            self.__cache_api_info(self._api_info_cache)
+        else:
+            self.get_api_info()
+        if self._use_microseconds is None:
+            self._use_microseconds = False
+        return self._use_microseconds
+
+    def _convert_time(self, time: Union[str, datetime]) -> str:
+        """Convert time to the format expected by ReportPortal."""
+        if isinstance(time, str):
+            return time
+        if self.use_microseconds():
+            return time.strftime("%Y-%m-%dT%H:%M:%S.%f%z")
+        return str(int(time.timestamp() * 1000))
 
     def _add_current_item(self, item: str) -> None:
         """Add the last item from the self._items queue."""
@@ -1128,6 +1231,8 @@ class RPClient(RP):
         state = self.__dict__.copy()
         # Don't pickle 'session' field, since it contains unpickling 'socket'
         del state["session"]
+        del state["_api_info_lock"]
+        del state["_api_info_prefetched"]
         return state
 
     def __setstate__(self, state: dict[str, Any]) -> None:
@@ -1138,3 +1243,9 @@ class RPClient(RP):
         self.__dict__.update(state)
         # Restore 'session' field
         self.__init_session()
+        self._api_info_lock = threading.Lock()
+        self._api_info_prefetched = threading.Event()
+        if self._use_microseconds is not None or self._api_info_cache is not None:
+            self._api_info_prefetched.set()
+        else:
+            self.__init_api_info_prefetch()

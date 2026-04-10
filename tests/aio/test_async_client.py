@@ -12,6 +12,7 @@
 #  limitations under the License
 
 import pickle
+from datetime import datetime, timezone
 from unittest import mock
 
 # noinspection PyPackageRequirements
@@ -193,3 +194,49 @@ async def test_logs_flush_on_close(async_client: AsyncRPClient):
     batcher.flush.assert_called_once()
     client.log_batch.assert_called_once()
     client.close.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_get_api_info(async_client: AsyncRPClient):
+    # noinspection PyTypeChecker
+    client: mock.AsyncMock = async_client.client
+    expected_info = {"version": "5.14.0"}
+    client.get_api_info.return_value = expected_info
+
+    result = await async_client.get_api_info()
+
+    assert result == expected_info
+    client.get_api_info.assert_called_once_with()
+
+
+@pytest.mark.asyncio
+async def test_use_microseconds_cached(async_client: AsyncRPClient):
+    # noinspection PyTypeChecker
+    client: mock.AsyncMock = async_client.client
+    async_client._api_info_task = None
+    async_client._api_info_cache = {"build": {"version": "5.13.2"}}
+    async_client._use_microseconds = None
+    client.get_api_info = mock.AsyncMock(return_value={"build": {"version": "5.1.0"}})
+
+    assert await async_client.use_microseconds() is True
+    assert await async_client.use_microseconds() is True
+    client.get_api_info.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "time_value, microseconds_enabled, expected_result",
+    [
+        ("1712700812345", True, "1712700812345"),
+        (datetime(2024, 1, 2, 3, 4, 5, 678901, tzinfo=timezone.utc), True, "2024-01-02T03:04:05.678901+0000"),
+        (
+            datetime(2024, 1, 2, 3, 4, 5, 678901, tzinfo=timezone.utc),
+            False,
+            str(int(datetime(2024, 1, 2, 3, 4, 5, 678901, tzinfo=timezone.utc).timestamp() * 1000)),
+        ),
+    ],
+)
+@pytest.mark.asyncio
+async def test_convert_time(async_client: AsyncRPClient, time_value, microseconds_enabled, expected_result):
+    async_client.use_microseconds = mock.AsyncMock(return_value=microseconds_enabled)
+
+    assert await async_client._convert_time(time_value) == expected_result
