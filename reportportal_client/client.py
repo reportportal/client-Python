@@ -44,6 +44,9 @@ from reportportal_client._internal.services.statistics import send_event
 
 # noinspection PyProtectedMember
 from reportportal_client._internal.static.abstract import AbstractBaseClass
+
+# noinspection PyProtectedMember
+from reportportal_client._internal.static.defines import MICROSECONDS_MIN_VERSION
 from reportportal_client.core.rp_issues import Issue
 from reportportal_client.core.rp_requests import (
     ErrorPrintingHttpRequest,
@@ -75,8 +78,6 @@ from reportportal_client.steps import StepReporter
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
-
-MICROSECONDS_MIN_VERSION = "5.13.2"
 
 
 class OutputType(Enum):
