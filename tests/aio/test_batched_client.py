@@ -179,3 +179,13 @@ def test_get_api_info():
 
     assert result == expected_info
     aio_client.get_api_info.assert_called_once_with()
+
+
+def test_use_microseconds_cached():
+    aio_client = mock.AsyncMock()
+    aio_client.get_api_info.return_value = {"build": {"version": "5.13.2"}}
+    client = BatchedRPClient("http://endpoint", "project", api_key="api_key", client=aio_client)
+
+    assert client.use_microseconds().blocking_result() is True
+    assert client.use_microseconds().blocking_result() is True
+    aio_client.get_api_info.assert_called_once_with()

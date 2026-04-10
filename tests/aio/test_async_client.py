@@ -206,3 +206,17 @@ async def test_get_api_info(async_client: AsyncRPClient):
 
     assert result == expected_info
     client.get_api_info.assert_called_once_with()
+
+
+@pytest.mark.asyncio
+async def test_use_microseconds_cached(async_client: AsyncRPClient):
+    # noinspection PyTypeChecker
+    client: mock.AsyncMock = async_client.client
+    async_client._api_info_task = None
+    async_client._api_info_cache = {"build": {"version": "5.13.2"}}
+    async_client._use_microseconds = None
+    client.get_api_info = mock.AsyncMock(return_value={"build": {"version": "5.1.0"}})
+
+    assert await async_client.use_microseconds() is True
+    assert await async_client.use_microseconds() is True
+    client.get_api_info.assert_not_called()

@@ -596,6 +596,21 @@ def compare_semantic_versions(compared: str, basic: str) -> int:
     return _compare_pre_release(compared_pre_release, basic_pre_release)
 
 
+def extract_server_version(api_info: Optional[dict]) -> Optional[str]:
+    """Extract server version from API info payload."""
+    if not api_info:
+        return None
+    build_info = api_info.get("build")
+    if isinstance(build_info, dict):
+        build_version = build_info.get("version")
+        if isinstance(build_version, str):
+            return build_version
+    version = api_info.get("version")
+    if isinstance(version, str):
+        return version
+    return None
+
+
 def _normalize_version(version: str) -> str:
     normalized_version = version.strip()
     if normalized_version.startswith("v") or normalized_version.startswith("V"):

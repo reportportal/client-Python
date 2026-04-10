@@ -357,6 +357,28 @@ def test_get_api_info_url(rp_client: RPClient):
     assert request_args[0] == "http://endpoint/api/info"
 
 
+def test_use_microseconds_cached(rp_client: RPClient):
+    rp_client._api_info_prefetched.set()
+    rp_client._api_info_cache = {"build": {"version": "5.13.2"}}
+    rp_client._use_microseconds = None
+    rp_client.get_api_info = mock.Mock(return_value={"build": {"version": "5.1.0"}})
+
+    assert rp_client.use_microseconds() is True
+    assert rp_client.use_microseconds() is True
+    rp_client.get_api_info.assert_not_called()
+
+
+def test_use_microseconds_default_false(rp_client: RPClient):
+    rp_client._api_info_prefetched.set()
+    rp_client._api_info_cache = None
+    rp_client._use_microseconds = None
+    rp_client.get_api_info = mock.Mock(return_value=None)
+
+    assert rp_client.use_microseconds() is False
+    assert rp_client.use_microseconds() is False
+    rp_client.get_api_info.assert_called_once_with()
+
+
 def test_oauth_authentication_parameters():
     """Test that OAuth 2.0 authentication parameters work correctly."""
     client = RPClient(
