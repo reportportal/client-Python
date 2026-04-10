@@ -162,6 +162,11 @@ class RP(metaclass=AbstractBaseClass):
         raise NotImplementedError('"use_microseconds" method is not implemented!')
 
     @abstractmethod
+    def _convert_time(self, time: Union[str, datetime]) -> str:
+        """Convert time to the format expected by ReportPortal."""
+        raise NotImplementedError('"convert_time" method is not implemented!')
+
+    @abstractmethod
     def start_launch(
         self,
         name: str,
@@ -714,7 +719,7 @@ class RPClient(RP):
         url = uri_join(self.base_url_v2, "launch")
         request_payload = LaunchStartRequest(
             name=name,
-            start_time=start_time,
+            start_time=self._convert_time(start_time),
             attributes=attributes,
             truncate_attributes_enabled=self.truncate_attributes,
             truncate_fields_enabled=self.truncate_fields,
@@ -788,7 +793,7 @@ class RPClient(RP):
             url = uri_join(self.base_url_v2, "item")
         request_payload = ItemStartRequest(
             name=name,
-            start_time=start_time,
+            start_time=self._convert_time(start_time),
             type_=item_type,
             launch_uuid=self.__launch_uuid,
             attributes=attributes,
@@ -857,7 +862,7 @@ class RPClient(RP):
             return None
         url = uri_join(self.base_url_v2, "item", item_id)
         request_payload = ItemFinishRequest(
-            end_time=end_time,
+            end_time=self._convert_time(end_time),
             launch_uuid=self.__launch_uuid,
             status=status,
             attributes=attributes,
@@ -906,7 +911,7 @@ class RPClient(RP):
                 return None
             url = uri_join(self.base_url_v2, "launch", self.__launch_uuid, "finish")
             request_payload = LaunchFinishRequest(
-                end_time=end_time,
+                end_time=self._convert_time(end_time),
                 status=status,
                 attributes=attributes,
                 truncate_attributes_enabled=self.truncate_attributes,
@@ -1014,7 +1019,7 @@ class RPClient(RP):
             truncate_fields_enabled=None,
             replace_binary_characters=None,
             launch_uuid=self.__launch_uuid,
-            time=time,
+            time=self._convert_time(time),
             file=rp_file,
             item_uuid=item_id,
             level=str(level),
@@ -1084,7 +1089,7 @@ class RPClient(RP):
         if not mode:
             mode = self.mode
 
-        launch_type = "launches" if mode.upper() == "DEFAULT" else "userdebug"
+        launch_type = "launches" if str(mode).upper() == "DEFAULT" else "userdebug"
 
         path = "ui/#{project_name}/{launch_type}/all/{launch_id}".format(
             project_name=self.__project.lower(), launch_type=launch_type, launch_id=ui_id
@@ -1143,6 +1148,14 @@ class RPClient(RP):
         if self._use_microseconds is None:
             self._use_microseconds = False
         return self._use_microseconds
+
+    def _convert_time(self, time: Union[str, datetime]) -> str:
+        """Convert time to the format expected by ReportPortal."""
+        if isinstance(time, str):
+            return time
+        if self.use_microseconds():
+            return time.strftime("%Y-%m-%dT%H:%M:%S.%f%z")
+        return str(int(time.timestamp() * 1000))
 
     def _add_current_item(self, item: str) -> None:
         """Add the last item from the self._items queue."""

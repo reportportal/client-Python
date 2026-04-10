@@ -12,6 +12,7 @@
 #  limitations under the License
 
 import pickle
+from datetime import datetime, timezone
 from unittest import mock
 
 # noinspection PyPackageRequirements
@@ -220,3 +221,22 @@ async def test_use_microseconds_cached(async_client: AsyncRPClient):
     assert await async_client.use_microseconds() is True
     assert await async_client.use_microseconds() is True
     client.get_api_info.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "time_value, microseconds_enabled, expected_result",
+    [
+        ("1712700812345", True, "1712700812345"),
+        (datetime(2024, 1, 2, 3, 4, 5, 678901, tzinfo=timezone.utc), True, "2024-01-02T03:04:05.678901+0000"),
+        (
+            datetime(2024, 1, 2, 3, 4, 5, 678901, tzinfo=timezone.utc),
+            False,
+            str(int(datetime(2024, 1, 2, 3, 4, 5, 678901, tzinfo=timezone.utc).timestamp() * 1000)),
+        ),
+    ],
+)
+@pytest.mark.asyncio
+async def test_convert_time(async_client: AsyncRPClient, time_value, microseconds_enabled, expected_result):
+    async_client.use_microseconds = mock.AsyncMock(return_value=microseconds_enabled)
+
+    assert await async_client._convert_time(time_value) == expected_result

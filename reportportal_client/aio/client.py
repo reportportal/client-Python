@@ -353,7 +353,7 @@ class Client:
     async def start_launch(
         self,
         name: str,
-        start_time: Union[str, datetime],
+        start_time: str,
         *,
         description: Optional[str] = None,
         attributes: Optional[Union[list, dict]] = None,
@@ -406,7 +406,7 @@ class Client:
         self,
         launch_uuid: Union[str, Task[str]],
         name: str,
-        start_time: Union[str, datetime],
+        start_time: str,
         item_type: str,
         *,
         parent_item_id: Optional[Union[str, Task[str]]] = None,
@@ -482,7 +482,7 @@ class Client:
         self,
         launch_uuid: Union[str, Task[str]],
         item_id: Union[str, Task[str]],
-        end_time: Union[str, datetime],
+        end_time: str,
         *,
         status: Optional[str] = None,
         description: Optional[str] = None,
@@ -539,7 +539,7 @@ class Client:
     async def finish_launch(
         self,
         launch_uuid: Union[str, Task[str]],
-        end_time: Union[str, datetime],
+        end_time: str,
         *,
         status: Optional[str] = None,
         attributes: Optional[Union[list, dict]] = None,
@@ -947,7 +947,13 @@ class AsyncRPClient(RP):
         if not self.use_own_launch:
             return self.launch_uuid
         launch_uuid = await self.__client.start_launch(
-            name, start_time, description=description, attributes=attributes, rerun=rerun, rerun_of=rerun_of, **kwargs
+            name,
+            await self._convert_time(start_time),
+            description=description,
+            attributes=attributes,
+            rerun=rerun,
+            rerun_of=rerun_of,
+            **kwargs,
         )
         self.__launch_uuid = launch_uuid
         return self.launch_uuid
@@ -993,7 +999,7 @@ class AsyncRPClient(RP):
         item_id = await self.__client.start_test_item(
             self.__launch_uuid,
             name,
-            start_time,
+            await self._convert_time(start_time),
             item_type,
             description=description,
             attributes=attributes,
@@ -1045,7 +1051,7 @@ class AsyncRPClient(RP):
         result = await self.__client.finish_test_item(
             self.__launch_uuid,
             item_id,
-            end_time,
+            await self._convert_time(end_time),
             status=status,
             issue=issue,
             attributes=attributes,
@@ -1075,7 +1081,7 @@ class AsyncRPClient(RP):
         """
         if self.use_own_launch:
             result = await self.__client.finish_launch(
-                self.__launch_uuid, end_time, status=status, attributes=attributes, **kwargs
+                self.__launch_uuid, await self._convert_time(end_time), status=status, attributes=attributes, **kwargs
             )
         else:
             result = ""
@@ -1173,6 +1179,13 @@ class AsyncRPClient(RP):
             self._use_microseconds = False
         return self._use_microseconds
 
+    async def _convert_time(self, time_value: Union[str, datetime]) -> str:
+        if isinstance(time_value, str):
+            return time_value
+        if await self.use_microseconds():
+            return time_value.strftime("%Y-%m-%dT%H:%M:%S.%f%z")
+        return str(int(time_value.timestamp() * 1000))
+
     async def log(
         self,
         time: Union[str, datetime],
@@ -1200,7 +1213,7 @@ class AsyncRPClient(RP):
             truncate_fields_enabled=None,
             replace_binary_characters=None,
             launch_uuid=self.__launch_uuid,
-            time=time,
+            time=await self._convert_time(time),
             file=rp_file,
             item_uuid=item_id,
             level=rp_level,
@@ -1475,7 +1488,13 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
         if not self.own_launch:
             return self.launch_uuid
         launch_uuid_coro = self.__client.start_launch(
-            name, start_time, description=description, attributes=attributes, rerun=rerun, rerun_of=rerun_of, **kwargs
+            name,
+            self._convert_time(start_time),
+            description=description,
+            attributes=attributes,
+            rerun=rerun,
+            rerun_of=rerun_of,
+            **kwargs,
         )
         self.__launch_uuid = self.create_task(launch_uuid_coro)
         return self.launch_uuid
@@ -1521,7 +1540,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
         item_id_coro = self.__client.start_test_item(
             self.launch_uuid,
             name,
-            start_time,
+            self._convert_time(start_time),
             item_type,
             description=description,
             attributes=attributes,
@@ -1571,7 +1590,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
         result_coro = self.__client.finish_test_item(
             self.launch_uuid,
             item_id,
-            end_time,
+            self._convert_time(end_time),
             status=status,
             issue=issue,
             attributes=attributes,
@@ -1603,7 +1622,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
         self.create_task(self.__client.log_batch(self._log_batcher.flush()))
         if self.own_launch:
             result_coro = self.__client.finish_launch(
-                self.launch_uuid, end_time, status=status, attributes=attributes, **kwargs
+                self.launch_uuid, self._convert_time(end_time), status=status, attributes=attributes, **kwargs
             )
         else:
             result_coro = self.__empty_str()
@@ -1697,6 +1716,13 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
             return self.create_task(self._return_value(self._use_microseconds))
         return self.create_task(self.__resolve_use_microseconds())
 
+    def _convert_time(self, time_value: Union[str, datetime]) -> str:
+        if isinstance(time_value, str):
+            return time_value
+        if self.use_microseconds().blocking_result():
+            return time_value.strftime("%Y-%m-%dT%H:%M:%S.%f%z")
+        return str(int(time_value.timestamp() * 1000))
+
     async def _log_batch(self, log_rq: Optional[list[AsyncRPRequestLog]]) -> Optional[tuple[str, ...]]:
         return await self.__client.log_batch(log_rq)
 
@@ -1730,7 +1756,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
             truncate_fields_enabled=None,
             replace_binary_characters=None,
             launch_uuid=self.launch_uuid,
-            time=time,
+            time=self._convert_time(time),
             file=rp_file,
             item_uuid=item_id,
             level=rp_level,
