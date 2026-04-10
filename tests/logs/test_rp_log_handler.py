@@ -10,9 +10,8 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License
-import re
 
-# noinspection PyUnresolvedReferences
+from datetime import datetime
 from unittest import mock
 
 # noinspection PyPackageRequirements
@@ -68,7 +67,8 @@ def test_emit_simple(mocked_handle):
     call_args = mock_client.log.call_args[0]
     call_kwargs = mock_client.log.call_args[1]
 
-    assert re.match("^[0-9]+$", call_args[0])
+    log_time = call_args[0]
+    assert isinstance(log_time, datetime)
     assert test_message == call_args[1]
     assert call_kwargs["level"] == "INFO"
     assert not call_kwargs["attachment"]

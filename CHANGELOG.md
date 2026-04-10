@@ -1,6 +1,10 @@
 # Changelog
 
 ## [Unreleased]
+### Fixed
+- Microsecond logging for nested steps, by @HardNorth
+
+## [5.7.3]
 ### Added
 - Microseconds precision for timestamps, by @HardNorth
 

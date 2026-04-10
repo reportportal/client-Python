@@ -42,6 +42,7 @@ Usage with 'with' keyword:
             pass
 
 """
+from datetime import datetime, timezone
 from functools import wraps
 from typing import Any, Callable, Optional, TypeVar, Union
 
@@ -52,7 +53,7 @@ from reportportal_client._internal.aio.tasks import Task
 
 # noinspection PyProtectedMember
 from reportportal_client._internal.local import current
-from reportportal_client.helpers import get_function_params, timestamp
+from reportportal_client.helpers import get_function_params
 
 NESTED_STEP_ITEMS = (
     "step",
@@ -88,7 +89,11 @@ class StepReporter:
         self.client = rp_client
 
     def start_nested_step(
-        self, name: str, start_time: str, parameters: Optional[dict[str, Any]] = None, **_: dict[str, Any]
+        self,
+        name: str,
+        start_time: Union[str, datetime],
+        parameters: Optional[dict[str, Any]] = None,
+        **_: dict[str, Any],
     ) -> Union[Optional[str], Task[Optional[str]]]:
         """Start Nested Step on ReportPortal.
 
@@ -106,7 +111,7 @@ class StepReporter:
     def finish_nested_step(
         self,
         item_id: Union[str, Task[Optional[str]]],
-        end_time: str,
+        end_time: Union[str, datetime],
         status: Optional[str] = None,
         **_: dict[str, Any],
     ) -> Union[Optional[str], Task[Optional[str]]]:
@@ -151,11 +156,13 @@ class Step:
         rp_client = self.client or current()
         if not rp_client:
             return
-        self.__item_id = rp_client.step_reporter.start_nested_step(self.name, timestamp(), parameters=self.params)
+        self.__item_id = rp_client.step_reporter.start_nested_step(
+            self.name, datetime.now(tz=timezone.utc), parameters=self.params
+        )
         if self.params:
             param_list = [str(key) + ": " + str(value) for key, value in sorted(self.params.items())]
             param_str = "Parameters: " + "; ".join(param_list)
-            rp_client.log(timestamp(), param_str, level="INFO", item_id=self.__item_id)
+            rp_client.log(datetime.now(tz=timezone.utc), param_str, level="INFO", item_id=self.__item_id)
 
     def __exit__(self, exc_type: type[BaseException], exc_val, exc_tb) -> None:
         """Exit the runtime context related to this object."""
@@ -169,7 +176,7 @@ class Step:
         step_status = self.status
         if any((exc_type, exc_val, exc_tb)):
             step_status = "FAILED"
-        rp_client.step_reporter.finish_nested_step(self.__item_id, timestamp(), step_status)
+        rp_client.step_reporter.finish_nested_step(self.__item_id, datetime.now(tz=timezone.utc), step_status)
 
     def __call__(self, *args, **kwargs):
         """Wrap and call a function reference.
