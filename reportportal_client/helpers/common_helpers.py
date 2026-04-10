@@ -17,9 +17,9 @@ import fnmatch
 import inspect
 import re
 import threading
+import time
 import unicodedata
 import uuid
-from datetime import datetime, timezone
 from platform import machine, processor, system
 from types import MappingProxyType
 from typing import Any, Callable, Generic, Iterable, Optional, Sized, TypeVar, Union
@@ -32,7 +32,6 @@ try:
 except ImportError:
     import json  # type: ignore
 
-ISO_MICRO_FORMAT = "%Y-%m-%dT%H:%M:%S.%f%z"
 _T = TypeVar("_T")
 ATTRIBUTE_LENGTH_LIMIT: int = 128
 ATTRIBUTE_NUMBER_LIMIT: int = 256
@@ -275,12 +274,9 @@ def verify_value_length(attributes: list[dict]) -> Optional[list[dict]]:
     return result
 
 
-def timestamp(use_microseconds=False) -> str:
-    """Return string representation of the current time in milli/microseconds."""
-    now = datetime.now(tz=timezone.utc)
-    if use_microseconds:
-        return now.strftime(ISO_MICRO_FORMAT)
-    return str(int(now.timestamp() * 1000))
+def timestamp() -> str:
+    """Return string representation of the current time in milliseconds."""
+    return str(int(time.time() * 1000))
 
 
 def uri_join(*uri_parts: str) -> str:
