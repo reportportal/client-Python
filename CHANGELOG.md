@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.7.4]
 ### Fixed
 - Microsecond logging for nested steps, by @HardNorth
 
