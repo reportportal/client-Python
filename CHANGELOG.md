@@ -1,6 +1,10 @@
 # Changelog
 
 ## [Unreleased]
+### Changed
+- Certify dependency version update, by @othererik
+
+## [5.7.4]
 ### Fixed
 - Microsecond logging for nested steps, by @HardNorth
 

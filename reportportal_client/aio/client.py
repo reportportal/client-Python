@@ -55,7 +55,9 @@ from reportportal_client._internal.services.statistics import async_send_event
 
 # noinspection PyProtectedMember
 from reportportal_client._internal.static.abstract import AbstractBaseClass, abstractmethod
-from reportportal_client._internal.static.defines import DEFAULT_LOG_LEVEL
+
+# noinspection PyProtectedMember
+from reportportal_client._internal.static.defines import DEFAULT_LOG_LEVEL, MICROSECONDS_MIN_VERSION
 
 # noinspection PyProtectedMember
 from reportportal_client.aio.tasks import EmptyTask, Task
@@ -96,7 +98,6 @@ _T = TypeVar("_T")
 
 DEFAULT_TASK_TIMEOUT: float = 60.0
 DEFAULT_SHUTDOWN_TIMEOUT: float = 120.0
-MICROSECONDS_MIN_VERSION = "5.13.2"
 
 
 class Client:
