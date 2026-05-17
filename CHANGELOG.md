@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.7.5]
 ### Changed
 - Certify dependency version update, by @othererik
 
