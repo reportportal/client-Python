@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Changed
+- Certify dependency version update, by @othererik
 
 ## [5.7.4]
 ### Fixed
