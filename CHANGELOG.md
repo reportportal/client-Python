@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 ### Changed
+- requests dependency version update, by @matejkloska
+
+## [5.7.5]
+### Changed
 - Certify dependency version update, by @othererik
 
 ## [5.7.4]
