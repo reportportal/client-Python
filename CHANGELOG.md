@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Changed
+- requests dependency version update, by @matejkloska
 
 ## [5.7.5]
 ### Changed
