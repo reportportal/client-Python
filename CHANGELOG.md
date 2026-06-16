@@ -1,14 +1,17 @@
 # Changelog
 
 ## [Unreleased]
+### Changed
+- `aiohttp` dependency version update, by @M1troll
+- `certify` dependency version update, by @HardNorth
 
 ## [5.7.6]
 ### Changed
-- requests dependency version update, by @matejkloska
+- `requests` dependency version update, by @matejkloska
 
 ## [5.7.5]
 ### Changed
-- Certify dependency version update, by @othererik
+- `certify` dependency version update, by @othererik
 
 ## [5.7.4]
 ### Fixed
