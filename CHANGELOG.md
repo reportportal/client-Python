@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.7.8]
 ### Changed
 - `typing-extensions` dependency version update, by @HardNorth
 - `certify` dependency version update, by @HardNorth
