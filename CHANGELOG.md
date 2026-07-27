@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 ### Changed
+- `typing-extensions` dependency version update, by @HardNorth
+- `certify` dependency version update, by @HardNorth
+
+## [5.7.7]
+### Changed
 - `aiohttp` dependency version update, by @M1troll
 - `certify` dependency version update, by @HardNorth
 
