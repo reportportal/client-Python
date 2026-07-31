@@ -23,6 +23,7 @@ from abc import abstractmethod
 from datetime import datetime
 from enum import Enum
 from os import getenv
+from time import sleep
 from typing import Any, Optional, TextIO, Union
 
 from requests.adapters import DEFAULT_RETRIES, HTTPAdapter, Retry
@@ -906,6 +907,7 @@ class RPClient(RP):
                             PASSED, FAILED, STOPPED, SKIPPED, CANCELLED
         :param attributes:  Launch attributes
         """
+        self._log(self._log_batcher.flush())
         if self.use_own_launch:
             if not self.__launch_uuid:
                 logger.warning("Attempt to finish non-existent launch")
@@ -920,6 +922,7 @@ class RPClient(RP):
                 replace_binary_characters=self.replace_binary_chars,
                 description=kwargs.get("description"),
             ).payload
+            sleep(3)  # To allow back to pick up all logs and not miss them for auto-analysis. Dirty hack, rework.
             response = HttpRequest(
                 self.session.put,
                 url=url,
@@ -931,7 +934,6 @@ class RPClient(RP):
             if not response:
                 return None
             logger.debug("finish_launch - ID: %s", self.__launch_uuid)
-        self._log(self._log_batcher.flush())
         return None
 
     def update_test_item(

@@ -1,6 +1,10 @@
 # Changelog
 
 ## [Unreleased]
+### Fixed
+- A rare case when server not capturing logs for auto analysis on Launch finish.
+
+## [5.7.8]
 ### Changed
 - `typing-extensions` dependency version update, by @HardNorth
 - `certify` dependency version update, by @HardNorth
