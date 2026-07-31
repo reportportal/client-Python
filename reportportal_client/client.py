@@ -922,7 +922,7 @@ class RPClient(RP):
                 replace_binary_characters=self.replace_binary_chars,
                 description=kwargs.get("description"),
             ).payload
-            sleep(3) # To allow back to pick up all logs and not miss them for auto-analysis. Dirty hack, rework.
+            sleep(3)  # To allow back to pick up all logs and not miss them for auto-analysis. Dirty hack, rework.
             response = HttpRequest(
                 self.session.put,
                 url=url,
