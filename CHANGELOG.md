@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.7.9]
 ### Fixed
 - A rare case when server not capturing logs for auto analysis on Launch finish.
 
