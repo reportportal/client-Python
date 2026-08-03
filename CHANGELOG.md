@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- `aiohttp` update upper version, by @HardNorth
 
 ## [5.7.9]
 ### Fixed
