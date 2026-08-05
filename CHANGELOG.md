@@ -1,8 +1,11 @@
 # Changelog
 
 ## [Unreleased]
+- `aiohttp` update upper version, by @HardNorth
+
+## [5.7.9]
 ### Fixed
-- A rare case when server not capturing logs for auto analysis on Launch finish.
+- A rare case when server not capturing logs for auto analysis on Launch finish, by @HardNorth
 
 ## [5.7.8]
 ### Changed
