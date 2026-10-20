@@ -4,7 +4,7 @@ import os
 
 from setuptools import find_packages, setup
 
-__version__ = "5.7.10"
+__version__ = "5.7.11"
 
 TYPE_STUBS = ["*.pyi"]
 
@@ -45,6 +45,7 @@ setup(
         "Programming Language :: Python :: 3.12",
         "Programming Language :: Python :: 3.13",
         "Programming Language :: Python :: 3.14",
+        "Programming Language :: Python :: 3.15",
     ],
     install_requires=read_file("requirements.txt").splitlines(),
 )

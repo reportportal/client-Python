@@ -33,7 +33,7 @@ LOG_LEVEL_MAPPING: dict[int, str] = {
     logging.INFO: "INFO",
     logging.WARNING: "WARN",
     logging.ERROR: "ERROR",
-    logging.CRITICAL: "ERROR",
+    logging.CRITICAL: "FATAL",
 }
 
 MAX_LOG_BATCH_SIZE: int = 20

@@ -1,6 +1,15 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- Official `Python 3.15` support, by @HardNorth
+### Changed
+- `FATAL` and `CRITICAL` logging levels now report as `FATAL` on ReportPortal (previously was `ERROR`), by @HardNorth
+- `certify` upper version updated on `2026.10.19`, by @HardNorth
+- `aiohttp` upper version updated on `3.14.5`, by @HardNorth
+
+## [5.7.10]
+### Changed
 - `aiohttp` update upper version, by @HardNorth
 
 ## [5.7.9]
