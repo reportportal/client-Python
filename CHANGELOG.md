@@ -1,8 +1,11 @@
 # Changelog
 
 ## [Unreleased]
+### Changed
+- `FATAL` and `CRITICAL` logging levels now report as `FATAL` on ReportPortal (previously was `ERROR`), by @HardNorth
 
 ## [5.7.10]
+### Changed
 - `aiohttp` update upper version, by @HardNorth
 
 ## [5.7.9]
