@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.7.11]
 ### Added
 - Official `Python 3.15` support, by @HardNorth
 ### Changed
