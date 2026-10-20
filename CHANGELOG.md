@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- Official `Python 3.15` support, by @HardNorth
 ### Changed
 - `FATAL` and `CRITICAL` logging levels now report as `FATAL` on ReportPortal (previously was `ERROR`), by @HardNorth
 - `certify` upper version updated on `2026.10.19`, by @HardNorth
