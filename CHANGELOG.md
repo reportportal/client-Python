@@ -3,6 +3,7 @@
 ## [Unreleased]
 ### Changed
 - `FATAL` and `CRITICAL` logging levels now report as `FATAL` on ReportPortal (previously was `ERROR`), by @HardNorth
+- `certify` version updated on `2026.10.19`, by @HardNorth
 
 ## [5.7.10]
 ### Changed
