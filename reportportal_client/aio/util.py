@@ -33,4 +33,6 @@ async def await_if_necessary(obj: Union[_T, Task[_T], Coroutine[_T, None, None]]
             return await obj
         elif asyncio.iscoroutinefunction(obj):
             return await obj()
-    return obj
+        else:
+            return obj
+    return None

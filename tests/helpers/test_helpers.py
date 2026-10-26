@@ -12,6 +12,7 @@
 #  limitations under the License
 
 """This script contains unit tests for the helpers script."""
+
 from typing import Optional
 from unittest import mock
 

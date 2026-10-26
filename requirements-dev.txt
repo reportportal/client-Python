@@ -1,8 +1,5 @@
 pytest
 pytest-cov
 pytest-asyncio
-black
-isort
 types-requests
-mypy==1.19.1
 types-simplejson==3.20.0.20250822

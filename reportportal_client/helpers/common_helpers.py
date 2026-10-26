@@ -327,22 +327,16 @@ def get_function_params(func: Callable, args: tuple, kwargs: dict[str, Any]) -> 
 
 
 TYPICAL_MULTIPART_BOUNDARY: str = "--972dbca3abacfd01fb4aea0571532b52"
-TYPICAL_JSON_PART_HEADER: str = (
-    TYPICAL_MULTIPART_BOUNDARY
-    + """\r
+TYPICAL_JSON_PART_HEADER: str = TYPICAL_MULTIPART_BOUNDARY + """\r
 Content-Disposition: form-data; name="json_request_part"\r
 Content-Type: application/json\r
 \r
 """
-)
-TYPICAL_FILE_PART_HEADER: str = (
-    TYPICAL_MULTIPART_BOUNDARY
-    + """\r
+TYPICAL_FILE_PART_HEADER: str = TYPICAL_MULTIPART_BOUNDARY + """\r
 Content-Disposition: form-data; name="file"; filename="{0}"\r
 Content-Type: {1}\r
 \r
 """
-)
 TYPICAL_JSON_PART_HEADER_LENGTH: int = len(TYPICAL_JSON_PART_HEADER)
 TYPICAL_MULTIPART_FOOTER: str = "\r\n" + TYPICAL_MULTIPART_BOUNDARY + "--"
 TYPICAL_MULTIPART_FOOTER_LENGTH: int = len(TYPICAL_MULTIPART_FOOTER)

@@ -1,6 +1,10 @@
 # Changelog
 
 ## [Unreleased]
+### Changed
+- `certify` version range updated to mitigate a compromised certificate issue, by @HardNorth
+
+## [5.7.11]
 ### Added
 - Official `Python 3.15` support, by @HardNorth
 ### Changed
