@@ -32,9 +32,6 @@ import certifi
 import reportportal_client._internal.local
 
 # noinspection PyProtectedMember
-import reportportal_client._internal.logs.batcher
-
-# noinspection PyProtectedMember
 from reportportal_client._internal.aio.http import ClientSession, RetryingClientSession
 
 # noinspection PyProtectedMember
@@ -46,6 +43,9 @@ from reportportal_client._internal.aio.tasks import (
     ThreadedTaskFactory,
     TriggerTaskBatcher,
 )
+
+# noinspection PyProtectedMember
+from reportportal_client._internal.logs.batcher import LogBatcher
 
 # noinspection PyProtectedMember
 from reportportal_client._internal.services.auth import ApiKeyAuthAsync, AuthAsync, OAuthPasswordGrantAsync
@@ -784,8 +784,7 @@ class AsyncRPClient(RP):
     log_batch_size: int
     log_batch_payload_limit: int
     _item_stack: LifoQueue
-    # noinspection PyProtectedMember
-    _log_batcher: reportportal_client._internal.logs.batcher.LogBatcher
+    _log_batcher: LogBatcher
     __client: Client
     __launch_uuid: Optional[str]
     __step_reporter: StepReporter
@@ -843,8 +842,7 @@ class AsyncRPClient(RP):
         launch_uuid: Optional[str] = None,
         log_batch_size: int = 20,
         log_batch_payload_limit: int = MAX_LOG_BATCH_PAYLOAD_SIZE,
-        # noinspection PyProtectedMember
-        log_batcher: Optional[reportportal_client._internal.logs.batcher.LogBatcher] = None,
+        log_batcher: Optional[LogBatcher] = None,
         **kwargs: Any,
     ) -> None:
         """Initialize the class instance with arguments.
@@ -887,9 +885,7 @@ class AsyncRPClient(RP):
         self._item_stack = LifoQueue()
         self.log_batch_size = log_batch_size
         self.log_batch_payload_limit = log_batch_payload_limit
-        self._log_batcher = log_batcher or reportportal_client._internal.logs.batcher.LogBatcher(
-            log_batch_size, log_batch_payload_limit
-        )
+        self._log_batcher = log_batcher or LogBatcher(log_batch_size, log_batch_payload_limit)
         if client:
             self.__client = client
         else:
@@ -1266,8 +1262,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
     own_launch: bool
     own_client: bool
     _item_stack: LifoQueue
-    # noinspection PyProtectedMember
-    _log_batcher: reportportal_client._internal.logs.batcher.LogBatcher
+    _log_batcher: LogBatcher
     __client: Client
     __launch_uuid: Optional[Task[Optional[str]]]
     __endpoint: str
@@ -1326,8 +1321,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
         launch_uuid: Optional[Task[str]] = None,
         log_batch_size: int = 20,
         log_batch_payload_limit: int = MAX_LOG_BATCH_PAYLOAD_SIZE,
-        # noinspection PyProtectedMember
-        log_batcher: Optional[reportportal_client._internal.logs.batcher.LogBatcher] = None,
+        log_batcher: Optional[LogBatcher] = None,
         **kwargs: Any,
     ) -> None:
         """Initialize the class instance with arguments.
@@ -1365,10 +1359,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
 
         self.log_batch_size = log_batch_size
         self.log_batch_payload_limit = log_batch_payload_limit
-        # noinspection PyProtectedMember
-        self._log_batcher = log_batcher or reportportal_client._internal.logs.batcher.LogBatcher(
-            log_batch_size, log_batch_payload_limit
-        )
+        self._log_batcher = log_batcher or LogBatcher(log_batch_size, log_batch_payload_limit)
 
         if client:
             self.__client = client
