@@ -12,4 +12,5 @@
 #  limitations under the License
 
 """Package which contains all ReportPortal client tests."""
+
 # This file is here because otherwise code coverage is not working. But pytest does not require package files.

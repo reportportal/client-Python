@@ -42,6 +42,7 @@ Usage with 'with' keyword:
             pass
 
 """
+
 from datetime import datetime, timezone
 from functools import wraps
 from typing import Any, Callable, Optional, TypeVar, Union

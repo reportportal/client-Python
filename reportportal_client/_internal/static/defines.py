@@ -12,6 +12,7 @@
 #  limitations under the License
 
 """This module provides RP client static objects and variables."""
+
 from enum import Enum, IntEnum
 
 from reportportal_client.helpers import ATTRIBUTE_LENGTH_LIMIT as ATTRIBUTE_LIMIT
