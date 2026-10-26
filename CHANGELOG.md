@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.7.12]
 ### Changed
 - `certify` version range updated to mitigate a compromised certificate issue, by @HardNorth
 
