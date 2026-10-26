@@ -4,7 +4,7 @@ default_language_version:
   python: python3.10
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: '3e8a8703264a2f4a69428a0aa4dcb512790b2c8c'
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
@@ -14,20 +14,31 @@ repos:
     rev: 6.3.0
     hooks:
       - id: pydocstyle
+        language: system
         exclude: |
           (?x)^(
               tests/.*
           )
   - repo: https://github.com/psf/black
-    rev: 24.10.0
+    rev: '258e7dbf348bc23cb70b8cdf693481c04634ebcc'
     hooks:
       - id: black
+        language: system
         args: [ '--check', './reportportal_client', './tests' ]
   - repo: https://github.com/pycqa/isort
-    rev: 5.13.2
+    rev: '0a09c783808cfe77bb3269250f663ff733d23302'
     hooks:
       - id: isort
+        language: system
   - repo: https://github.com/pycqa/flake8
-    rev: 7.1.1
+    rev: 'c48217e1fc006c2dddd14df54e83b67da15de5cd'
     hooks:
       - id: flake8
+        language: system
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: 'a66e98df7b4aeeb3724184b332785976d062b92e'
+    hooks:
+      - id: mypy
+        language: system
+        args: [ "--ignore-missing-imports" ]
+        exclude: 'tests/'
