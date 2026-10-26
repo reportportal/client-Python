@@ -29,6 +29,9 @@ import aiohttp
 import certifi
 
 # noinspection PyProtectedMember
+import reportportal_client._internal.local
+
+# noinspection PyProtectedMember
 from reportportal_client._internal.aio.http import ClientSession, RetryingClientSession
 
 # noinspection PyProtectedMember
@@ -40,9 +43,6 @@ from reportportal_client._internal.aio.tasks import (
     ThreadedTaskFactory,
     TriggerTaskBatcher,
 )
-
-# noinspection PyProtectedMember
-from reportportal_client._internal.local import set_current
 
 # noinspection PyProtectedMember
 from reportportal_client._internal.logs.batcher import LogBatcher
@@ -898,7 +898,8 @@ class AsyncRPClient(RP):
         self._api_info_task = None
         self._api_info_cache = None
         self._use_microseconds = None
-        set_current(self)
+        # noinspection PyProtectedMember
+        reportportal_client._internal.local.set_current(self)
 
     def __cache_api_info(self, api_info: Optional[dict]) -> Optional[dict]:
         if not isinstance(api_info, dict):
@@ -1376,7 +1377,8 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
         self._api_info_task = None
         self._api_info_cache = None
         self._use_microseconds = None
-        set_current(self)
+        # noinspection PyProtectedMember
+        reportportal_client._internal.local.set_current(self)
 
     @abstractmethod
     def create_task(self, coro: Coroutine[Any, Any, _T]) -> Task[_T]:
