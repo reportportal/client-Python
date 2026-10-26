@@ -11,7 +11,7 @@ repos:
       - id: check-yaml
       - id: check-added-large-files
   - repo: https://github.com/PyCQA/pydocstyle
-    rev: 6.3.0
+    rev: '07f6707e2c5612960347f7c00125620457f490a7'
     hooks:
       - id: pydocstyle
         language: system
