@@ -16,19 +16,19 @@
 from threading import local
 from typing import Optional
 
-from reportportal_client import RP
+import reportportal_client.client
 
 __INSTANCES = local()
 
 
-def current() -> Optional[RP]:
+def current() -> Optional['reportportal_client.client.RP']:
     """Return current ReportPortal client."""
     if hasattr(__INSTANCES, "current"):
         return __INSTANCES.current
     return None
 
 
-def set_current(client: Optional[RP]) -> None:
+def set_current(client: Optional['reportportal_client.client.RP']) -> None:
     """Save ReportPortal client as current.
 
     The method is not intended to use used by users. ReportPortal client calls
