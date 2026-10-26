@@ -24,7 +24,8 @@ repos:
     hooks:
       - id: black
         language: system
-        args: [ '--check', './reportportal_client', './tests' ]
+        args: [ '--check' ]
+        files: ^(reportportal_client|tests)/
   - repo: https://github.com/pycqa/isort
     rev: '0a09c783808cfe77bb3269250f663ff733d23302'
     hooks:
@@ -40,5 +41,6 @@ repos:
     hooks:
       - id: mypy
         language: system
-        args: [ "--ignore-missing-imports" ]
-        exclude: 'tests/'
+        args: [ "--ignore-missing-imports", "reportportal_client" ]
+        pass_filenames: false
+        files: ^reportportal_client/
