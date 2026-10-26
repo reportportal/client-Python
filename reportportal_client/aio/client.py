@@ -29,9 +29,6 @@ import aiohttp
 import certifi
 
 # noinspection PyProtectedMember
-import reportportal_client.client
-
-# noinspection PyProtectedMember
 import reportportal_client._internal.local
 
 # noinspection PyProtectedMember
@@ -65,6 +62,7 @@ from reportportal_client._internal.static.defines import DEFAULT_LOG_LEVEL, MICR
 # noinspection PyProtectedMember
 from reportportal_client.aio.tasks import EmptyTask, Task
 from reportportal_client.aio.util import await_if_necessary
+from reportportal_client.client import RP, OutputType
 from reportportal_client.core.rp_issues import Issue
 from reportportal_client.core.rp_requests import (
     AsyncHttpRequest,
@@ -132,7 +130,7 @@ class Client:
     keepalive_timeout: Optional[float]
     mode: str
     launch_uuid_print: bool
-    print_output: reportportal_client.client.OutputType
+    print_output: OutputType
     truncate_attributes: bool
     truncate_fields: bool
     replace_binary_chars: bool
@@ -158,7 +156,7 @@ class Client:
         keepalive_timeout: Optional[float] = None,
         mode: str = "DEFAULT",
         launch_uuid_print: bool = False,
-        print_output: reportportal_client.client.OutputType = reportportal_client.client.OutputType.STDOUT,
+        print_output: OutputType = OutputType.STDOUT,
         truncate_attributes: bool = True,
         truncate_fields: bool = True,
         replace_binary_chars: bool = True,
@@ -775,7 +773,7 @@ class Client:
         self.__dict__.update(state)
 
 
-class AsyncRPClient('reportportal_client.client.RP'):
+class AsyncRPClient(RP):
     """Asynchronous ReportPortal Client.
 
     This class implements common RP client interface but all its methods are async, so it capable to use in
@@ -1258,7 +1256,7 @@ class AsyncRPClient('reportportal_client.client.RP'):
 
 
 # noinspection PyAbstractClass
-class _RPClient('reportportal_client.client.RP', metaclass=AbstractBaseClass):
+class _RPClient(RP, metaclass=AbstractBaseClass):
     """Base class for different synchronous to asynchronous client implementations."""
 
     __metaclass__ = AbstractBaseClass
