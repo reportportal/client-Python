@@ -29,10 +29,10 @@ from typing import Any, Optional, TextIO, Union
 from requests.adapters import DEFAULT_RETRIES, HTTPAdapter, Retry
 
 # noinspection PyProtectedMember
-import reportportal_client._internal.local
+from reportportal_client._internal.http import ClientSession
 
 # noinspection PyProtectedMember
-from reportportal_client._internal.http import ClientSession
+from reportportal_client._internal.local import set_current
 
 # noinspection PyProtectedMember
 from reportportal_client._internal.logs.batcher import LogBatcher
@@ -576,8 +576,7 @@ class RPClient(RP):
         :param launch_description_length_limit:  Maximum allowed launch description length.
         :param item_description_length_limit:    Maximum allowed test item description length.
         """
-        # noinspection PyProtectedMember
-        reportportal_client._internal.local.set_current(self)
+        set_current(self)
         self.api_v1, self.api_v2 = "v1", "v2"
         self.__endpoint = endpoint
         self.__project = project
