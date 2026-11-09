@@ -18,9 +18,18 @@ from unittest import mock
 # noinspection PyPackageRequirements
 import pytest
 
-from reportportal_client.aio import BatchedRPClient
+from reportportal_client.aio import BatchedRPClient, ThreadedRPClient
 from reportportal_client.core.rp_requests import AsyncRPRequestLog
 from reportportal_client.helpers import timestamp
+
+
+@pytest.mark.parametrize("client_class", [BatchedRPClient, ThreadedRPClient])
+def test_own_client_reflects_client_ownership(client_class):
+    owned = client_class("http://endpoint", "project", api_key="api_key")
+    assert owned.own_client is True
+
+    borrowed = client_class("http://endpoint", "project", api_key="api_key", client=mock.AsyncMock())
+    assert borrowed.own_client is False
 
 
 def test_batched_rp_client_pickling():
@@ -28,6 +37,8 @@ def test_batched_rp_client_pickling():
     pickled_client = pickle.dumps(client)
     unpickled_client = pickle.loads(pickled_client)
     assert unpickled_client is not None
+    assert unpickled_client.own_client is True
+    unpickled_client.close()
 
 
 async def __empty_string():
