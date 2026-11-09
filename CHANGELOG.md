@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.8.0]
 ### Fixed
 - Issue [#283](https://github.com/reportportal/client-Python/issues/283): Async RPClient doesn't close client session, by @BlueX888
 ### Removed
