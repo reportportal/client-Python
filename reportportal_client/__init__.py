@@ -18,7 +18,6 @@ import warnings
 from enum import Enum
 from typing import Optional, TypedDict, Union
 
-# noinspection PyUnreachableCode
 if sys.version_info >= (3, 11):
     from typing import Unpack
 else:

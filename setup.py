@@ -39,7 +39,6 @@ setup(
     license="Apache-2.0",
     keywords=["testing", "reporting", "reportportal", "client"],
     classifiers=[
-        "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
