@@ -771,6 +771,7 @@ class Client:
         :param dict state: object state dictionary
         """
         self.__dict__.update(state)
+        self._session = None
 
 
 class AsyncRPClient(RP):
@@ -1365,7 +1366,7 @@ class _RPClient(RP, metaclass=AbstractBaseClass):
             self.own_client = False
         else:
             self.__client = Client(endpoint, project, **kwargs)
-            self.own_client = False
+            self.own_client = True
 
         self.__launch_uuid = launch_uuid
         if launch_uuid:
