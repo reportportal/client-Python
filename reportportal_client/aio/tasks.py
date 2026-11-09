@@ -17,12 +17,7 @@ import asyncio
 import sys
 from abc import abstractmethod
 from asyncio import Future
-from typing import Any, Coroutine, Generator, Generic, Optional, TypeVar, Union
-
-if sys.version_info >= (3, 10):
-    from typing import TypeAlias
-else:
-    from typing_extensions import TypeAlias
+from typing import Any, Coroutine, Generator, Generic, Optional, TypeAlias, TypeVar, Union
 
 # noinspection PyProtectedMember
 from reportportal_client._internal.static.abstract import AbstractBaseClass

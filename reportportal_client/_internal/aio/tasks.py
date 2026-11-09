@@ -17,14 +17,9 @@ import asyncio
 import sys
 import time
 from asyncio import Future
-from typing import Any, Coroutine, Generator, Generic, Optional, TypeVar, Union
+from typing import Any, Coroutine, Generator, Generic, Optional, TypeAlias, TypeVar, Union
 
 from reportportal_client.aio.tasks import BlockingOperationError, Task
-
-if sys.version_info >= (3, 10):
-    from typing import TypeAlias
-else:
-    from typing_extensions import TypeAlias
 
 _T = TypeVar("_T")
 

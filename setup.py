@@ -4,7 +4,7 @@ import os
 
 from setuptools import find_packages, setup
 
-__version__ = "5.7.12"
+__version__ = "5.8.0"
 
 TYPE_STUBS = ["*.pyi"]
 
@@ -39,7 +39,6 @@ setup(
     license="Apache-2.0",
     keywords=["testing", "reporting", "reportportal", "client"],
     classifiers=[
-        "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
